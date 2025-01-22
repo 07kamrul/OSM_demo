@@ -60,11 +60,25 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               .map<LatLng>((coord) => LatLng(coord[1], coord[0]))
               .toList();
         });
+
+        print('Route Points: $_routePoints');
+        print('Distance: $_distance km');
+        _fitMapToRoute();
       } else {
         throw Exception('Failed to fetch road distance.');
       }
     } catch (e) {
       print('Error fetching road distance: $e');
+    }
+  }
+
+  void _fitMapToRoute() {
+    if (_routePoints.isNotEmpty) {
+      final bounds = LatLngBounds.fromPoints(_routePoints);
+      _mapController.fitBounds(
+        bounds,
+        options: const FitBoundsOptions(padding: EdgeInsets.all(50)),
+      );
     }
   }
 
