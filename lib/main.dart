@@ -61,8 +61,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               .toList();
         });
 
-        print('Route Points: $_routePoints');
-        print('Distance: $_distance km');
         _fitMapToRoute();
       } else {
         throw Exception('Failed to fetch road distance.');
@@ -84,70 +82,97 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('OSM Road Distance Tracker'),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                center: _user1Location,
-                zoom: 4.0,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.osm_distance_tracker',
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _user1Location,
-                      builder: (ctx) => const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
-                      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isPortrait = constraints.maxWidth < constraints.maxHeight;
+
+          return Flex(
+            direction: isPortrait ? Axis.vertical : Axis.horizontal,
+            children: [
+              Expanded(
+                flex: 3,
+                child: FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    center: _user1Location,
+                    zoom: 4.0,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.osm_distance_tracker',
                     ),
-                    Marker(
-                      point: _user2Location,
-                      builder: (ctx) => const Icon(
-                        Icons.location_on,
-                        color: Colors.blue,
-                        size: 40,
-                      ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _user1Location,
+                          builder: (ctx) => const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 40,
+                          ),
+                        ),
+                        Marker(
+                          point: _user2Location,
+                          builder: (ctx) => const Icon(
+                            Icons.location_on,
+                            color: Colors.blue,
+                            size: 40,
+                          ),
+                        ),
+                      ],
                     ),
+                    if (_routePoints.isNotEmpty)
+                      PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            points: _routePoints,
+                            color: Colors.green,
+                            strokeWidth: 4.0,
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-                if (_routePoints.isNotEmpty)
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: _routePoints,
-                        color: Colors.green,
-                        strokeWidth: 4.0,
+              ),
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: EdgeInsets.all(size.width * 0.04),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_distance != null)
+                        Text(
+                          'Road Distance: ${_distance!.toStringAsFixed(2)} km',
+                          style: TextStyle(
+                            fontSize: size.width * 0.05,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      SizedBox(height: size.height * 0.02),
+                      Text(
+                        'Red Marker: User 1\nBlue Marker: User 2',
+                        style: TextStyle(
+                          fontSize: size.width * 0.04,
+                          color: Colors.grey[600],
+                        ),
                       ),
                     ],
                   ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                if (_distance != null)
-                  Text(
-                    'Road Distance: ${_distance!.toStringAsFixed(2)} km',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-              ],
-            ),
-          ),
-        ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
