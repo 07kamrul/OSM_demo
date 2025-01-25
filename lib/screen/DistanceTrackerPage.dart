@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+void main() {
+  runApp(const OSMDistanceApp());
+}
+
+class OSMDistanceApp extends StatelessWidget {
+  const OSMDistanceApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Location Tracker',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const DistanceTrackerPage(),
+    );
+  }
+}
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);
@@ -14,7 +32,7 @@ class DistanceTrackerPage extends StatefulWidget {
 
 class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   final MapController _mapController = MapController();
-  LatLng _currentUserLocation = LatLng(35.654231839290084, 140.04207391850457);
+  LatLng _currentUserLocation = LatLng(0, 0); // Default location
   List<LatLng> _userLocations = [
     LatLng(35.550463294248544, 139.77705935405905), // User 2
     LatLng(35.689487, 139.691711), // User 3
@@ -26,6 +44,46 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   @override
   void initState() {
     super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Check if location services are enabled
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
+
+    // Check location permissions
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.deniedForever) {
+        return;
+      }
+    }
+
+    // Get current location
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    setState(() {
+      _currentUserLocation = LatLng(position.latitude, position.longitude);
+    });
+
+    // Listen to location changes
+    Geolocator.getPositionStream(
+        locationSettings:
+        const LocationSettings(accuracy: LocationAccuracy.high))
+        .listen((Position position) {
+      setState(() {
+        _currentUserLocation = LatLng(position.latitude, position.longitude);
+      });
+    });
   }
 
   Future<void> _calculateDistance(LatLng targetLocation) async {
@@ -97,7 +155,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                     Marker(
                       point: _currentUserLocation,
                       builder: (ctx) => const Icon(
-                        Icons.location_on,
+                        Icons.my_location,
                         color: Colors.red,
                         size: 40,
                       ),
