@@ -1,27 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
-void main() {
-  runApp(const OSMDistanceApp());
-}
-
-class OSMDistanceApp extends StatelessWidget {
-  const OSMDistanceApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Location Tracker',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const DistanceTrackerPage(),
-    );
-  }
-}
+import '../service/location_service.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);
@@ -44,73 +25,29 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _initializeLocation();
   }
 
-  Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  Future<void> _initializeLocation() async {
+    _currentUserLocation = await LocationService.getCurrentLocation();
+    setState(() {});
 
-    // Check if location services are enabled
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-      return;
-    }
-
-    // Check location permissions
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.deniedForever) {
-        return;
-      }
-    }
-
-    // Get current location
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-
-    setState(() {
-      _currentUserLocation = LatLng(position.latitude, position.longitude);
-    });
-
-    // Listen to location changes
-    Geolocator.getPositionStream(
-        locationSettings:
-        const LocationSettings(accuracy: LocationAccuracy.high))
-        .listen((Position position) {
+    LocationService.listenToLocationChanges((newLocation) {
       setState(() {
-        _currentUserLocation = LatLng(position.latitude, position.longitude);
+        _currentUserLocation = newLocation;
       });
     });
   }
 
   Future<void> _calculateDistance(LatLng targetLocation) async {
-    final String url =
-        'https://router.project-osrm.org/route/v1/driving/${_currentUserLocation.longitude},${_currentUserLocation.latitude};${targetLocation.longitude},${targetLocation.latitude}?overview=full&geometries=geojson';
-
-    try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final distanceMeters = data['routes'][0]['distance'];
-        final coordinates = data['routes'][0]['geometry']['coordinates'];
-
-        setState(() {
-          _distance = distanceMeters / 1000; // Convert to kilometers
-          _routePoints = coordinates
-              .map<LatLng>((coord) => LatLng(coord[1], coord[0]))
-              .toList();
-        });
-
-        _fitMapToRoute();
-      } else {
-        throw Exception('Failed to fetch road distance.');
-      }
-    } catch (e) {
-      print('Error fetching road distance: $e');
+    final result =
+    await LocationService.getRouteDistance(_currentUserLocation, targetLocation);
+    if (result != null) {
+      setState(() {
+        _distance = result.distance;
+        _routePoints = result.routePoints;
+      });
+      _fitMapToRoute();
     }
   }
 

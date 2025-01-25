@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screen/DistanceTrackerPage.dart';
+import 'screen/distance_tracker_page.dart';
 
 void main() {
   runApp(const OSMDistanceApp());
