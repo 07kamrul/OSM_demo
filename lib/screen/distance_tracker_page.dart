@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../service/location_service.dart';
+import '../services/location_service.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);

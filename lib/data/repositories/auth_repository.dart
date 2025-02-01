@@ -1,37 +1,38 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../config/api_config.dart';
 import '../models/user.dart';
 
 class AuthRepository {
-  final String baseUrl = "http://localhost:5000/api/Auth";
+  final String baseUrl = ApiConfig.baseUrl + '/auth';
 
-  Future<User> register(User user) async {
+  Future<Map<String, dynamic>> register(User user) async {
     final response = await http.post(
       Uri.parse('$baseUrl/register'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode(user.toJson()),
+      body: jsonEncode(user.toJson()),
     );
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return User.fromJson(data['User']);
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to register: ${response.body}');
+      throw Exception('Failed to register user');
     }
   }
 
-  Future<User> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final uri = Uri.parse('$baseUrl/login')
+        .replace(queryParameters: {'email': email, 'password': password});
+
     final response = await http.post(
-      Uri.parse('$baseUrl/login'),
+      uri,
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'email': email, 'password': password}),
     );
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return User.fromJson(data['User']);
+      return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to login: ${response.body}');
+      throw Exception('Invalid credentials');
     }
   }
 }

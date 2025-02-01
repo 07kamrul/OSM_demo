@@ -3,16 +3,16 @@ import 'package:http/http.dart' as http;
 import '../models/user_location.dart';
 
 class UserLocationRepository {
-  final String baseUrl = "http://localhost:5000/api/UserLocation";
+  final String baseUrl = 'http://192.168.0.150:5143/api/UserLocation';
 
   Future<List<UserLocation>> getAllUserLocations() async {
     final response = await http.get(Uri.parse('$baseUrl/GetAllUserLocations'));
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body)['Data'] as List;
+      final data = jsonDecode(response.body)['Data'] as List;
       return data.map((e) => UserLocation.fromJson(e)).toList();
     } else {
-      throw Exception('Failed to fetch user locations: ${response.body}');
+      throw Exception('Failed to load user locations');
     }
   }
 
@@ -20,25 +20,42 @@ class UserLocationRepository {
     final response = await http.get(Uri.parse('$baseUrl/GetUserLocation?id=$id'));
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body)['Data'];
+      final data = jsonDecode(response.body)['Data'];
       return UserLocation.fromJson(data);
     } else {
-      throw Exception('Failed to fetch user location: ${response.body}');
+      throw Exception('User location not found');
     }
   }
 
-  Future<UserLocation> addUserLocation(UserLocation userLocation) async {
+  Future<void> addUserLocation(UserLocation userLocation) async {
     final response = await http.post(
       Uri.parse('$baseUrl/AddUserLocation'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode(userLocation.toJson()),
+      body: jsonEncode(userLocation.toJson()),
     );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body)['Data'];
-      return UserLocation.fromJson(data);
-    } else {
-      throw Exception('Failed to add user location: ${response.body}');
+    if (response.statusCode != 200) {
+      throw Exception('Failed to add user location');
+    }
+  }
+
+  Future<void> updateUserLocation(UserLocation userLocation) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/UpdateUserLocation'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(userLocation.toJson()),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update user location');
+    }
+  }
+
+  Future<void> deleteUserLocation(int id) async {
+    final response = await http.delete(Uri.parse('$baseUrl/$id'));
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete user location');
     }
   }
 }
