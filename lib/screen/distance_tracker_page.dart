@@ -201,6 +201,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             bottom: screenHeight * 0.2, // Adjust based on screen height
             right: screenWidth * 0.05,
             child: FloatingActionButton(
+              heroTag: 'zoomIn', // Unique tag for this button
               onPressed: _zoomIn,
               mini: true,
               backgroundColor: Colors.white,
@@ -212,6 +213,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             bottom: screenHeight * 0.13, // Adjust based on screen height
             right: screenWidth * 0.05,
             child: FloatingActionButton(
+              heroTag: 'zoomOut', // Unique tag for this button
               onPressed: _zoomOut,
               mini: true,
               backgroundColor: Colors.white,
@@ -223,6 +225,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             bottom: screenHeight * 0.1,
             right: screenWidth * 0.05,
             child: FloatingActionButton(
+              heroTag: 'togglePanel', // Unique tag for this button
               onPressed: () {
                 setState(() {
                   _isExpanded = !_isExpanded;
@@ -265,6 +268,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             bottom: screenHeight * 0.05,
             right: screenWidth * 0.05,
             child: FloatingActionButton(
+              heroTag: 'currentLocation', // Unique tag for this button
               onPressed: _getCurrentLocation,
               backgroundColor: Colors.blue,
               child: const Icon(Icons.my_location, color: Colors.white),

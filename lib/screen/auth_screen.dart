@@ -4,6 +4,7 @@ import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
 import 'distance_tracker_page.dart';
+import 'register_screen.dart'; // Import the RegisterScreen
 
 class AuthScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -28,6 +29,7 @@ class AuthScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
+        appBar: AppBar(title: Text('Login')),
         backgroundColor: Colors.white,
         body: Center(
           child: Padding(
@@ -38,7 +40,6 @@ class AuthScreen extends StatelessWidget {
                 // Logo
                 Icon(Icons.lock, size: 80, color: Colors.blueAccent),
                 SizedBox(height: 20),
-
                 // Email Input
                 TextField(
                   controller: emailController,
@@ -50,7 +51,6 @@ class AuthScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 16),
-
                 // Password Input
                 TextField(
                   controller: passwordController,
@@ -62,7 +62,6 @@ class AuthScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 24),
-
                 // Login Button
                 BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
@@ -70,14 +69,12 @@ class AuthScreen extends StatelessWidget {
                       onPressed: () {
                         String email = emailController.text.trim();
                         String password = passwordController.text.trim();
-
                         if (email.isEmpty || password.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text("Please fill all fields"), backgroundColor: Colors.red),
                           );
                           return;
                         }
-
                         context.read<AuthBloc>().add(LoginEvent(email, password));
                       },
                       style: ElevatedButton.styleFrom(
@@ -93,17 +90,19 @@ class AuthScreen extends StatelessWidget {
                   },
                 ),
                 SizedBox(height: 12),
-
                 // Register Button
                 TextButton(
                   onPressed: () {
-                    context.read<AuthBloc>().add(
-                      LoginEvent(
-                        emailController.text,
-                        passwordController.text,
-                      ),
-                    );                  },
-                  child: Text("Don't have an account? Register", style: TextStyle(color: Colors.blueAccent)),
+                    // Navigate to the RegisterScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RegisterScreen()),
+                    );
+                  },
+                  child: Text(
+                    "Don't have an account? Register",
+                    style: TextStyle(color: Colors.blueAccent),
+                  ),
                 ),
               ],
             ),
