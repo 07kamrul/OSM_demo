@@ -24,6 +24,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(
+              Icons.person_add,
+              color: Colors.blue,
+              size: 100.0,
+            ),
+            SizedBox(height: 20),
             // Email Input
             TextField(
               controller: emailController,

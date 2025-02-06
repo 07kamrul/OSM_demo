@@ -22,10 +22,6 @@ class AuthScreen extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (_) => DistanceTrackerPage()),
           );
-        } else if (state is AuthFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error), backgroundColor: Colors.red),
-          );
         }
       },
       child: Scaffold(
@@ -61,7 +57,20 @@ class AuthScreen extends StatelessWidget {
                     prefixIcon: Icon(Icons.lock),
                   ),
                 ),
-                SizedBox(height: 24),
+                SizedBox(height: 16),
+                // Error Message
+                BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    if (state is AuthFailure) {
+                      return Text(
+                        state.error, // Display the error message
+                        style: TextStyle(color: Colors.red, fontSize: 14),
+                      );
+                    }
+                    return SizedBox.shrink(); // No error message to display
+                  },
+                ),
+                SizedBox(height: 8),
                 // Login Button
                 BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
