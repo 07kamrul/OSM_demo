@@ -12,8 +12,10 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _obscureText = true;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +32,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               size: 100.0,
             ),
             SizedBox(height: 20),
+            // Name Input
+            TextField(
+              controller: nameController,
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(
+                labelText: 'Full Name',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+            SizedBox(height: 16),
             // Email Input
             TextField(
               controller: emailController,
@@ -44,14 +57,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // Password Input
             TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: Icon(Icons.lock),
+            controller: passwordController,
+            obscureText: _obscureText,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              prefixIcon: const Icon(Icons.lock),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
+                onPressed: () {
+                  setState(() {
+                    _obscureText = !_obscureText;
+                  });
+                },
               ),
             ),
+          ),
             SizedBox(height: 20),
 
             // Register Button with BlocConsumer
@@ -86,6 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               builder: (context, state) {
                 return ElevatedButton(
                   onPressed: () {
+                    String name = nameController.text.trim();
                     String email = emailController.text.trim();
                     String password = passwordController.text.trim();
 
@@ -99,7 +121,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return;
                     }
 
-                    final user = User(email: email, password: password);
+                    // Create a User object without an `id`
+                    final user = User(
+                      id: 0,
+                      name: name,
+                      email: email,
+                      password: password,
+                    );
+
+                    // Dispatch the RegisterEvent with the User object
                     context.read<AuthBloc>().add(RegisterEvent(user));
                   },
                   style: ElevatedButton.styleFrom(

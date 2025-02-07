@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
 import 'auth_screen.dart';
+import 'sidebar.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);
@@ -115,17 +116,23 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Location Tracker'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => AuthScreen()),
-              );
-            },
-          ),
-        ],
+      ),
+      drawer: Sidebar(
+        onHomeTap: () {
+          // Handle Home tap
+        },
+        onTrackLocationTap: () {
+          // Handle Track Location tap
+        },
+        onSettingsTap: () {
+          // Handle Settings tap
+        },
+        onLogoutTap: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AuthScreen()),
+          );
+        },
       ),
       body: Stack(
         children: [
