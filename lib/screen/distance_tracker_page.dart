@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
+import 'auth_screen.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);
@@ -105,16 +106,27 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Get screen size
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
-    // Use relative positioning and sizes based on screen size
     double buttonSize = screenWidth * 0.12; // Adjust button size relative to screen width
     double paddingValue = screenWidth * 0.05; // Padding relative to screen width
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Location Tracker')),
+      appBar: AppBar(
+        title: const Text('Location Tracker'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => AuthScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           Column(
