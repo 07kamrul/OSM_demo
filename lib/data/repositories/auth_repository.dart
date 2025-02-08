@@ -4,7 +4,7 @@ import '../../config/api_config.dart';
 import '../models/user.dart';
 
 class AuthRepository {
-  final String baseUrl = ApiConfig.baseUrl + '/auth';
+  final String baseUrl = '${ApiConfig.baseUrl}/auth';
 
   Future<Map<String, dynamic>> register(User user) async {
     try {
@@ -36,7 +36,13 @@ class AuthRepository {
       );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body); // Return the parsed JSON response
+        final decodedResponse = jsonDecode(response.body);
+
+        if (decodedResponse is Map<String, dynamic>) {
+          return decodedResponse;
+        } else {
+          throw Exception("Unexpected response format from server.");
+        }
       } else {
         throw Exception('Invalid credentials');
       }

@@ -12,6 +12,17 @@ class AuthScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+
+    // Responsive values
+    double logoSize = screenWidth * 0.3; // Logo size relative to screen width
+    double inputHeight = screenHeight * 0.06; // Input field height relative to screen height
+    double fontSize = screenWidth * 0.04; // Font size relative to screen width
+    double paddingValue = screenWidth * 0.05; // Padding relative to screen width
+    double buttonHeight = screenHeight * 0.07; // Button height relative to screen height
+
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthSuccess) {
@@ -25,52 +36,68 @@ class AuthScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: Text('Login')),
+        appBar: AppBar(
+          title: Text('Login'),
+          centerTitle: true,
+        ),
         backgroundColor: Colors.white,
         body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: paddingValue),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo
-                Icon(Icons.lock, size: 80, color: Colors.blueAccent),
-                SizedBox(height: 20),
+                Icon(Icons.lock, size: logoSize, color: Colors.blueAccent),
+                SizedBox(height: screenHeight * 0.02),
+
                 // Email Input
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: "Email",
+                    labelStyle: TextStyle(fontSize: fontSize),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: Icon(Icons.email),
+                    prefixIcon: Icon(Icons.email, size: fontSize),
                   ),
+                  style: TextStyle(fontSize: fontSize),
+                  textAlignVertical: TextAlignVertical.center,
+                  maxLines: 1,
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: screenHeight * 0.02),
+
                 // Password Input
                 TextField(
                   controller: passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: "Password",
+                    labelStyle: TextStyle(fontSize: fontSize),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: Icon(Icons.lock, size: fontSize),
                   ),
+                  style: TextStyle(fontSize: fontSize),
+                  textAlignVertical: TextAlignVertical.center,
+                  maxLines: 1,
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: screenHeight * 0.02),
+
                 // Error Message
                 BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
                     if (state is AuthFailure) {
                       return Text(
                         state.error, // Display the error message
-                        style: TextStyle(color: Colors.red, fontSize: 14),
+                        style: TextStyle(color: Colors.red, fontSize: fontSize * 0.8),
+                        textAlign: TextAlign.center,
                       );
                     }
                     return SizedBox.shrink(); // No error message to display
                   },
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: screenHeight * 0.01),
+
                 // Login Button
                 BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
@@ -80,7 +107,10 @@ class AuthScreen extends StatelessWidget {
                         String password = passwordController.text.trim();
                         if (email.isEmpty || password.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Please fill all fields"), backgroundColor: Colors.red),
+                            SnackBar(
+                              content: Text("Please fill all fields"),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                           return;
                         }
@@ -89,16 +119,17 @@ class AuthScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueAccent,
                         foregroundColor: Colors.white,
-                        minimumSize: Size(double.infinity, 50),
+                        minimumSize: Size(double.infinity, buttonHeight),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: state is AuthLoading
                           ? CircularProgressIndicator(color: Colors.white)
-                          : Text("Login", style: TextStyle(fontSize: 16)),
+                          : Text("Login", style: TextStyle(fontSize: fontSize)),
                     );
                   },
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: screenHeight * 0.02),
+
                 // Register Button
                 TextButton(
                   onPressed: () {
@@ -110,7 +141,7 @@ class AuthScreen extends StatelessWidget {
                   },
                   child: Text(
                     "Don't have an account? Register",
-                    style: TextStyle(color: Colors.blueAccent),
+                    style: TextStyle(color: Colors.blueAccent, fontSize: fontSize * 0.9),
                   ),
                 ),
               ],

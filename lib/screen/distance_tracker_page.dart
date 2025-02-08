@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:gis_osm/bloc/auth/auth_event.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
+import '../bloc/auth/auth_bloc.dart';
 import 'auth_screen.dart';
-import 'sidebar.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);
@@ -22,7 +24,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   ];
   List<String> _userNames = ["User 1", "User 2", "User 3"];
   double? _distance;
-  List<LatLng> _routePoints = [];
+  List<LatLng> _routePoints = []; // Explicitly declare as List<LatLng>
   double _rotation = 0.0;
   bool _isExpanded = false;
 
@@ -55,11 +57,12 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   Future<void> _calculateDistance(LatLng targetLocation) async {
     try {
-      final result = await LocationService.getRouteDistance(_currentUserLocation, targetLocation);
+      final result =
+      await LocationService.getRouteDistance(_currentUserLocation, targetLocation);
       if (result != null && result.distance != null) {
         setState(() {
           _distance = result.distance;
-          _routePoints = result.routePoints;
+          _routePoints = result.routePoints; // Ensure result.routePoints is List<LatLng>
         });
         _fitMapToRoute();
       } else {
@@ -72,7 +75,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   void _fitMapToRoute() {
     if (_routePoints.isNotEmpty) {
-      final bounds = LatLngBounds.fromPoints(_routePoints);
+      final bounds = LatLngBounds.fromPoints(_routePoints); // No error now
       _mapController.fitBounds(
         bounds,
         options: const FitBoundsOptions(padding: EdgeInsets.all(50)),
@@ -109,30 +112,26 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-
     double buttonSize = screenWidth * 0.12; // Adjust button size relative to screen width
     double paddingValue = screenWidth * 0.05; // Padding relative to screen width
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Location Tracker'),
-      ),
-      drawer: Sidebar(
-        onHomeTap: () {
-          // Handle Home tap
-        },
-        onTrackLocationTap: () {
-          // Handle Track Location tap
-        },
-        onSettingsTap: () {
-          // Handle Settings tap
-        },
-        onLogoutTap: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => AuthScreen()),
-          );
-        },
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              // Dispatch the LogoutEvent
+              context.read<AuthBloc>().add(LogoutEvent());
+              // Navigate back to the AuthScreen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => AuthScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -260,7 +259,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               right: screenWidth * 0.05,
               child: Container(
                 width: screenWidth * 0.5, // Use screen width for responsiveness
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
