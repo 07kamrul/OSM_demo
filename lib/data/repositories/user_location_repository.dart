@@ -9,7 +9,7 @@ class UserLocationRepository {
     final response = await http.get(Uri.parse('$baseUrl/GetAllUserLocations'));
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body)['Data'] as List;
+      final data = jsonDecode(response.body)['data'] as List;
       return data.map((e) => UserLocation.fromJson(e)).toList();
     } else {
       throw Exception('Failed to load user locations');

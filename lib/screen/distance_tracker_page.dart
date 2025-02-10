@@ -5,6 +5,10 @@ import 'package:gis_osm/bloc/auth/auth_event.dart';
 import 'package:gis_osm/common/user_storage.dart';
 import 'package:gis_osm/screen/sidebar.dart';
 import 'package:latlong2/latlong.dart';
+import '../data/models/user.dart';
+import '../data/models/user_location.dart';
+import '../data/repositories/auth_repository.dart';
+import '../data/repositories/user_location_repository.dart';
 import '../services/location_service.dart';
 import '../bloc/auth/auth_bloc.dart';
 import 'auth_screen.dart';
@@ -19,21 +23,26 @@ class DistanceTrackerPage extends StatefulWidget {
 class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   final MapController _mapController = MapController();
   LatLng _currentUserLocation = LatLng(0, 0);
-  final List<LatLng> _userLocations = [
-    LatLng(35.550463294248544, 139.77705935405905),
-    LatLng(35.689487, 139.691711),
-    LatLng(35.710063, 139.8107),
-  ];
-  final List<String> _userNames = ["User 1", "User 2", "User 3"];
+  List<LatLng> _userLocations = [];
+  List<String> _userNames = [];
   double? _distance;
   final List<LatLng> _routePoints = [];
   double _rotation = 0.0;
   bool _isExpanded = false;
 
+  final UserLocationRepository _userLocationRepository = UserLocationRepository();
+  final AuthRepository _userRepository = AuthRepository();
+
+  // Loading and error states
+  bool _isLoading = true;
+  String? _errorMessage;
+
   @override
   void initState() {
     super.initState();
     _initializeLocation();
+    _fetchUserLocations();
+    _fetchUsers();
   }
 
   Future<void> _initializeLocation() async {
@@ -42,6 +51,39 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       setState(() => _currentUserLocation = location);
     } catch (e) {
       print("Error getting location: $e");
+    }
+  }
+
+  Future<void> _fetchUserLocations() async {
+    try {
+      final List<UserLocation> userLocations = await _userLocationRepository.getAllUserLocations();
+
+      final filteredUserLocations = userLocations.where((user) => user.isSharingLocation == true).toList();
+
+      setState(() {
+        _userLocations = filteredUserLocations.map((user) => LatLng(user.latitude, user.longitude)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load user locations: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchUsers() async {
+    try {
+      final List<User> users = await _userRepository.getAllUsers();
+      setState(() {
+        _userNames = users.map((user) => user.name).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load user names: $e';
+        _isLoading = false;
+      });
     }
   }
 
@@ -120,7 +162,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           style: TextStyle(fontSize: appBarFontSize),
         ),
         actions: [
-          FutureBuilder<String?>(
+          FutureBuilder(
             future: UserStorage.getEmail(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -263,13 +305,23 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
                 ),
-                child: ListView(
+                child: _userLocations.isEmpty
+                    ? Center(
+                  child: Text(
+                    'No users found',
+                    style: TextStyle(fontSize: appBarFontSize * 0.7, color: Colors.grey),
+                  ),
+                )
+                    : ListView(
                   shrinkWrap: true,
                   children: _userLocations.asMap().entries.map((entry) {
                     final index = entry.key;
                     final location = entry.value;
                     return ListTile(
-                      title: Text(_userNames[index], style: TextStyle(fontSize: appBarFontSize * 0.7)),
+                      title: Text(
+                        _userNames[index],
+                        style: TextStyle(fontSize: appBarFontSize * 0.7),
+                      ),
                       onTap: () {
                         _moveToUserLocation(location);
                         setState(() => _isExpanded = false);
@@ -311,6 +363,33 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               ),
             ),
           ),
+          // Loading Indicator
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          // Error Message
+          if (_errorMessage != null)
+            Positioned(
+              bottom: screenHeight * 0.5,
+              left: screenWidth * 0.1,
+              right: screenWidth * 0.1,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
         ],
       ),
     );
