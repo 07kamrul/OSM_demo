@@ -87,6 +87,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
+
   Future<void> _getCurrentLocation() async {
     try {
       final location = await LocationService.getCurrentLocation();
@@ -94,10 +95,26 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         _currentUserLocation = location;
         _mapController.move(location, 15.0);
       });
+
+      int? userId = await UserStorage.getUserId();
+
+      if(userId != null){
+        UserLocation loadUserLocation = await _userLocationRepository.getUserLocationById(userId);
+
+        UserLocation saveUserLocation = UserLocation(
+          id: loadUserLocation.id,
+          userId: userId,
+          latitude: _currentUserLocation.latitude,
+          longitude: _currentUserLocation.longitude,
+          isSharingLocation: false,
+        );
+        await _userLocationRepository.updateUserLocation(saveUserLocation);
+      }
     } catch (e) {
       print("Error fetching location: $e");
     }
   }
+
 
   Future<void> _calculateDistance(LatLng targetLocation) async {
     try {
@@ -116,6 +133,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       print("Error fetching road distance: $e");
     }
   }
+
 
   void _fitMapToRoute() {
     if (_routePoints.isNotEmpty) {

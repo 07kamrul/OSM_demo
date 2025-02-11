@@ -20,7 +20,7 @@ class UserLocationRepository {
     final response = await http.get(Uri.parse('$baseUrl/GetUserLocation?id=$id'));
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body)['Data'];
+      final data = jsonDecode(response.body)['data'];
       return UserLocation.fromJson(data);
     } else {
       throw Exception('User location not found');
@@ -40,14 +40,24 @@ class UserLocationRepository {
   }
 
   Future<void> updateUserLocation(UserLocation userLocation) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/UpdateUserLocation'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(userLocation.toJson()),
-    );
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/UpdateUserLocation'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(userLocation.toJson()),
+      );
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to update user location');
+      if (response.statusCode == 200) {
+        print('User location updated successfully.');
+      } else {
+        final errorBody = jsonDecode(response.body);
+        final errorMessage = errorBody['message'] ?? 'Unknown error';
+        throw Exception('Failed to update user location: $errorMessage');
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 
