@@ -153,14 +153,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     setState(() => _mapController.move(location, 15.0));
   }
 
-  void _zoomIn() {
-    setState(() => _mapController.move(_mapController.center, _mapController.zoom + 1));
-  }
-
-  void _zoomOut() {
-    setState(() => _mapController.move(_mapController.center, _mapController.zoom - 1));
-  }
-
   @override
   Widget build(BuildContext context) {
     // Screen dimensions
@@ -276,30 +268,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               ),
             ],
           ),
-          // Zoom In Button
-          Positioned(
-            bottom: screenHeight * 0.2,
-            right: screenWidth * 0.05,
-            child: FloatingActionButton(
-              heroTag: 'zoomIn',
-              onPressed: _zoomIn,
-              mini: true,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.add, color: Colors.black, size: buttonSize * 0.6),
-            ),
-          ),
-          // Zoom Out Button
-          Positioned(
-            bottom: screenHeight * 0.13,
-            right: screenWidth * 0.05,
-            child: FloatingActionButton(
-              heroTag: 'zoomOut',
-              onPressed: _zoomOut,
-              mini: true,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.remove, color: Colors.black, size: buttonSize * 0.6),
-            ),
-          ),
           // Expand/Collapse Button
           Positioned(
             bottom: screenHeight * 0.1,
@@ -316,7 +284,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               bottom: screenHeight * 0.18,
               right: screenWidth * 0.05,
               child: Container(
-                width: screenWidth * 0.5,
+                width: screenWidth * 0.3,
                 padding: EdgeInsets.all(paddingValue * 0.5),
                 decoration: BoxDecoration(
                   color: Colors.white,
