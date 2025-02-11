@@ -17,7 +17,7 @@ class UserLocationRepository {
   }
 
   Future<UserLocation> getUserLocationByUserId(int userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/GetUserLocationByUserId?id=$userId'));
+    final response = await http.get(Uri.parse('$baseUrl/GetUserLocationByUserId?userId=$userId'));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body)['data'];
