@@ -16,26 +16,14 @@ class UserLocationRepository {
     }
   }
 
-  Future<UserLocation> getUserLocationById(int id) async {
-    final response = await http.get(Uri.parse('$baseUrl/GetUserLocation?id=$id'));
+  Future<UserLocation> getUserLocationByUserId(int userId) async {
+    final response = await http.get(Uri.parse('$baseUrl/GetUserLocationByUserId?id=$userId'));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body)['data'];
       return UserLocation.fromJson(data);
     } else {
       throw Exception('User location not found');
-    }
-  }
-
-  Future<void> addUserLocation(UserLocation userLocation) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/AddUserLocation'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(userLocation.toJson()),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to add user location');
     }
   }
 

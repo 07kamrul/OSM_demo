@@ -99,7 +99,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       int? userId = await UserStorage.getUserId();
 
       if(userId != null){
-        UserLocation loadUserLocation = await _userLocationRepository.getUserLocationById(userId);
+        UserLocation loadUserLocation = await _userLocationRepository.getUserLocationByUserId(userId);
 
         UserLocation saveUserLocation = UserLocation(
           id: loadUserLocation.id,
