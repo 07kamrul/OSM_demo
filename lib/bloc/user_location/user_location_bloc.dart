@@ -21,10 +21,10 @@ class UserLocationBloc extends Bloc<UserLocationEvent, UserLocationState> {
       }
     });
 
-    on<AddUserLocationEvent>((event, emit) async {
+    on<UpdateUserLocationEvent>((event, emit) async {
       emit(UserLocationLoading());
       try {
-        await userLocationRepository.addUserLocation(event.userLocation);
+        await userLocationRepository.updateUserLocation(event.userLocation);
         emit(UserLocationSuccess('User location added successfully!'));
       } catch (e) {
         emit(UserLocationError(e.toString()));

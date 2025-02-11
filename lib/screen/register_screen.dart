@@ -19,145 +19,187 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Screen dimensions
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Responsive sizing
+    final iconSize = screenWidth * 0.2; // Icon size as 20% of screen width
+    final inputFieldHeight =
+        screenHeight * 0.07; // Input field height as 7% of screen height
+    final fontSize = screenWidth * 0.04; // Font size as 4% of screen width
+    final paddingValue = screenWidth * 0.05; // Padding as 5% of screen width
+
     return Scaffold(
-      appBar: AppBar(title: Text('Register')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.person_add,
-              color: Colors.blue,
-              size: 100.0,
-            ),
-            SizedBox(height: 20),
-            // Name Input
-            TextField(
-              controller: nameController,
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: Icon(Icons.person),
-              ),
-            ),
-            SizedBox(height: 16),
-            // Email Input
-            TextField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: Icon(Icons.email),
-              ),
-            ),
-            SizedBox(height: 16),
+      backgroundColor: Colors.white, // Set background to white
+      appBar: AppBar(
+        title: Text('Register'),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.symmetric(horizontal: paddingValue),
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Person Add Icon
+                Icon(
+                  Icons.person_add,
+                  color: Colors.blueAccent,
+                  size: iconSize,
+                ),
+                SizedBox(height: screenHeight * 0.02),
 
-            // Password Input
-            TextField(
-            controller: passwordController,
-            obscureText: _obscureText,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              prefixIcon: const Icon(Icons.lock),
-              suffixIcon: IconButton(
-                icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
-                onPressed: () {
-                  setState(() {
-                    _obscureText = !_obscureText;
-                  });
-                },
-              ),
-            ),
-          ),
-            SizedBox(height: 20),
-
-            // Register Button with BlocConsumer
-            BlocConsumer<AuthBloc, AuthState>(
-              listener: (context, state) {
-                if (state is AuthSuccess) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.message),
-                      backgroundColor: Colors.green,
+                // Name Input
+                TextField(
+                  controller: nameController,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    labelStyle: TextStyle(fontSize: fontSize),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  );
+                    prefixIcon: Icon(Icons.person, size: fontSize),
+                  ),
+                  style: TextStyle(fontSize: fontSize),
+                ),
+                SizedBox(height: paddingValue),
 
-                  // ✅ Check if widget is still mounted before navigating
-                  Future.delayed(Duration(seconds: 2), () {
-                    if (mounted) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => AuthScreen()),
-                      );
-                    }
-                  });
-                } else if (state is AuthFailure) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.error),
-                      backgroundColor: Colors.red,
+                // Email Input
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    labelStyle: TextStyle(fontSize: fontSize),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  );
-                }
-              },
-              builder: (context, state) {
-                return ElevatedButton(
-                  onPressed: () {
-                    String name = nameController.text.trim();
-                    String email = emailController.text.trim();
-                    String password = passwordController.text.trim();
+                    prefixIcon: Icon(Icons.email, size: fontSize),
+                  ),
+                  style: TextStyle(fontSize: fontSize),
+                ),
+                SizedBox(height: paddingValue),
 
-                    if (email.isEmpty || password.isEmpty) {
+                // Password Input
+                TextField(
+                  controller: passwordController,
+                  obscureText: _obscureText,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: TextStyle(fontSize: fontSize),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.lock, size: fontSize),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureText ? Icons.visibility : Icons.visibility_off,
+                        size: fontSize,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
+                    ),
+                  ),
+                  style: TextStyle(fontSize: fontSize),
+                ),
+                SizedBox(height: paddingValue),
+
+                // Register Button with BlocConsumer
+                BlocConsumer<AuthBloc, AuthState>(
+                  listener: (context, state) {
+                    if (state is AuthSuccess) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text("Please fill all fields"),
+                          content: Text(state.message),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      Future.delayed(Duration(seconds: 2), () {
+                        if (mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => AuthScreen()),
+                          );
+                        }
+                      });
+                    } else if (state is AuthFailure) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(state.error),
                           backgroundColor: Colors.red,
                         ),
                       );
-                      return;
                     }
-
-                    // Create a User object without an `id`
-                    final user = User(
-                      id: 0,
-                      name: name,
-                      email: email,
-                      password: password,
-                    );
-
-                    // Dispatch the RegisterEvent with the User object
-                    context.read<AuthBloc>().add(RegisterEvent(user));
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  builder: (context, state) {
+                    return ElevatedButton(
+                      onPressed: () {
+                        String name = nameController.text.trim();
+                        String email = emailController.text.trim();
+                        String password = passwordController.text.trim();
+                        if (email.isEmpty || password.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Please fill all fields"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        final user = User(
+                          id: 0,
+                          name: name,
+                          email: email,
+                          password: password,
+                        );
+                        context.read<AuthBloc>().add(RegisterEvent(user));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        minimumSize: Size(double.infinity, inputFieldHeight),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: state is AuthLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              "Register",
+                              style: TextStyle(fontSize: fontSize),
+                            ),
+                    );
+                  },
+                ),
+                SizedBox(height: paddingValue),
+
+                // Already have an account? Login
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => AuthScreen()),
+                    );
+                  },
+                  child: Text(
+                    "Already have an account? Login",
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                      fontSize: fontSize,
+                    ),
                   ),
-                  child: state is AuthLoading
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text("Register", style: TextStyle(fontSize: 16)),
-                );
-              },
+                ),
+              ],
             ),
-
-            SizedBox(height: 12),
-
-            // Already have an account? Login
-            TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => AuthScreen()),
-                );
-              },
-              child: Text("Already have an account? Login", style: TextStyle(color: Colors.blueAccent)),
-            ),
-          ],
+          ),
         ),
       ),
     );
