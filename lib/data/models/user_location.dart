@@ -1,35 +1,35 @@
 class UserLocation {
   final int? id;
-  final int userId;
+  final int userid;
   final double latitude;
   final double longitude;
-  final bool isSharingLocation;
+  final bool issharinglocation;
 
   UserLocation({
     this.id,
-    required this.userId,
+    required this.userid,
     required this.latitude,
     required this.longitude,
-    required this.isSharingLocation,
+    required this.issharinglocation,
   });
 
   factory UserLocation.fromJson(Map<String, dynamic> json) {
     return UserLocation(
-      id: json['id'],
-      userId: json['userId'],
+      id: json['id']?? 0,
+      userid: json['userid']??0,
       latitude: json['latitude']?.toDouble() ?? 0.0,
       longitude: json['longitude']?.toDouble() ?? 0.0,
-      isSharingLocation: json['isSharingLocation'] ?? false,
+      issharinglocation: json['issharinglocation'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'userId': userId,
+      'userid': userid, // Use lowercase 'userid' to match the JSON key
       'latitude': latitude,
       'longitude': longitude,
-      'isSharingLocation': isSharingLocation,
+      'issharinglocation': issharinglocation, // Use lowercase to match the JSON key
     };
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import '../bloc/user_location/user_location_bloc.dart';
 import '../data/models/user_location.dart';
 
@@ -21,7 +20,7 @@ class UserLocationScreen extends StatelessWidget {
                 final location = state.locations[index];
                 return ListTile(
                   title: Text('Latitude: ${location.latitude}, Longitude: ${location.longitude}'),
-                  subtitle: Text('Sharing: ${location.isSharingLocation}'),
+                  subtitle: Text('Sharing: ${location.issharinglocation}'),
                 );
               },
             );
@@ -35,10 +34,10 @@ class UserLocationScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           final newLocation = UserLocation(
-            userId: 1,
+            userid: 1,
             latitude: 40.7128,
             longitude: -74.0060,
-            isSharingLocation: true,
+            issharinglocation: true,
           );
           context.read<UserLocationBloc>().add(AddUserLocationEvent(newLocation));
         },

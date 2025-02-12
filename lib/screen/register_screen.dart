@@ -156,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
                         final user = User(
                           id: 0,
-                          name: name,
+                          //name: name,
                           email: email,
                           password: password,
                         );

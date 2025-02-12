@@ -4,7 +4,7 @@ import '../../config/api_config.dart';
 import '../models/user.dart';
 
 class AuthRepository {
-  final String baseUrl = '${ApiConfig.baseUrl}/auth';
+  final String baseUrl = '${ApiConfig.serverBaseUrl}';
 
   Future<Map<String, dynamic>> register(User user) async {
     try {

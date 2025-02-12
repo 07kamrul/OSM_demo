@@ -58,7 +58,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     try {
       final List<UserLocation> userLocations = await _userLocationRepository.getAllUserLocations();
 
-      final filteredUserLocations = userLocations.where((user) => user.isSharingLocation == true).toList();
+      final filteredUserLocations = userLocations.where((user) => user.issharinglocation == true).toList();
 
       setState(() {
         _userLocations = filteredUserLocations.map((user) => LatLng(user.latitude, user.longitude)).toList();
@@ -67,6 +67,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load user locations: $e';
+        print(e);
         _isLoading = false;
       });
     }
@@ -76,12 +77,13 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     try {
       final List<User> users = await _userRepository.getAllUsers();
       setState(() {
-        _userNames = users.map((user) => user.name).toList();
+        _userNames = users.map((user) => user.email).toList();
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load user names: $e';
+        print(e);
         _isLoading = false;
       });
     }
@@ -103,10 +105,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
         UserLocation saveUserLocation = UserLocation(
           id: loadUserLocation.id,
-          userId: userId,
+          userid: userId,
           latitude: _currentUserLocation.latitude,
           longitude: _currentUserLocation.longitude,
-          isSharingLocation: false,
+          issharinglocation: false,
         );
         await _userLocationRepository.updateUserLocation(saveUserLocation);
       }
