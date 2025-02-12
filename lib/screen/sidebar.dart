@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gis_osm/common/user_storage.dart';
+import '../data/models/user.dart';
+import '../data/repositories/auth_repository.dart';
 
-class Sidebar extends StatelessWidget {
+class Sidebar extends StatefulWidget {
   final VoidCallback onHomeTap;
   final VoidCallback onTrackLocationTap;
   final VoidCallback onSettingsTap;
@@ -16,6 +18,26 @@ class Sidebar extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  _SidebarState createState() => _SidebarState();
+}
+
+class _SidebarState extends State<Sidebar> {
+  final AuthRepository _userRepository = AuthRepository();
+
+  Future<User?> _fetchUser() async {
+    try {
+      int? userId = await UserStorage.getUserId(); // Fetch the user ID from storage
+      if (userId != null) {
+        return await _userRepository.getUser(userId); // Fetch user details
+      }
+      return null;
+    } catch (e) {
+      print('Failed to load user: $e');
+      return null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Screen dimensions
     double screenWidth = MediaQuery.of(context).size.width;
@@ -25,23 +47,21 @@ class Sidebar extends StatelessWidget {
     double headerFontSize = screenWidth * 0.05; // 5% of screen width
     double listItemFontSize = screenWidth * 0.04; // 4% of screen width
     double iconSize = screenWidth * 0.06; // 6% of screen width
-    double drawerHeaderHeight = screenHeight * 0.2; // 20% of screen height
+    double drawerHeaderHeight = screenHeight * 0.15; // 15% of screen height
 
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           // Header Section
-          FutureBuilder<String?>(
-            future: UserStorage.getEmail(), // Fetch the email asynchronously
+          FutureBuilder<User?>(
+            future: _fetchUser(), // Fetch user data
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                // Show a loading indicator while fetching the email
+                // Loading state
                 return Container(
                   height: drawerHeaderHeight,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.blue),
                   child: const Center(
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -49,12 +69,10 @@ class Sidebar extends StatelessWidget {
                   ),
                 );
               } else if (snapshot.hasError) {
-                // Handle errors gracefully
+                // Error state
                 return Container(
                   height: drawerHeaderHeight,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.blue),
                   child: Center(
                     child: Text(
                       'Error: ${snapshot.error}',
@@ -66,13 +84,11 @@ class Sidebar extends StatelessWidget {
                   ),
                 );
               } else {
-                // Display the email if available
-                final email = snapshot.data ?? 'Guest'; // Default to "Guest" if email is null
+                // Success state
+                final name = snapshot.data?.fullname ?? 'Guest';
                 return Container(
                   height: drawerHeaderHeight,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.blue),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +106,7 @@ class Sidebar extends StatelessWidget {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
                         child: Text(
-                          email,
+                          name,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: headerFontSize,
@@ -104,6 +120,7 @@ class Sidebar extends StatelessWidget {
               }
             },
           ),
+
           // Home Option
           ListTile(
             leading: Icon(Icons.home, size: iconSize),
@@ -113,9 +130,10 @@ class Sidebar extends StatelessWidget {
             ),
             onTap: () {
               Navigator.pop(context); // Close the drawer
-              onHomeTap();
+              widget.onHomeTap();
             },
           ),
+
           // Track Location Option
           ListTile(
             leading: Icon(Icons.location_on, size: iconSize),
@@ -125,9 +143,10 @@ class Sidebar extends StatelessWidget {
             ),
             onTap: () {
               Navigator.pop(context); // Close the drawer
-              onTrackLocationTap();
+              widget.onTrackLocationTap();
             },
           ),
+
           // Settings Option
           ListTile(
             leading: Icon(Icons.settings, size: iconSize),
@@ -137,9 +156,10 @@ class Sidebar extends StatelessWidget {
             ),
             onTap: () {
               Navigator.pop(context); // Close the drawer
-              onSettingsTap();
+              widget.onSettingsTap();
             },
           ),
+
           // Logout Option
           ListTile(
             leading: Icon(Icons.logout, size: iconSize),
@@ -149,7 +169,7 @@ class Sidebar extends StatelessWidget {
             ),
             onTap: () {
               Navigator.pop(context); // Close the drawer
-              onLogoutTap();
+              widget.onLogoutTap();
             },
           ),
         ],

@@ -6,34 +6,34 @@ import '../models/user_location.dart';
 class UserLocationRepository {
   final String baseUrl = '${ApiConfig.serverBaseUrl}';
 
-  // Future<List<UserLocation>> getAllUserLocations() async {
-  //   final response = await http.get(Uri.parse('$baseUrl/GetAllUserLocations'));
-  //
-  //   if (response.statusCode == 200) {
-  //     final data = jsonDecode(response.body)['data'] as List;
-  //     return data.map((e) => UserLocation.fromJson(e)).toList();
-  //   } else {
-  //     throw Exception('Failed to load user locations');
-  //   }
-  // }
-
   Future<List<UserLocation>> getAllUserLocations() async {
     final response = await http.get(Uri.parse('$baseUrl/GetAllUserLocations'));
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body)['data'] as List;
-
-      // Filter out invalid entries
-      return data
-          .where((e) =>
-      e['latitude'] != null &&
-          e['longitude'] != null &&
-          e['userId'] != null)
-          .map((e) => UserLocation.fromJson(e))
-          .toList();
+      return data.map((e) => UserLocation.fromJson(e)).toList();
     } else {
       throw Exception('Failed to load user locations');
     }
   }
+
+  // Future<List<UserLocation>> getAllUserLocations() async {
+  //   final response = await http.get(Uri.parse('$baseUrl/GetAllUserLocations'));
+  //   if (response.statusCode == 200) {
+  //     final data = jsonDecode(response.body)['data'] as List;
+  //
+  //     // Filter out invalid entries
+  //     return data
+  //         .where((e) =>
+  //     e['latitude'] != null &&
+  //         e['longitude'] != null &&
+  //         e['userId'] != null)
+  //         .map((e) => UserLocation.fromJson(e))
+  //         .toList();
+  //   } else {
+  //     throw Exception('Failed to load user locations');
+  //   }
+  // }
 
   Future<UserLocation> getUserLocationByUserId(int userId) async {
     final response = await http.get(Uri.parse('$baseUrl/GetUserLocationByUserId/$userId'));

@@ -29,8 +29,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   final List<LatLng> _routePoints = [];
   double _rotation = 0.0;
   bool _isExpanded = false;
+  User? _user;
 
-  final UserLocationRepository _userLocationRepository = UserLocationRepository();
+  final UserLocationRepository _userLocationRepository =
+      UserLocationRepository();
   final AuthRepository _userRepository = AuthRepository();
 
   // Loading and error states
@@ -43,6 +45,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     _initializeLocation();
     _fetchUserLocations();
     _fetchUsers();
+    _fetchUser();
   }
 
   Future<void> _initializeLocation() async {
@@ -54,20 +57,26 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-  Future<void> _fetchUserLocations() async {
+  Future<void> _fetchUser() async {
     try {
-      final List<UserLocation> userLocations = await _userLocationRepository.getAllUserLocations();
-
-      final filteredUserLocations = userLocations.where((user) => user.issharinglocation == true).toList();
-
-      setState(() {
-        _userLocations = filteredUserLocations.map((user) => LatLng(user.latitude, user.longitude)).toList();
-        _isLoading = false;
-      });
+      int? userId =
+          await UserStorage.getUserId(); // Fetch the user ID from storage
+      if (userId != null) {
+        final user =
+            await _userRepository.getUser(userId); // Fetch user details
+        setState(() {
+          _user = user; // Store the fetched user
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'User ID not found in storage.';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load user locations: $e';
-        print(e);
+        _errorMessage = 'Failed to load user: $e';
         _isLoading = false;
       });
     }
@@ -77,7 +86,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     try {
       final List<User> users = await _userRepository.getAllUsers();
       setState(() {
-        _userNames = users.map((user) => user.email).toList();
+        _userNames = users.map((user) => user.firstname).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -89,7 +98,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-
   Future<void> _getCurrentLocation() async {
     try {
       final location = await LocationService.getCurrentLocation();
@@ -100,8 +108,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
       int? userId = await UserStorage.getUserId();
 
-      if(userId != null){
-        UserLocation loadUserLocation = await _userLocationRepository.getUserLocationByUserId(userId);
+      if (userId != null) {
+        UserLocation loadUserLocation =
+            await _userLocationRepository.getUserLocationByUserId(userId);
 
         UserLocation saveUserLocation = UserLocation(
           id: loadUserLocation.id,
@@ -117,10 +126,34 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
+  Future<void> _fetchUserLocations() async {
+    try {
+      final List<UserLocation> userLocations =
+          await _userLocationRepository.getAllUserLocations();
+
+      final filteredUserLocations = userLocations
+          .where((user) => user.issharinglocation == true)
+          .toList();
+
+      setState(() {
+        _userLocations = filteredUserLocations
+            .map((user) => LatLng(user.latitude, user.longitude))
+            .toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load user locations: $e';
+        print(e);
+        _isLoading = false;
+      });
+    }
+  }
 
   Future<void> _calculateDistance(LatLng targetLocation) async {
     try {
-      final result = await LocationService.getRouteDistance(_currentUserLocation, targetLocation);
+      final result = await LocationService.getRouteDistance(
+          _currentUserLocation, targetLocation);
       if (result != null && result.distance != null) {
         setState(() {
           _distance = result.distance;
@@ -136,11 +169,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-
   void _fitMapToRoute() {
     if (_routePoints.isNotEmpty) {
       final bounds = LatLngBounds.fromPoints(_routePoints);
-      _mapController.fitBounds(bounds, options: const FitBoundsOptions(padding: EdgeInsets.all(50)));
+      _mapController.fitBounds(bounds,
+          options: const FitBoundsOptions(padding: EdgeInsets.all(50)));
     }
   }
 
@@ -180,12 +213,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red));
+                return Text('Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red));
               } else {
-                final email = snapshot.data ?? 'Guest';
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(email, style: TextStyle(fontSize: appBarFontSize * 0.8, color: Colors.black)),
+                  child: Text(_user?.fullname ?? 'Guest',
+                      style: TextStyle(
+                          fontSize: appBarFontSize * 0.8, color: Colors.black)),
                 );
               }
             },
@@ -204,7 +239,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         },
         onLogoutTap: () {
           context.read<AuthBloc>().add(LogoutEvent());
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => AuthScreen()));
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => AuthScreen()));
         },
       ),
       body: Stack(
@@ -227,21 +263,24 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.location_tracker',
                     ),
                     MarkerLayer(
                       markers: [
                         Marker(
                           point: _currentUserLocation,
-                          builder: (ctx) => Icon(Icons.my_location, color: Colors.red, size: markerSize),
+                          builder: (ctx) => Icon(Icons.my_location,
+                              color: Colors.red, size: markerSize),
                         ),
                         ..._userLocations.map(
-                              (location) => Marker(
+                          (location) => Marker(
                             point: location,
                             builder: (ctx) => GestureDetector(
                               onTap: () => _calculateDistance(location),
-                              child: Icon(Icons.location_on, color: Colors.blue, size: markerSize),
+                              child: Icon(Icons.location_on,
+                                  color: Colors.blue, size: markerSize),
                             ),
                           ),
                         ),
@@ -250,7 +289,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                     if (_routePoints.isNotEmpty)
                       PolylineLayer(
                         polylines: [
-                          Polyline(points: _routePoints, color: Colors.green, strokeWidth: 4.0),
+                          Polyline(
+                              points: _routePoints,
+                              color: Colors.green,
+                              strokeWidth: 4.0),
                         ],
                       ),
                   ],
@@ -262,9 +304,13 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_distance != null)
-                      Text('Distance: ${_distance!.toStringAsFixed(2)} km', style: TextStyle(fontSize: appBarFontSize * 0.8)),
+                      Text('Distance: ${_distance!.toStringAsFixed(2)} km',
+                          style: TextStyle(fontSize: appBarFontSize * 0.8)),
                     const SizedBox(height: 8),
-                    Text('Tap on a blue marker to calculate the distance.', style: TextStyle(color: Colors.grey, fontSize: appBarFontSize * 0.6)),
+                    Text('Tap on a blue marker to calculate the distance.',
+                        style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: appBarFontSize * 0.6)),
                   ],
                 ),
               ),
@@ -278,7 +324,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               heroTag: 'togglePanel',
               onPressed: () => setState(() => _isExpanded = !_isExpanded),
               backgroundColor: Colors.green,
-              child: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.white, size: buttonSize * 0.6),
+              child: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.white, size: buttonSize * 0.6),
             ),
           ),
           if (_isExpanded)
@@ -295,28 +342,30 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 ),
                 child: _userLocations.isEmpty
                     ? Center(
-                  child: Text(
-                    'No users found',
-                    style: TextStyle(fontSize: appBarFontSize * 0.7, color: Colors.grey),
-                  ),
-                )
+                        child: Text(
+                          'No users found',
+                          style: TextStyle(
+                              fontSize: appBarFontSize * 0.7,
+                              color: Colors.grey),
+                        ),
+                      )
                     : ListView(
-                  shrinkWrap: true,
-                  children: _userLocations.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final location = entry.value;
-                    return ListTile(
-                      title: Text(
-                        _userNames[index],
-                        style: TextStyle(fontSize: appBarFontSize * 0.7),
+                        shrinkWrap: true,
+                        children: _userLocations.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final location = entry.value;
+                          return ListTile(
+                            title: Text(
+                              _userNames[index],
+                              style: TextStyle(fontSize: appBarFontSize * 0.7),
+                            ),
+                            onTap: () {
+                              _moveToUserLocation(location);
+                              setState(() => _isExpanded = false);
+                            },
+                          );
+                        }).toList(),
                       ),
-                      onTap: () {
-                        _moveToUserLocation(location);
-                        setState(() => _isExpanded = false);
-                      },
-                    );
-                  }).toList(),
-                ),
               ),
             ),
           // Current Location Button
@@ -327,7 +376,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               heroTag: 'currentLocation',
               onPressed: _getCurrentLocation,
               backgroundColor: Colors.blue,
-              child: Icon(Icons.my_location, color: Colors.white, size: buttonSize * 0.6),
+              child: Icon(Icons.my_location,
+                  color: Colors.white, size: buttonSize * 0.6),
             ),
           ),
           // Reset Rotation Button
@@ -342,11 +392,17 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 5, spreadRadius: 1)],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 5,
+                        spreadRadius: 1)
+                  ],
                 ),
                 child: Transform.rotate(
                   angle: -_rotation * (3.1415926535 / 180),
-                  child: Icon(Icons.explore, color: Colors.blue, size: buttonSize * 0.6),
+                  child: Icon(Icons.explore,
+                      color: Colors.blue, size: buttonSize * 0.6),
                 ),
               ),
             ),

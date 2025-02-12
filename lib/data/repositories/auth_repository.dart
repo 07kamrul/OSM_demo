@@ -71,4 +71,27 @@ class AuthRepository {
       throw Exception('Error fetching user locations: $e');
     }
   }
+
+
+  Future<User> getUser(int userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/user/$userId'));
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+
+        if (responseBody.containsKey('user') && responseBody['user'] is Map) {
+          final userData = responseBody['user'] as Map<String, dynamic>;
+
+          return User.fromJson(userData);
+        } else {
+          throw Exception('Invalid API response format: Expected "user" key with a map value');
+        }
+      } else {
+        throw Exception('Failed to load user: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching user: $e');
+    }
+  }
 }

@@ -12,7 +12,9 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController fullnameController = TextEditingController();
+  final TextEditingController firstnameController = TextEditingController();
+  final TextEditingController lastnameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool _obscureText = true;
@@ -53,12 +55,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 SizedBox(height: screenHeight * 0.02),
 
-                // Name Input
+                // Full Name Input
                 TextField(
-                  controller: nameController,
+                  controller: fullnameController,
                   keyboardType: TextInputType.text,
                   decoration: InputDecoration(
                     labelText: 'Full Name',
+                    labelStyle: TextStyle(fontSize: fontSize),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.person, size: fontSize),
+                  ),
+                  style: TextStyle(fontSize: fontSize),
+                ),
+                SizedBox(height: paddingValue),
+
+                // First Name Input
+                TextField(
+                  controller: firstnameController,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(
+                    labelText: 'First Name',
+                    labelStyle: TextStyle(fontSize: fontSize),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.person, size: fontSize),
+                  ),
+                  style: TextStyle(fontSize: fontSize),
+                ),
+                SizedBox(height: paddingValue),
+
+                // Last Name Input
+                TextField(
+                  controller: lastnameController,
+                  keyboardType: TextInputType.text,
+                  decoration: InputDecoration(
+                    labelText: 'Last Name',
                     labelStyle: TextStyle(fontSize: fontSize),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -142,10 +176,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   builder: (context, state) {
                     return ElevatedButton(
                       onPressed: () {
-                        String name = nameController.text.trim();
+                        String fullname = fullnameController.text.trim();
+                        String firstname = firstnameController.text.trim();
+                        String lastname = lastnameController.text.trim();
                         String email = emailController.text.trim();
                         String password = passwordController.text.trim();
-                        if (email.isEmpty || password.isEmpty) {
+                        if (fullname.isEmpty || firstname.isEmpty || lastname.isEmpty || email.isEmpty || password.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text("Please fill all fields"),
@@ -156,7 +192,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
                         final user = User(
                           id: 0,
-                          //name: name,
+                          fullname: fullname,
+                          firstname: firstname,
+                          lastname: lastname,
                           email: email,
                           password: password,
                         );

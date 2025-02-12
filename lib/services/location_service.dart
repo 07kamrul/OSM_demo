@@ -61,6 +61,7 @@ class LocationService {
       return null;
     }
   }
+
 }
 
 class RouteResult {
