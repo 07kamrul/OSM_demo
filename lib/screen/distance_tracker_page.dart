@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -30,6 +32,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   double _rotation = 0.0;
   bool _isExpanded = false;
   User? _user;
+  bool isShareLocation = false;
+  Timer? _locationUpdateTimer;
+  UserLocation? _userLocation;
 
   final UserLocationRepository _userLocationRepository =
       UserLocationRepository();
@@ -109,17 +114,17 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       int? userId = await UserStorage.getUserId();
 
       if (userId != null) {
-        UserLocation loadUserLocation =
+        _userLocation =
             await _userLocationRepository.getUserLocationByUserId(userId);
 
-        UserLocation saveUserLocation = UserLocation(
-          id: loadUserLocation.id,
+        UserLocation updateUserLocation = UserLocation(
+          id: _userLocation?.id,
           userid: userId,
           latitude: _currentUserLocation.latitude,
           longitude: _currentUserLocation.longitude,
           issharinglocation: false,
         );
-        await _userLocationRepository.updateUserLocation(saveUserLocation);
+        await _userLocationRepository.updateUserLocation(updateUserLocation);
       }
     } catch (e) {
       print("Error fetching location: $e");
@@ -187,6 +192,74 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   void _moveToUserLocation(LatLng location) {
     setState(() => _mapController.move(location, 15.0));
   }
+
+  void _toggleLocationSharing(bool value) {
+    setState(() {
+      isShareLocation = value;
+    });
+
+    if (isShareLocation) {
+      _startLocationUpdates();
+    } else {
+      _stopLocationUpdates();
+    }
+  }
+
+  // Start periodic location updates
+  void _startLocationUpdates() {
+    _locationUpdateTimer =
+        Timer.periodic(const Duration(seconds: 10), (timer) async {
+      try {
+        final newLocation = await LocationService.getCurrentLocation();
+        setState(() => _currentUserLocation = newLocation);
+        UserLocation updateUserLocation = UserLocation(
+          id: _userLocation?.id,
+          userid: _userLocation!.userid,
+          latitude: _currentUserLocation.latitude,
+          longitude: _currentUserLocation.longitude,
+          issharinglocation: true,
+        );
+        await _userLocationRepository.updateUserLocation(updateUserLocation);
+      } catch (e) {
+        print("Error updating location: $e");
+      }
+    });
+  }
+
+  // Stop periodic location updates
+  void _stopLocationUpdates() {
+    _locationUpdateTimer?.cancel();
+    _locationUpdateTimer =
+        Timer.periodic(const Duration(seconds: 10), (timer) async {
+          try {
+            final newLocation = await LocationService.getCurrentLocation();
+            setState(() => _currentUserLocation = newLocation);
+            UserLocation updateUserLocation = UserLocation(
+              id: _userLocation?.id,
+              userid: _userLocation!.userid,
+              latitude: _currentUserLocation.latitude,
+              longitude: _currentUserLocation.longitude,
+              issharinglocation: false,
+            );
+            await _userLocationRepository.updateUserLocation(updateUserLocation);
+          } catch (e) {
+            print("Error updating location: $e");
+          }
+        });  }
+
+  @override
+  void dispose() {
+    _stopLocationUpdates(); // Ensure timer is canceled when widget is disposed
+    super.dispose();
+  }
+
+  static const WidgetStateProperty<Icon> thumbIcon =
+      WidgetStateProperty<Icon>.fromMap(
+    <WidgetStatesConstraint, Icon>{
+      WidgetState.selected: Icon(Icons.check),
+      WidgetState.any: Icon(Icons.close),
+    },
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -380,7 +453,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   color: Colors.white, size: buttonSize * 0.6),
             ),
           ),
-          // Reset Rotation Button
           Positioned(
             top: screenHeight * 0.1,
             right: screenWidth * 0.05,
@@ -394,19 +466,36 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 5,
-                        spreadRadius: 1)
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 5,
+                      spreadRadius: 1,
+                    ),
                   ],
                 ),
                 child: Transform.rotate(
                   angle: -_rotation * (3.1415926535 / 180),
-                  child: Icon(Icons.explore,
-                      color: Colors.blue, size: buttonSize * 0.6),
+                  child: Icon(
+                    Icons.explore,
+                    color: Colors.blue,
+                    size: buttonSize * 0.6,
+                  ),
                 ),
               ),
             ),
           ),
+
+          // Add the Switch widget here
+          Positioned(
+            top: screenHeight * 0.1 + buttonSize + 10,
+            // Adjust position below the reset button
+            right: screenWidth * 0.05,
+            child: Switch(
+              thumbIcon: thumbIcon,
+              value: isShareLocation,
+              onChanged: _toggleLocationSharing,
+            ),
+          ),
+
           // Loading Indicator
           if (_isLoading)
             Positioned.fill(
@@ -415,6 +504,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 child: const Center(child: CircularProgressIndicator()),
               ),
             ),
+
           // Error Message
           if (_errorMessage != null)
             Positioned(

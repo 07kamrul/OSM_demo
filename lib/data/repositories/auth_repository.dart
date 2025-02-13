@@ -14,7 +14,7 @@ class AuthRepository {
         body: jsonEncode(user.toJson()),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201) {
         return jsonDecode(response.body);
       } else {
         final errorResponse = jsonDecode(response.body);
