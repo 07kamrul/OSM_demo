@@ -17,12 +17,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
         final userId = userInfo['id'] ?? -1;
         final email = userInfo['email'];
+        final fullname = userInfo['fullname'];
+        final firstname = userInfo['firstname'];
+        final lastname = userInfo['lastname'];
 
         if (userId == -1) {
           throw Exception("Invalid user ID received from the server.");
         }
 
-        await UserStorage.saveUser(userId, email);
+        await UserStorage.saveUser(userId, email, fullname, firstname, lastname);
         emit(AuthSuccess(response['Message'] ?? 'User registered successfully!'));
       } catch (e) {
         emit(AuthFailure(error: e.toString()));
@@ -36,14 +39,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
         var userInfo = response['user'];
 
+
         final userId = userInfo['id'] ?? -1;
         final email = userInfo['email'];
+        final fullname = userInfo['fullname'];
+        final firstname = userInfo['firstname'];
+        final lastname = userInfo['lastname'];
 
         if (userId == -1) {
           throw Exception("Invalid user ID received from the server.");
         }
 
-        await UserStorage.saveUser(userId, email);
+        await UserStorage.saveUser(userId, email, fullname, firstname, lastname);
         emit(AuthSuccess(response['Message'] ?? 'Login successful!'));
       } catch (e) {
         emit(AuthFailure(error: e.toString()));

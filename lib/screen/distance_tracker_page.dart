@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:gis_osm/bloc/auth/auth_event.dart';
 import 'package:gis_osm/common/user_storage.dart';
 import 'package:gis_osm/screen/sidebar.dart';
+import 'package:gis_osm/screen/user_list_screen.dart';
 import 'package:latlong2/latlong.dart';
 import '../data/models/user.dart';
 import '../data/models/user_location.dart';
@@ -13,6 +14,8 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/user_location_repository.dart';
 import '../services/location_service.dart';
 import '../bloc/auth/auth_bloc.dart';
+import '../services/user_service.dart';
+import '../widgets/app_bar_action_name.dart';
 import 'auth_screen.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
@@ -23,10 +26,15 @@ class DistanceTrackerPage extends StatefulWidget {
 }
 
 class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
+  final UserLocationRepository _userLocationRepository =
+      UserLocationRepository();
+  final AuthRepository _userRepository = AuthRepository();
+
+  final UserService _userService = UserService();
+
   final MapController _mapController = MapController();
   LatLng _currentUserLocation = LatLng(0, 0);
   List<LatLng> _userLocations = [];
-  List<String> _userNames = [];
   double? _distance;
   final List<LatLng> _routePoints = [];
   double _rotation = 0.0;
@@ -35,10 +43,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   bool isShareLocation = false;
   Timer? _locationUpdateTimer;
   UserLocation? _userLocation;
-
-  final UserLocationRepository _userLocationRepository =
-      UserLocationRepository();
-  final AuthRepository _userRepository = AuthRepository();
 
   // Loading and error states
   bool _isLoading = true;
@@ -49,7 +53,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     super.initState();
     _initializeLocation();
     _fetchUserLocations();
-    _fetchUsers();
     _fetchUser();
   }
 
@@ -64,40 +67,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   Future<void> _fetchUser() async {
     try {
-      int? userId =
-          await UserStorage.getUserId(); // Fetch the user ID from storage
-      if (userId != null) {
-        final user =
-            await _userRepository.getUser(userId); // Fetch user details
-        setState(() {
-          _user = user; // Store the fetched user
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = 'User ID not found in storage.';
-          _isLoading = false;
-        });
-      }
+      final user = await _userService.fetchUser();
+      setState(() {
+        _user = user;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load user: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _fetchUsers() async {
-    try {
-      final List<User> users = await _userRepository.getAllUsers();
-      setState(() {
-        _userNames = users.map((user) => user.firstname).toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load user names: $e';
-        print(e);
         _isLoading = false;
       });
     }
@@ -231,21 +208,22 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     _locationUpdateTimer?.cancel();
     _locationUpdateTimer =
         Timer.periodic(const Duration(seconds: 10), (timer) async {
-          try {
-            final newLocation = await LocationService.getCurrentLocation();
-            setState(() => _currentUserLocation = newLocation);
-            UserLocation updateUserLocation = UserLocation(
-              id: _userLocation?.id,
-              userid: _userLocation!.userid,
-              latitude: _currentUserLocation.latitude,
-              longitude: _currentUserLocation.longitude,
-              issharinglocation: false,
-            );
-            await _userLocationRepository.updateUserLocation(updateUserLocation);
-          } catch (e) {
-            print("Error updating location: $e");
-          }
-        });  }
+      try {
+        final newLocation = await LocationService.getCurrentLocation();
+        setState(() => _currentUserLocation = newLocation);
+        UserLocation updateUserLocation = UserLocation(
+          id: _userLocation?.id,
+          userid: _userLocation!.userid,
+          latitude: _currentUserLocation.latitude,
+          longitude: _currentUserLocation.longitude,
+          issharinglocation: false,
+        );
+        await _userLocationRepository.updateUserLocation(updateUserLocation);
+      } catch (e) {
+        print("Error updating location: $e");
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -277,35 +255,28 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       appBar: AppBar(
         title: Text(
           'Location Tracker',
-          style: TextStyle(fontSize: appBarFontSize),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: appBarFontSize,
+          ),
         ),
         actions: [
-          FutureBuilder(
-            future: UserStorage.getEmail(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red));
-              } else {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(_user?.fullname ?? 'Guest',
-                      style: TextStyle(
-                          fontSize: appBarFontSize * 0.8, color: Colors.black)),
-                );
-              }
-            },
-          ),
+          AppBarActionName(fontSize: appBarFontSize * 0.8),
         ],
+        centerTitle: true,
+        elevation: 0,
       ),
       drawer: Sidebar(
         onHomeTap: () {
           print("Home tapped");
         },
+        onUsersTap: () {
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => UserListScreen()));
+        },
         onTrackLocationTap: () {
-          Navigator.pop(context); // Close the drawer
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
         },
         onSettingsTap: () {
           print("Settings tapped");
@@ -389,58 +360,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               ),
             ],
           ),
-          // Expand/Collapse Button
-          Positioned(
-            bottom: screenHeight * 0.1,
-            right: screenWidth * 0.05,
-            child: FloatingActionButton(
-              heroTag: 'togglePanel',
-              onPressed: () => setState(() => _isExpanded = !_isExpanded),
-              backgroundColor: Colors.green,
-              child: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.white, size: buttonSize * 0.6),
-            ),
-          ),
-          if (_isExpanded)
-            Positioned(
-              bottom: screenHeight * 0.18,
-              right: screenWidth * 0.05,
-              child: Container(
-                width: screenWidth * 0.3,
-                padding: EdgeInsets.all(paddingValue * 0.5),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
-                ),
-                child: _userLocations.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No users found',
-                          style: TextStyle(
-                              fontSize: appBarFontSize * 0.7,
-                              color: Colors.grey),
-                        ),
-                      )
-                    : ListView(
-                        shrinkWrap: true,
-                        children: _userLocations.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final location = entry.value;
-                          return ListTile(
-                            title: Text(
-                              _userNames[index],
-                              style: TextStyle(fontSize: appBarFontSize * 0.7),
-                            ),
-                            onTap: () {
-                              _moveToUserLocation(location);
-                              setState(() => _isExpanded = false);
-                            },
-                          );
-                        }).toList(),
-                      ),
-              ),
-            ),
           // Current Location Button
           Positioned(
             bottom: screenHeight * 0.05,

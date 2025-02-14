@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:gis_osm/common/user_storage.dart';
-import '../data/models/user.dart';
-import '../data/repositories/auth_repository.dart';
+import 'package:gis_osm/common/user_storage.dart'; // Ensure this import is correct
+import '../data/models/user.dart'; // Ensure this import is correct
+import '../data/repositories/auth_repository.dart'; // Ensure this import is correct
 
 class Sidebar extends StatefulWidget {
   final VoidCallback onHomeTap;
+  final VoidCallback onUsersTap;
   final VoidCallback onTrackLocationTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
@@ -12,6 +13,7 @@ class Sidebar extends StatefulWidget {
   const Sidebar({
     Key? key,
     required this.onHomeTap,
+    required this.onUsersTap,
     required this.onTrackLocationTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
@@ -22,21 +24,6 @@ class Sidebar extends StatefulWidget {
 }
 
 class _SidebarState extends State<Sidebar> {
-  final AuthRepository _userRepository = AuthRepository();
-
-  Future<User?> _fetchUser() async {
-    try {
-      int? userId = await UserStorage.getUserId(); // Fetch the user ID from storage
-      if (userId != null) {
-        return await _userRepository.getUser(userId); // Fetch user details
-      }
-      return null;
-    } catch (e) {
-      print('Failed to load user: $e');
-      return null;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // Screen dimensions
@@ -54,8 +41,8 @@ class _SidebarState extends State<Sidebar> {
         padding: EdgeInsets.zero,
         children: [
           // Header Section
-          FutureBuilder<User?>(
-            future: _fetchUser(), // Fetch user data
+          FutureBuilder<String?>(
+            future: UserStorage.getFullName(), // Fetch user data (ensure this method exists)
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 // Loading state
@@ -85,7 +72,7 @@ class _SidebarState extends State<Sidebar> {
                 );
               } else {
                 // Success state
-                final name = snapshot.data?.fullname ?? 'Guest';
+                final name = snapshot.data ?? 'Guest'; // Use the fetched name or fallback to 'Guest'
                 return Container(
                   height: drawerHeaderHeight,
                   decoration: const BoxDecoration(color: Colors.blue),
@@ -131,6 +118,19 @@ class _SidebarState extends State<Sidebar> {
             onTap: () {
               Navigator.pop(context); // Close the drawer
               widget.onHomeTap();
+            },
+          ),
+
+          // User Option
+          ListTile(
+            leading: Icon(Icons.person, size: iconSize),
+            title: Text(
+              'User',
+              style: TextStyle(fontSize: listItemFontSize),
+            ),
+            onTap: () {
+              Navigator.pop(context); // Close the drawer
+              widget.onUsersTap();
             },
           ),
 
