@@ -56,10 +56,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     _fetchUser();
   }
 
-  Future<void> _initializeLocation() async {
+  Future _initializeLocation() async {
     try {
       final location = await LocationService.getCurrentLocation();
-      setState(() => _currentUserLocation = location);
+      setState(() {
+        _currentUserLocation = location;
+      });
+
+      _mapController.move(_currentUserLocation, 15.0); // Zoom level 15
     } catch (e) {
       print("Error getting location: $e");
     }
@@ -80,28 +84,28 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-  Future<void> _getCurrentLocation() async {
+  Future _getCurrentLocation() async {
     try {
       final location = await LocationService.getCurrentLocation();
-      setState(() {
-        _currentUserLocation = location;
-        _mapController.move(location, 15.0);
-      });
 
-      int? userId = await UserStorage.getUserId();
+      if (mounted) {
+        setState(() {
+          _currentUserLocation = location;
+          _mapController.move(location, 15.0);
+        });
 
-      if (userId != null) {
-        _userLocation =
-            await _userLocationRepository.getUserLocationByUserId(userId);
-
-        UserLocation updateUserLocation = UserLocation(
-          id: _userLocation?.id,
-          userid: userId,
-          latitude: _currentUserLocation.latitude,
-          longitude: _currentUserLocation.longitude,
-          issharinglocation: false,
-        );
-        await _userLocationRepository.updateUserLocation(updateUserLocation);
+        int? userId = await UserStorage.getUserId();
+        if (userId != null) {
+          _userLocation = await _userLocationRepository.getUserLocationByUserId(userId);
+          UserLocation updateUserLocation = UserLocation(
+            id: _userLocation?.id,
+            userid: userId,
+            latitude: _currentUserLocation.latitude,
+            longitude: _currentUserLocation.longitude,
+            issharinglocation: false,
+          );
+          await _userLocationRepository.updateUserLocation(updateUserLocation);
+        }
       }
     } catch (e) {
       print("Error fetching location: $e");
@@ -184,24 +188,31 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   // Start periodic location updates
   void _startLocationUpdates() {
-    _locationUpdateTimer =
-        Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
       try {
         final newLocation = await LocationService.getCurrentLocation();
-        setState(() => _currentUserLocation = newLocation);
-        UserLocation updateUserLocation = UserLocation(
-          id: _userLocation?.id,
-          userid: _userLocation!.userid,
-          latitude: _currentUserLocation.latitude,
-          longitude: _currentUserLocation.longitude,
-          issharinglocation: true,
-        );
-        await _userLocationRepository.updateUserLocation(updateUserLocation);
+
+        // Check if the widget is still mounted before calling setState()
+        if (mounted) {
+          setState(() {
+            _currentUserLocation = newLocation;
+          });
+
+          UserLocation updateUserLocation = UserLocation(
+            id: _userLocation?.id,
+            userid: _userLocation!.userid,
+            latitude: _currentUserLocation.latitude,
+            longitude: _currentUserLocation.longitude,
+            issharinglocation: true,
+          );
+          await _userLocationRepository.updateUserLocation(updateUserLocation);
+        }
       } catch (e) {
         print("Error updating location: $e");
       }
     });
   }
+
 
   // Stop periodic location updates
   void _stopLocationUpdates() {
