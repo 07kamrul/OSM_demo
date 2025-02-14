@@ -188,11 +188,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   // Start periodic location updates
   void _startLocationUpdates() {
+    _locationUpdateTimer?.cancel(); // Ensure no duplicate timers
     _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (!mounted) return; // Ensure widget is still in the tree
       try {
         final newLocation = await LocationService.getCurrentLocation();
-
-        // Check if the widget is still mounted before calling setState()
         if (mounted) {
           setState(() {
             _currentUserLocation = newLocation;
@@ -213,34 +213,18 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     });
   }
 
-
-  // Stop periodic location updates
   void _stopLocationUpdates() {
-    _locationUpdateTimer?.cancel();
-    _locationUpdateTimer =
-        Timer.periodic(const Duration(seconds: 10), (timer) async {
-      try {
-        final newLocation = await LocationService.getCurrentLocation();
-        setState(() => _currentUserLocation = newLocation);
-        UserLocation updateUserLocation = UserLocation(
-          id: _userLocation?.id,
-          userid: _userLocation!.userid,
-          latitude: _currentUserLocation.latitude,
-          longitude: _currentUserLocation.longitude,
-          issharinglocation: false,
-        );
-        await _userLocationRepository.updateUserLocation(updateUserLocation);
-      } catch (e) {
-        print("Error updating location: $e");
-      }
-    });
+    _locationUpdateTimer?.cancel(); // Stop the timer properly
+    _locationUpdateTimer = null;
   }
 
   @override
   void dispose() {
-    _stopLocationUpdates(); // Ensure timer is canceled when widget is disposed
+    _locationUpdateTimer?.cancel(); // Prevent further execution
+    _locationUpdateTimer = null;
     super.dispose();
   }
+
 
   static const WidgetStateProperty<Icon> thumbIcon =
       WidgetStateProperty<Icon>.fromMap(
