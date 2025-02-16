@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,6 +18,7 @@ import '../bloc/auth/auth_bloc.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
 import 'auth_screen.dart';
+
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);
@@ -118,7 +120,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           await _userLocationRepository.getAllUserLocations();
 
       final filteredUserLocations = userLocations
-          .where((user) => user.issharinglocation == true)
+          .where((user) => user.issharinglocation == true &&
+          (user.latitude != _currentUserLocation.latitude ||
+              user.longitude != _currentUserLocation.longitude))
           .toList();
 
       setState(() {
@@ -155,19 +159,47 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-  void _fitMapToRoute() {
-    if (_routePoints.isNotEmpty) {
-      final bounds = LatLngBounds.fromPoints(_routePoints);
-      _mapController.fitBounds(bounds,
-          options: const FitBoundsOptions(padding: EdgeInsets.all(50)));
-    }
-  }
-
   void _resetRotation() {
     setState(() {
       _rotation = 0.0;
       _mapController.rotate(0);
     });
+  }
+
+
+  void _fitMapToRoute() {
+    if (_routePoints.isNotEmpty) {
+      final bounds = LatLngBounds.fromPoints(_routePoints);
+
+      final centerLatLng = LatLng(
+        (bounds.north + bounds.south) / 2,
+        (bounds.east + bounds.west) / 2,
+      );
+
+      final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
+
+      // Calculate the zoom level manually
+      final double worldSize = 256; // Base tile size in pixels
+      final double maxZoom = 20.0; // Maximum zoom level supported by the map
+
+      // Calculate the span of the bounds in degrees
+      final double latSpan = bounds.north - bounds.south;
+      final double lngSpan = bounds.east - bounds.west;
+
+      // Calculate the zoom level for latitude and longitude
+      final double latZoom = log(screenHeight * 360 / (latSpan * worldSize)) / log(2);
+      final double lngZoom = log(screenWidth * 360 / (lngSpan * worldSize)) / log(2);
+
+      // Use the smaller zoom level to ensure the entire bounds fit
+      final double zoom = latZoom < lngZoom ? latZoom : lngZoom;
+
+      // Ensure the zoom level is within valid bounds
+      final double clampedZoom = zoom.clamp(0, maxZoom);
+
+      // Move the map to the calculated center and zoom level
+      _mapController.move(centerLatLng, clampedZoom);
+    }
   }
 
   void _moveToUserLocation(LatLng location) {
@@ -290,9 +322,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 child: FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    center: _currentUserLocation,
-                    zoom: 10.0,
-                    rotation: _rotation,
+                    initialCenter: _currentUserLocation,
+                    minZoom: 10.0,
+                    initialRotation: _rotation,
                     onTap: (_, __) {
                       setState(() {
                         _routePoints.clear();
@@ -308,19 +340,36 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                     ),
                     MarkerLayer(
                       markers: [
+                        // Blue markers for other users
+                        ..._userLocations.map(
+                              (location) => Marker(
+                            point: location,
+                            width: markerSize * 2,
+                            height: markerSize * 2,
+                            child: GestureDetector(
+                              onTap: () => _calculateDistance(location),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: Center(
+                                  child: Icon(Icons.person, color: Colors.white, size: markerSize * 0.8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Red marker for the current user
                         Marker(
                           point: _currentUserLocation,
-                          builder: (ctx) => Icon(Icons.my_location,
-                              color: Colors.red, size: markerSize),
-                        ),
-                        ..._userLocations.map(
-                          (location) => Marker(
-                            point: location,
-                            builder: (ctx) => GestureDetector(
-                              onTap: () => _calculateDistance(location),
-                              child: Icon(Icons.location_on,
-                                  color: Colors.blue, size: markerSize),
-                            ),
+                          width: markerSize * 2,
+                          height: markerSize * 2,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => print("Current location tapped!"),
+                            child: Icon(Icons.my_location, color: Colors.red, size: markerSize),
                           ),
                         ),
                       ],

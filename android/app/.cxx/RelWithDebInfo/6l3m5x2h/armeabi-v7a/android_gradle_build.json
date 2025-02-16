@@ -1,0 +1,28 @@
+{
+  "buildFiles": [
+    "/Users/07kamrul/development/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/07kamrul/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/07kamrul/Documents/Colgis/gis_osm/android/app/.cxx/RelWithDebInfo/6l3m5x2h/armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/07kamrul/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/07kamrul/Documents/Colgis/gis_osm/android/app/.cxx/RelWithDebInfo/6l3m5x2h/armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {},
+  "toolchains": {
+    "toolchain": {
+      "cCompilerExecutable": "/Users/07kamrul/Library/Android/sdk/ndk/28.0.13004108/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang.lld",
+      "cppCompilerExecutable": "/Users/07kamrul/Library/Android/sdk/ndk/28.0.13004108/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++.lld"
+    }
+  },
+  "cFileExtensions": [],
+  "cppFileExtensions": []
+}
