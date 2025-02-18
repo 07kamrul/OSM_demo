@@ -39,3 +39,4 @@ flutter:
 
   assets:
     - assets/default_avater.png
+    - assets/person_marker.png

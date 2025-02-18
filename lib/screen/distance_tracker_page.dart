@@ -350,13 +350,19 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                               onTap: () => _calculateDistance(location),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.blue,
+                                  color: Colors.transparent,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(color: Colors.white, width: 1),
                                 ),
                                 child: Center(
-                                  child: Icon(Icons.person, color: Colors.white, size: markerSize * 0.8),
-                                ),
+                                  child: Image.asset(
+                                    'assets/person_marker.png',  // Ensure this file exists in assets
+                                    width: markerSize * 0.8,
+                                    height: markerSize * 0.8,
+                                    fit: BoxFit.contain,
+                                  ),
+                                )
+
                               ),
                             ),
                           ),
