@@ -19,7 +19,6 @@ import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
 import 'auth_screen.dart';
 
-
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({Key? key}) : super(key: key);
 
@@ -28,15 +27,14 @@ class DistanceTrackerPage extends StatefulWidget {
 }
 
 class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
-  final UserLocationRepository _userLocationRepository =
-      UserLocationRepository();
+  final UserLocationRepository _userLocationRepository = UserLocationRepository();
   final AuthRepository _userRepository = AuthRepository();
-
   final UserService _userService = UserService();
 
   final MapController _mapController = MapController();
   LatLng _currentUserLocation = LatLng(0, 0);
-  List<LatLng> _userLocations = [];
+  List<UserLocation> _userLocations = []; // Store UserLocation objects
+  List<User> _users = [];
   double? _distance;
   final List<LatLng> _routePoints = [];
   double _rotation = 0.0;
@@ -56,6 +54,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     _initializeLocation();
     _fetchUserLocations();
     _fetchUser();
+    _fetchUsers();
   }
 
   Future _initializeLocation() async {
@@ -81,6 +80,21 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load user: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchUsers() async {
+    try {
+      final users = await _userService.fetchUsers();
+      setState(() {
+        _users = users;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load users: $e';
         _isLoading = false;
       });
     }
@@ -117,7 +131,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _fetchUserLocations() async {
     try {
       final List<UserLocation> userLocations =
-          await _userLocationRepository.getAllUserLocations();
+      await _userLocationRepository.getAllUserLocations();
 
       final filteredUserLocations = userLocations
           .where((user) => user.issharinglocation == true &&
@@ -126,9 +140,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           .toList();
 
       setState(() {
-        _userLocations = filteredUserLocations
-            .map((user) => LatLng(user.latitude, user.longitude))
-            .toList();
+        _userLocations = filteredUserLocations; // Store UserLocation objects
         _isLoading = false;
       });
     } catch (e) {
@@ -165,7 +177,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       _mapController.rotate(0);
     });
   }
-
 
   void _fitMapToRoute() {
     if (_routePoints.isNotEmpty) {
@@ -257,9 +268,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     super.dispose();
   }
 
-
   static const WidgetStateProperty<Icon> thumbIcon =
-      WidgetStateProperty<Icon>.fromMap(
+  WidgetStateProperty<Icon>.fromMap(
     <WidgetStatesConstraint, Icon>{
       WidgetState.selected: Icon(Icons.check),
       WidgetState.any: Icon(Icons.close),
@@ -335,37 +345,61 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   children: [
                     TileLayer(
                       urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.location_tracker',
                     ),
                     MarkerLayer(
                       markers: [
                         // Blue markers for other users
                         ..._userLocations.map(
-                              (location) => Marker(
-                            point: location,
-                            width: markerSize * 2,
-                            height: markerSize * 2,
-                            child: GestureDetector(
-                              onTap: () => _calculateDistance(location),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.transparent,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 1),
-                                ),
-                                child: ClipOval(
-                                  child: Image.asset(
-                                    'assets/person_marker.png',  // Ensure this file exists in assets
-                                    width: markerSize * 0.8,
-                                    height: markerSize * 0.8,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-
+                              (userLocation) {
+                            final user = _users.firstWhere(
+                                  (u) => u.id == userLocation.userid,
+                              orElse: () => User(
+                                id: 0,
+                                firstname: "Unknown",
+                                email: "",
+                                password: "", fullname: '', lastname: ''
                               ),
-                            ),
-                          ),
+                            );
+                            return Marker(
+                              point: LatLng(userLocation.latitude, userLocation.longitude),
+                              width: markerSize * 2,
+                              height: markerSize * 2,
+                              child: GestureDetector(
+                                onTap: () => _calculateDistance(
+                                    LatLng(userLocation.latitude, userLocation.longitude)),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      user.firstname, // Display user's name
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        backgroundColor: Colors.black54,
+                                      ),
+                                    ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.transparent,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 1),
+                                      ),
+                                      child: ClipOval(
+                                        child: Image.asset(
+                                          'assets/person_marker.png', // Ensure this file exists in assets
+                                          width: markerSize * 0.8,
+                                          height: markerSize * 0.8,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         // Red marker for the current user
                         Marker(

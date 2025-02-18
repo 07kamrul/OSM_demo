@@ -19,4 +19,32 @@ class UserService {
       throw Exception('Failed to load user: $e');
     }
   }
+
+
+  Future<User> fetchUserInfo(int userId) async {
+    try {
+      if (userId != 0) {
+        final user = await _userRepository.getUser(userId);
+        return user;
+      } else {
+        throw Exception('User ID not found in storage.');
+      }
+    } catch (e) {
+      throw Exception('Failed to load user: $e');
+    }
+  }
+
+  Future<List<User>> fetchUsers() async {
+    try {
+      List<User> users = await _userRepository.getAllUsers();
+      if (!users.isEmpty) {
+        return users;
+      } else {
+        throw Exception('Users are empty.');
+      }
+    } catch (e) {
+      throw Exception('Failed to load user: $e');
+    }
+  }
+
 }
