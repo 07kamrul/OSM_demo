@@ -127,7 +127,8 @@ class _UserListScreenState extends State<UserListScreen> {
       ),
       drawer: Sidebar(
         onHomeTap: () {
-          print("Home tapped");
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
         },
         onUsersTap: () {
           Navigator.pushReplacement(

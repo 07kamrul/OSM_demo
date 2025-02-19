@@ -305,7 +305,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       ),
       drawer: Sidebar(
         onHomeTap: () {
-          print("Home tapped");
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
         },
         onUsersTap: () {
           Navigator.pushReplacement(
@@ -384,13 +385,13 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                                       decoration: BoxDecoration(
                                         color: Colors.transparent,
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 1),
+                                        border: Border.all(color: Colors.white, width: 2),
                                       ),
                                       child: ClipOval(
                                         child: Image.asset(
                                           'assets/person_marker.png', // Ensure this file exists in assets
-                                          width: markerSize * 0.8,
-                                          height: markerSize * 0.8,
+                                          width: markerSize * 1,
+                                          height: markerSize * 1,
                                           fit: BoxFit.cover,
                                         ),
                                       ),
