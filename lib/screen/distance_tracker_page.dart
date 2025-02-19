@@ -52,10 +52,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   @override
   void initState() {
     super.initState();
-    _initializeLocation();
-    _fetchUserLocations();
     _fetchUser();
     _fetchUsers();
+    _initializeLocation();
+    _fetchUserLocations();
   }
 
   Future _initializeLocation() async {
@@ -142,8 +142,23 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   user.longitude != _currentUserLocation.longitude))
           .toList();
 
+      int? userId = await UserStorage.getUserId();
+      if (userId != null) {
+        _userLocation =
+            await _userLocationRepository.getUserLocationByUserId(userId);
+        UserLocation updateUserLocation = UserLocation(
+          id: _userLocation?.id,
+          userid: userId,
+          latitude: _currentUserLocation.latitude,
+          longitude: _currentUserLocation.longitude,
+          issharinglocation: false,
+        );
+        await _userLocationRepository.updateUserLocation(updateUserLocation);
+      }
+
       setState(() {
         _userLocations = filteredUserLocations; // Store UserLocation objects
+        isShareLocation = _userLocation!.issharinglocation;
         _isLoading = false;
       });
     } catch (e) {
@@ -222,7 +237,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     setState(() => _mapController.move(location, 15.0));
   }
 
-  void _toggleLocationSharing(bool value) {
+  void _toggleLocationSharing(bool value) async {
     setState(() {
       isShareLocation = value;
     });
@@ -232,9 +247,25 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     } else {
       _stopLocationUpdates();
     }
+
+    // Update location sharing status in the database
+    if (_userLocation != null) {
+      try {
+        UserLocation updateUserLocation = UserLocation(
+          id: _userLocation!.id,
+          userid: _userLocation!.userid,
+          latitude: _currentUserLocation.latitude,
+          longitude: _currentUserLocation.longitude,
+          issharinglocation: isShareLocation,
+        );
+        await _userLocationRepository.updateUserLocation(updateUserLocation);
+      } catch (e) {
+        debugPrint("Error updating location sharing status: $e");
+      }
+    }
   }
 
-  // Start periodic location updates
+// Start periodic location updates
   void _startLocationUpdates() {
     _locationUpdateTimer?.cancel(); // Ensure no duplicate timers
     _locationUpdateTimer =
@@ -247,30 +278,33 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             _currentUserLocation = newLocation;
           });
 
-          UserLocation updateUserLocation = UserLocation(
-            id: _userLocation?.id,
-            userid: _userLocation!.userid,
-            latitude: _currentUserLocation.latitude,
-            longitude: _currentUserLocation.longitude,
-            issharinglocation: true,
-          );
-          await _userLocationRepository.updateUserLocation(updateUserLocation);
+          if (_userLocation != null) {
+            UserLocation updateUserLocation = UserLocation(
+              id: _userLocation!.id,
+              userid: _userLocation!.userid,
+              latitude: _currentUserLocation.latitude,
+              longitude: _currentUserLocation.longitude,
+              issharinglocation: true,
+            );
+            await _userLocationRepository
+                .updateUserLocation(updateUserLocation);
+          }
         }
       } catch (e) {
-        print("Error updating location: $e");
+        debugPrint("Error updating location: $e");
       }
     });
   }
 
+// Stop location updates
   void _stopLocationUpdates() {
-    _locationUpdateTimer?.cancel(); // Stop the timer properly
-    _locationUpdateTimer = null;
+    _locationUpdateTimer?.cancel(); // Just cancel the timer
   }
 
+// Dispose properly
   @override
   void dispose() {
-    _locationUpdateTimer?.cancel(); // Prevent further execution
-    _locationUpdateTimer = null;
+    _locationUpdateTimer?.cancel(); // Stop timer before destroying widget
     super.dispose();
   }
 
