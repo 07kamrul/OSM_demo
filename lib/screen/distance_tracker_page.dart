@@ -27,7 +27,8 @@ class DistanceTrackerPage extends StatefulWidget {
 }
 
 class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
-  final UserLocationRepository _userLocationRepository = UserLocationRepository();
+  final UserLocationRepository _userLocationRepository =
+      UserLocationRepository();
   final AuthRepository _userRepository = AuthRepository();
   final UserService _userService = UserService();
 
@@ -112,7 +113,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
         int? userId = await UserStorage.getUserId();
         if (userId != null) {
-          _userLocation = await _userLocationRepository.getUserLocationByUserId(userId);
+          _userLocation =
+              await _userLocationRepository.getUserLocationByUserId(userId);
           UserLocation updateUserLocation = UserLocation(
             id: _userLocation?.id,
             userid: userId,
@@ -131,12 +133,13 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _fetchUserLocations() async {
     try {
       final List<UserLocation> userLocations =
-      await _userLocationRepository.getAllUserLocations();
+          await _userLocationRepository.getAllUserLocations();
 
       final filteredUserLocations = userLocations
-          .where((user) => user.issharinglocation == true &&
-          (user.latitude != _currentUserLocation.latitude ||
-              user.longitude != _currentUserLocation.longitude))
+          .where((user) =>
+              user.issharinglocation == true &&
+              (user.latitude != _currentUserLocation.latitude ||
+                  user.longitude != _currentUserLocation.longitude))
           .toList();
 
       setState(() {
@@ -199,8 +202,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       final double lngSpan = bounds.east - bounds.west;
 
       // Calculate the zoom level for latitude and longitude
-      final double latZoom = log(screenHeight * 360 / (latSpan * worldSize)) / log(2);
-      final double lngZoom = log(screenWidth * 360 / (lngSpan * worldSize)) / log(2);
+      final double latZoom =
+          log(screenHeight * 360 / (latSpan * worldSize)) / log(2);
+      final double lngZoom =
+          log(screenWidth * 360 / (lngSpan * worldSize)) / log(2);
 
       // Use the smaller zoom level to ensure the entire bounds fit
       final double zoom = latZoom < lngZoom ? latZoom : lngZoom;
@@ -232,7 +237,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   // Start periodic location updates
   void _startLocationUpdates() {
     _locationUpdateTimer?.cancel(); // Ensure no duplicate timers
-    _locationUpdateTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    _locationUpdateTimer =
+        Timer.periodic(const Duration(seconds: 10), (timer) async {
       if (!mounted) return; // Ensure widget is still in the tree
       try {
         final newLocation = await LocationService.getCurrentLocation();
@@ -269,7 +275,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   }
 
   static const WidgetStateProperty<Icon> thumbIcon =
-  WidgetStateProperty<Icon>.fromMap(
+      WidgetStateProperty<Icon>.fromMap(
     <WidgetStatesConstraint, Icon>{
       WidgetState.selected: Icon(Icons.check),
       WidgetState.any: Icon(Icons.close),
@@ -305,16 +311,16 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       ),
       drawer: Sidebar(
         onHomeTap: () {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
         },
         onUsersTap: () {
           Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (_) => UserListScreen()));
         },
         onTrackLocationTap: () {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
         },
         onSettingsTap: () {
           print("Settings tapped");
@@ -346,57 +352,70 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   children: [
                     TileLayer(
                       urlTemplate:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.location_tracker',
                     ),
                     MarkerLayer(
                       markers: [
                         // Blue markers for other users
                         ..._userLocations.map(
-                              (userLocation) {
+                          (userLocation) {
                             final user = _users.firstWhere(
-                                  (u) => u.id == userLocation.userid,
+                              (u) => u.id == userLocation.userid,
                               orElse: () => User(
-                                id: 0,
-                                firstname: "Unknown",
-                                email: "",
-                                password: "", fullname: '', lastname: ''
-                              ),
+                                  id: 0,
+                                  firstname: "Unknown",
+                                  email: "",
+                                  password: "",
+                                  fullname: '',
+                                  lastname: ''),
                             );
                             return Marker(
-                              point: LatLng(userLocation.latitude, userLocation.longitude),
-                              width: markerSize * 2,
-                              height: markerSize * 2,
+                              point: LatLng(userLocation.latitude,
+                                  userLocation.longitude),
+                              width: markerSize * 2.5,
+                              // Ensure enough space
+                              height: markerSize * 3,
+                              // Allow space for both text and image
                               child: GestureDetector(
-                                onTap: () => _calculateDistance(
-                                    LatLng(userLocation.latitude, userLocation.longitude)),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      user.firstname, // Display user's name
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        backgroundColor: Colors.black54,
+                                onTap: () => _calculateDistance(LatLng(
+                                    userLocation.latitude,
+                                    userLocation.longitude)),
+                                child: SizedBox(
+                                  width: markerSize * 2,
+                                  height: markerSize * 2.5,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black54,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          user.firstname, // Display user's name
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.transparent,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                      child: ClipOval(
+                                      SizedBox(height: 2),
+                                      ClipOval(
                                         child: Image.asset(
-                                          'assets/person_marker.png', // Ensure this file exists in assets
-                                          width: markerSize * 1,
-                                          height: markerSize * 1,
+                                          'assets/person_marker.png',
+                                          width: markerSize * 1.8,
+                                          // Slightly reduced for better fit
+                                          height: markerSize * 1.8,
                                           fit: BoxFit.cover,
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
@@ -405,12 +424,52 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                         // Red marker for the current user
                         Marker(
                           point: _currentUserLocation,
-                          width: markerSize * 2,
-                          height: markerSize * 2,
+                          width: markerSize * 2.5,
+                          // Ensure the marker size is correct
+                          height: markerSize * 3,
+                          // Increase height slightly to fit text
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTap: () => print("Current location tapped!"),
-                            child: Icon(Icons.my_location, color: Colors.red, size: markerSize),
+                            child: SizedBox(
+                              width: markerSize * 2,
+                              height: markerSize * 2.5,
+                              // Allow space for both text and image
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                // Prevent overflow
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      "Me",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  // Small space between text and image
+                                  ClipOval(
+                                    child: Image.asset(
+                                      'assets/person_marker.png',
+                                      // Ensure this file exists in assets
+                                      width: markerSize * 1.8,
+                                      // Keep it within bounds
+                                      height: markerSize * 1.8,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],
