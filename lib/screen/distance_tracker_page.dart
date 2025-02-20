@@ -55,6 +55,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     _fetchUser();
     _fetchUsers();
     _initializeLocation();
+    _getCurrentLocation();
     _fetchUserLocations();
   }
 
@@ -114,14 +115,19 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         int? userId = await UserStorage.getUserId();
         if (userId != null) {
           _userLocation =
-              await _userLocationRepository.getUserLocationByUserId(userId);
+          await _userLocationRepository.getUserLocationByUserId(userId);
+
+          // Ensure _userLocation is not null before accessing properties
+          isShareLocation = _userLocation?.issharinglocation ?? false;
+
           UserLocation updateUserLocation = UserLocation(
             id: _userLocation?.id,
             userid: userId,
             latitude: _currentUserLocation.latitude,
             longitude: _currentUserLocation.longitude,
-            issharinglocation: false,
+            issharinglocation: isShareLocation,
           );
+
           await _userLocationRepository.updateUserLocation(updateUserLocation);
         }
       }
@@ -130,45 +136,74 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
+
   Future<void> _fetchUserLocations() async {
     try {
+      // Fetch all user locations
       final List<UserLocation> userLocations =
-          await _userLocationRepository.getAllUserLocations();
+      await _userLocationRepository.getAllUserLocations();
 
+      // Get user ID
+      int? userId = await UserStorage.getUserId();
+      if (userId == null) {
+        setState(() {
+          _errorMessage = "User ID not found";
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Fetch current user location
+      _userLocation =
+      await _userLocationRepository.getUserLocationByUserId(userId);
+
+      // Ensure _currentUserLocation is not null
+      if (_currentUserLocation == null) {
+        setState(() {
+          _errorMessage = "Current location is unavailable.";
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Filter users who are sharing location and are different from the current user
       final filteredUserLocations = userLocations
           .where((user) =>
-              user.issharinglocation == true &&
-              (user.latitude != _currentUserLocation.latitude ||
-                  user.longitude != _currentUserLocation.longitude))
+      user.issharinglocation == true &&
+          user.userid != (userId) &&
+          (user.latitude != _currentUserLocation?.latitude ||
+              user.longitude != _currentUserLocation?.longitude))
           .toList();
 
-      int? userId = await UserStorage.getUserId();
-      if (userId != null) {
-        _userLocation =
-            await _userLocationRepository.getUserLocationByUserId(userId);
+      isShareLocation = _userLocation?.issharinglocation ?? false;
+
+      // Update the user location (Only if _userLocation exists)
+      if (_userLocation != null) {
         UserLocation updateUserLocation = UserLocation(
-          id: _userLocation?.id,
+          id: _userLocation!.id,
           userid: userId,
-          latitude: _currentUserLocation.latitude,
-          longitude: _currentUserLocation.longitude,
-          issharinglocation: false,
+          latitude: _currentUserLocation!.latitude,
+          longitude: _currentUserLocation!.longitude,
+          issharinglocation: isShareLocation,
         );
         await _userLocationRepository.updateUserLocation(updateUserLocation);
       }
 
+      // Update state only once to improve performance
       setState(() {
-        _userLocations = filteredUserLocations; // Store UserLocation objects
-        isShareLocation = _userLocation!.issharinglocation;
+        _userLocations = filteredUserLocations;
+        isShareLocation = _userLocation?.issharinglocation ?? false;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load user locations: $e';
-        print(e);
         _isLoading = false;
       });
+      print(e);
     }
   }
+
 
   Future<void> _calculateDistance(LatLng targetLocation) async {
     try {
