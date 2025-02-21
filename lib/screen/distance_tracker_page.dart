@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -19,209 +18,160 @@ import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
 import 'auth_screen.dart';
 
+// Separate constants class for better organization
+class _Constants {
+  static const double minZoom = 10.0;
+  static const double defaultZoom = 15.0;
+  static const Duration locationUpdateInterval = Duration(seconds: 10);
+  static const String tileUrl =
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+}
+
 class DistanceTrackerPage extends StatefulWidget {
-  const DistanceTrackerPage({Key? key}) : super(key: key);
+  const DistanceTrackerPage({super.key});
 
   @override
-  _DistanceTrackerPageState createState() => _DistanceTrackerPageState();
+  State<DistanceTrackerPage> createState() => _DistanceTrackerPageState();
 }
 
 class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
-  final UserLocationRepository _userLocationRepository =
+  // Use late initialization where appropriate
+  late final UserLocationRepository _userLocationRepository =
       UserLocationRepository();
-  final AuthRepository _userRepository = AuthRepository();
-  final UserService _userService = UserService();
+  late final AuthRepository _userRepository = AuthRepository();
+  late final UserService _userService = UserService();
+  late final MapController _mapController = MapController();
 
-  final MapController _mapController = MapController();
-  LatLng _currentUserLocation = LatLng(0, 0);
-  List<UserLocation> _userLocations = []; // Store UserLocation objects
-  List<User> _users = [];
-  double? _distance;
+  // Group related variables
+  LatLng _currentUserLocation = const LatLng(0, 0);
+  final List<UserLocation> _userLocations = [];
+  final List<User> _users = [];
   final List<LatLng> _routePoints = [];
-  double _rotation = 0.0;
-  bool _isExpanded = false;
-  User? _user;
-  bool isShareLocation = false;
-  Timer? _locationUpdateTimer;
-  UserLocation? _userLocation;
 
-  // Loading and error states
+  // UI states
+  double _distance = 0.0;
+  double _rotation = 0.0;
   bool _isLoading = true;
+  bool _isShareLocation = false;
   String? _errorMessage;
+
+  User? _user;
+  UserLocation? _userLocation;
+  Timer? _locationUpdateTimer;
 
   @override
   void initState() {
     super.initState();
-    _fetchUser();
-    _fetchUsers();
-    _initializeLocation();
-    _getCurrentLocation();
-    _fetchUserLocations();
+    _initializeData();
   }
 
-  Future _initializeLocation() async {
+  Future<void> _initializeData() async {
+    await Future.wait([
+      _fetchUser(),
+      _fetchUsers(),
+      _initializeLocation(),
+      _fetchUserLocations(),
+    ]);
+    _startPeriodicUpdates();
+  }
+
+  Future<void> _initializeLocation() async {
     try {
       final location = await LocationService.getCurrentLocation();
-      setState(() {
-        _currentUserLocation = location;
-      });
-
-      _mapController.move(_currentUserLocation, 15.0); // Zoom level 15
+      if (mounted) {
+        setState(() {
+          _currentUserLocation = location;
+          _isLoading = false;
+        });
+        _mapController.move(location, _Constants.defaultZoom);
+      }
     } catch (e) {
-      print("Error getting location: $e");
+      _handleError('Error initializing location: $e');
     }
   }
 
   Future<void> _fetchUser() async {
     try {
-      final user = await _userService.fetchUser();
-      setState(() {
-        _user = user;
-        _isLoading = false;
-      });
+      _user = await _userService.fetchUser();
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load user: $e';
-        _isLoading = false;
-      });
+      _handleError('Failed to load user: $e');
     }
   }
 
   Future<void> _fetchUsers() async {
     try {
-      final users = await _userService.fetchUsers();
-      setState(() {
-        _users = users;
-        _isLoading = false;
-      });
+      _users.addAll(await _userService.fetchUsers());
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load users: $e';
-        _isLoading = false;
-      });
+      _handleError('Failed to load users: $e');
     }
   }
-
-  Future _getCurrentLocation() async {
-    try {
-      final location = await LocationService.getCurrentLocation();
-
-      if (mounted) {
-        setState(() {
-          _currentUserLocation = location;
-          _mapController.move(location, 15.0);
-        });
-
-        int? userId = await UserStorage.getUserId();
-        if (userId != null) {
-          _userLocation =
-          await _userLocationRepository.getUserLocationByUserId(userId);
-
-          // Ensure _userLocation is not null before accessing properties
-          isShareLocation = _userLocation?.issharinglocation ?? false;
-
-          UserLocation updateUserLocation = UserLocation(
-            id: _userLocation?.id,
-            userid: userId,
-            latitude: _currentUserLocation.latitude,
-            longitude: _currentUserLocation.longitude,
-            issharinglocation: isShareLocation,
-          );
-
-          await _userLocationRepository.updateUserLocation(updateUserLocation);
-        }
-      }
-    } catch (e) {
-      print("Error fetching location: $e");
-    }
-  }
-
 
   Future<void> _fetchUserLocations() async {
     try {
-      // Fetch all user locations
-      final List<UserLocation> userLocations =
-      await _userLocationRepository.getAllUserLocations();
+      final userId = await UserStorage.getUserId();
+      if (userId == null) throw 'User ID not found';
 
-      // Get user ID
-      int? userId = await UserStorage.getUserId();
-      if (userId == null) {
-        setState(() {
-          _errorMessage = "User ID not found";
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Fetch current user location
+      final userLocations = await _userLocationRepository.getAllUserLocations();
       _userLocation =
-      await _userLocationRepository.getUserLocationByUserId(userId);
+          await _userLocationRepository.getUserLocationByUserId(userId);
 
-      // Ensure _currentUserLocation is not null
-      if (_currentUserLocation == null) {
+      if (mounted) {
         setState(() {
-          _errorMessage = "Current location is unavailable.";
+          _userLocations.clear();
+          _userLocations.addAll(userLocations.where((user) =>
+              user.issharinglocation == true &&
+              user.userid != userId &&
+              (user.latitude != _currentUserLocation.latitude ||
+                  user.longitude != _currentUserLocation.longitude)));
+          _isShareLocation = _userLocation?.issharinglocation ?? false;
           _isLoading = false;
         });
-        return;
       }
 
-      // Filter users who are sharing location and are different from the current user
-      final filteredUserLocations = userLocations
-          .where((user) =>
-      user.issharinglocation == true &&
-          user.userid != (userId) &&
-          (user.latitude != _currentUserLocation?.latitude ||
-              user.longitude != _currentUserLocation?.longitude))
-          .toList();
-
-      isShareLocation = _userLocation?.issharinglocation ?? false;
-
-      // Update the user location (Only if _userLocation exists)
-      if (_userLocation != null) {
-        UserLocation updateUserLocation = UserLocation(
-          id: _userLocation!.id,
-          userid: userId,
-          latitude: _currentUserLocation!.latitude,
-          longitude: _currentUserLocation!.longitude,
-          issharinglocation: isShareLocation,
-        );
-        await _userLocationRepository.updateUserLocation(updateUserLocation);
-      }
-
-      // Update state only once to improve performance
-      setState(() {
-        _userLocations = filteredUserLocations;
-        isShareLocation = _userLocation?.issharinglocation ?? false;
-        _isLoading = false;
-      });
+      await _updateUserLocation(userId);
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load user locations: $e';
-        _isLoading = false;
-      });
-      print(e);
+      _handleError('Failed to load user locations: $e');
     }
   }
 
+  Future<void> _updateUserLocation(int userId) async {
+    if (_userLocation != null) {
+      final updatedLocation = UserLocation(
+        id: _userLocation!.id,
+        userid: userId,
+        latitude: _currentUserLocation.latitude,
+        longitude: _currentUserLocation.longitude,
+        issharinglocation: _isShareLocation,
+      );
+      await _userLocationRepository.updateUserLocation(updatedLocation);
+    }
+  }
 
-  Future<void> _calculateDistance(LatLng targetLocation) async {
+  Future<void> _calculateDistance(LatLng target) async {
     try {
-      final result = await LocationService.getRouteDistance(
-          _currentUserLocation, targetLocation);
-      if (result != null && result.distance != null) {
+      final result =
+          await LocationService.getRouteDistance(_currentUserLocation, target);
+      if (result?.distance != null) {
         setState(() {
-          _distance = result.distance;
+          _distance = result!.distance!;
           _routePoints.clear();
           _routePoints.addAll(result.routePoints);
         });
         _fitMapToRoute();
-      } else {
-        print("No valid route data received: $result");
       }
     } catch (e) {
-      print("Error fetching road distance: $e");
+      debugPrint('Error calculating distance: $e');
     }
+  }
+
+  void _fitMapToRoute() {
+    if (_routePoints.isEmpty) return;
+
+    final bounds = LatLngBounds.fromPoints(_routePoints);
+    _mapController.fitCamera(CameraFit.bounds(
+      bounds: bounds,
+      padding: const EdgeInsets.all(50),
+    ));
   }
 
   void _resetRotation() {
@@ -231,137 +181,74 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     });
   }
 
-  void _fitMapToRoute() {
-    if (_routePoints.isNotEmpty) {
-      final bounds = LatLngBounds.fromPoints(_routePoints);
-
-      final centerLatLng = LatLng(
-        (bounds.north + bounds.south) / 2,
-        (bounds.east + bounds.west) / 2,
-      );
-
-      final screenWidth = MediaQuery.of(context).size.width;
-      final screenHeight = MediaQuery.of(context).size.height;
-
-      // Calculate the zoom level manually
-      final double worldSize = 256; // Base tile size in pixels
-      final double maxZoom = 20.0; // Maximum zoom level supported by the map
-
-      // Calculate the span of the bounds in degrees
-      final double latSpan = bounds.north - bounds.south;
-      final double lngSpan = bounds.east - bounds.west;
-
-      // Calculate the zoom level for latitude and longitude
-      final double latZoom =
-          log(screenHeight * 360 / (latSpan * worldSize)) / log(2);
-      final double lngZoom =
-          log(screenWidth * 360 / (lngSpan * worldSize)) / log(2);
-
-      // Use the smaller zoom level to ensure the entire bounds fit
-      final double zoom = latZoom < lngZoom ? latZoom : lngZoom;
-
-      // Ensure the zoom level is within valid bounds
-      final double clampedZoom = zoom.clamp(0, maxZoom);
-
-      // Move the map to the calculated center and zoom level
-      _mapController.move(centerLatLng, clampedZoom);
-    }
+  void _toggleLocationSharing(bool value) {
+    setState(() => _isShareLocation = value);
+    value ? _startPeriodicUpdates() : _stopPeriodicUpdates();
+    _updateUserLocationSharing();
   }
 
-  void _moveToUserLocation(LatLng location) {
-    setState(() => _mapController.move(location, 15.0));
-  }
-
-  void _toggleLocationSharing(bool value) async {
-    setState(() {
-      isShareLocation = value;
-    });
-
-    if (isShareLocation) {
-      _startLocationUpdates();
-    } else {
-      _stopLocationUpdates();
-    }
-
-    // Update location sharing status in the database
-    if (_userLocation != null) {
-      try {
-        UserLocation updateUserLocation = UserLocation(
+  // Add this new method
+  Future<void> _updateUserLocationSharing() async {
+    try {
+      if (_userLocation != null) {
+        final updatedLocation = UserLocation(
           id: _userLocation!.id,
           userid: _userLocation!.userid,
           latitude: _currentUserLocation.latitude,
           longitude: _currentUserLocation.longitude,
-          issharinglocation: isShareLocation,
+          issharinglocation: _isShareLocation,
         );
-        await _userLocationRepository.updateUserLocation(updateUserLocation);
-      } catch (e) {
-        debugPrint("Error updating location sharing status: $e");
+        await _userLocationRepository.updateUserLocation(updatedLocation);
       }
+    } catch (e) {
+      _handleError('Error updating location sharing status: $e');
     }
   }
 
-// Start periodic location updates
-  void _startLocationUpdates() {
-    _locationUpdateTimer?.cancel(); // Ensure no duplicate timers
+  void _startPeriodicUpdates() {
+    _locationUpdateTimer?.cancel();
     _locationUpdateTimer =
-        Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (!mounted) return; // Ensure widget is still in the tree
-      try {
-        final newLocation = await LocationService.getCurrentLocation();
-        if (mounted) {
-          setState(() {
-            _currentUserLocation = newLocation;
-          });
-
-          if (_userLocation != null) {
-            UserLocation updateUserLocation = UserLocation(
-              id: _userLocation!.id,
-              userid: _userLocation!.userid,
-              latitude: _currentUserLocation.latitude,
-              longitude: _currentUserLocation.longitude,
-              issharinglocation: true,
-            );
-            await _userLocationRepository
-                .updateUserLocation(updateUserLocation);
-          }
-        }
-      } catch (e) {
-        debugPrint("Error updating location: $e");
-      }
+        Timer.periodic(_Constants.locationUpdateInterval, (_) async {
+      if (!mounted) return;
+      await _updateLocation();
     });
   }
 
-// Stop location updates
-  void _stopLocationUpdates() {
-    _locationUpdateTimer?.cancel(); // Just cancel the timer
+  Future<void> _updateLocation() async {
+    try {
+      final location = await LocationService.getCurrentLocation();
+      if (mounted) {
+        setState(() => _currentUserLocation = location);
+        final userId = await UserStorage.getUserId();
+        if (userId != null) await _updateUserLocation(userId);
+      }
+    } catch (e) {
+      debugPrint('Error updating location: $e');
+    }
   }
 
-// Dispose properly
+  void _stopPeriodicUpdates() => _locationUpdateTimer?.cancel();
+
+  void _handleError(String message) {
+    if (mounted) {
+      setState(() {
+        _errorMessage = message;
+        _isLoading = false;
+      });
+    }
+    debugPrint(message);
+  }
+
   @override
   void dispose() {
-    _locationUpdateTimer?.cancel(); // Stop timer before destroying widget
+    _locationUpdateTimer?.cancel();
     super.dispose();
   }
 
-  static const WidgetStateProperty<Icon> thumbIcon =
-      WidgetStateProperty<Icon>.fromMap(
-    <WidgetStatesConstraint, Icon>{
-      WidgetState.selected: Icon(Icons.check),
-      WidgetState.any: Icon(Icons.close),
-    },
-  );
-
   @override
   Widget build(BuildContext context) {
-    // Screen dimensions
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    // Responsive sizing
-    final appBarFontSize = screenWidth * 0.05; // 5% of screen width
-    final buttonSize = screenWidth * 0.12; // 12% of screen width
-    final paddingValue = screenWidth * 0.05; // 5% of screen width
-    final markerSize = screenWidth * 0.08; // 8% of screen width
+    final size = MediaQuery.of(context).size;
+    final padding = size.width * 0.05;
 
     return Scaffold(
       appBar: AppBar(
@@ -369,37 +256,17 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           'Location Tracker',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: appBarFontSize,
+            fontSize: size.width * 0.05,
           ),
         ),
-        actions: [
-          AppBarActionName(fontSize: appBarFontSize * 0.8),
+        actions: const [
+          AppBarActionName(
+            fontSize: 20,
+          )
         ],
         centerTitle: true,
-        elevation: 0,
       ),
-      drawer: Sidebar(
-        onHomeTap: () {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
-        },
-        onUsersTap: () {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => UserListScreen()));
-        },
-        onTrackLocationTap: () {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
-        },
-        onSettingsTap: () {
-          print("Settings tapped");
-        },
-        onLogoutTap: () {
-          context.read<AuthBloc>().add(LogoutEvent());
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => AuthScreen()));
-        },
-      ),
+      drawer: _buildDrawer(context),
       body: Stack(
         children: [
           Column(
@@ -409,254 +276,233 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   mapController: _mapController,
                   options: MapOptions(
                     initialCenter: _currentUserLocation,
-                    minZoom: 10.0,
+                    minZoom: _Constants.minZoom,
                     initialRotation: _rotation,
-                    onTap: (_, __) {
-                      setState(() {
-                        _routePoints.clear();
-                        _distance = null;
-                      });
-                    },
+                    onTap: (_, __) => setState(() {
+                      _routePoints.clear();
+                      _distance = 0.0;
+                    }),
                   ),
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.location_tracker',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        // Blue markers for other users
-                        ..._userLocations.map(
-                          (userLocation) {
-                            final user = _users.firstWhere(
-                              (u) => u.id == userLocation.userid,
-                              orElse: () => User(
-                                  id: 0,
-                                  firstname: "Unknown",
-                                  email: "",
-                                  password: "",
-                                  fullname: '',
-                                  lastname: ''),
-                            );
-                            return Marker(
-                              point: LatLng(userLocation.latitude,
-                                  userLocation.longitude),
-                              width: markerSize * 2.5,
-                              // Ensure enough space
-                              height: markerSize * 3,
-                              // Allow space for both text and image
-                              child: GestureDetector(
-                                onTap: () => _calculateDistance(LatLng(
-                                    userLocation.latitude,
-                                    userLocation.longitude)),
-                                child: SizedBox(
-                                  width: markerSize * 2,
-                                  height: markerSize * 2.5,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black54,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          user.firstname, // Display user's name
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: 2),
-                                      ClipOval(
-                                        child: Image.asset(
-                                          'assets/person_marker.png',
-                                          width: markerSize * 1.8,
-                                          // Slightly reduced for better fit
-                                          height: markerSize * 1.8,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        // Red marker for the current user
-                        Marker(
-                          point: _currentUserLocation,
-                          width: markerSize * 2.5,
-                          // Ensure the marker size is correct
-                          height: markerSize * 3,
-                          // Increase height slightly to fit text
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => print("Current location tapped!"),
-                            child: SizedBox(
-                              width: markerSize * 2,
-                              height: markerSize * 2.5,
-                              // Allow space for both text and image
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                // Prevent overflow
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 4, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      "Me",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 2),
-                                  // Small space between text and image
-                                  ClipOval(
-                                    child: Image.asset(
-                                      'assets/person_marker.png',
-                                      // Ensure this file exists in assets
-                                      width: markerSize * 1.8,
-                                      // Keep it within bounds
-                                      height: markerSize * 1.8,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    TileLayer(urlTemplate: _Constants.tileUrl),
+                    MarkerLayer(markers: _buildMarkers(size)),
                     if (_routePoints.isNotEmpty)
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                              points: _routePoints,
-                              color: Colors.green,
-                              strokeWidth: 4.0),
-                        ],
-                      ),
+                      PolylineLayer(polylines: [
+                        Polyline(
+                          points: _routePoints,
+                          color: Colors.green,
+                          strokeWidth: 4.0,
+                        ),
+                      ]),
                   ],
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.all(paddingValue),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_distance != null)
-                      Text('Distance: ${_distance!.toStringAsFixed(2)} km',
-                          style: TextStyle(fontSize: appBarFontSize * 0.8)),
-                    const SizedBox(height: 8),
-                    Text('Tap on a blue marker to calculate the distance.',
-                        style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: appBarFontSize * 0.6)),
-                  ],
-                ),
-              ),
+              _buildDistanceInfo(padding),
             ],
           ),
-          // Current Location Button
-          Positioned(
-            bottom: screenHeight * 0.05,
-            right: screenWidth * 0.05,
-            child: FloatingActionButton(
-              heroTag: 'currentLocation',
-              onPressed: _getCurrentLocation,
-              backgroundColor: Colors.blue,
-              child: Icon(Icons.my_location,
-                  color: Colors.white, size: buttonSize * 0.6),
-            ),
-          ),
-          Positioned(
-            top: screenHeight * 0.1,
-            right: screenWidth * 0.05,
-            child: GestureDetector(
-              onTap: _resetRotation,
-              child: Container(
-                width: buttonSize,
-                height: buttonSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 5,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Transform.rotate(
-                  angle: -_rotation * (3.1415926535 / 180),
-                  child: Icon(
-                    Icons.explore,
-                    color: Colors.blue,
-                    size: buttonSize * 0.6,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Add the Switch widget here
-          Positioned(
-            top: screenHeight * 0.1 + buttonSize + 10,
-            // Adjust position below the reset button
-            right: screenWidth * 0.05,
-            child: Switch(
-              thumbIcon: thumbIcon,
-              value: isShareLocation,
-              onChanged: _toggleLocationSharing,
-            ),
-          ),
-
-          // Loading Indicator
-          if (_isLoading)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-            ),
-
-          // Error Message
-          if (_errorMessage != null)
-            Positioned(
-              bottom: screenHeight * 0.5,
-              left: screenWidth * 0.1,
-              right: screenWidth * 0.1,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  _errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
+          _buildFloatingButtons(size),
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
+          if (_errorMessage != null) _buildErrorMessage(size, _errorMessage!),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Sidebar(
+      onHomeTap: () => Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (_) => const DistanceTrackerPage())),
+      onUsersTap: () => Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const UserListScreen())),
+      onTrackLocationTap: () => Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (_) => const DistanceTrackerPage())),
+      onSettingsTap: () => debugPrint("Settings tapped"),
+      onLogoutTap: () {
+        context.read<AuthBloc>().add(LogoutEvent());
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => AuthScreen()));
+      },
+    );
+  }
+
+  List<Marker> _buildMarkers(Size size) {
+    final markerSize = size.width * 0.08;
+    final markers = _userLocations.map((loc) {
+      final user = _users.firstWhere((u) => u.id == loc.userid,
+          orElse: () => User(
+              id: 0,
+              firstname: "Unknown",
+              email: "",
+              password: "",
+              fullname: '',
+              lastname: ''));
+      return Marker(
+        point: LatLng(loc.latitude, loc.longitude),
+        width: markerSize * 2,
+        height: markerSize * 2.5,
+        child: GestureDetector(
+          onTap: () => _calculateDistance(LatLng(loc.latitude, loc.longitude)),
+          child: _buildMarkerContent(user.firstname, markerSize),
+        ),
+      );
+    }).toList();
+
+    markers.add(Marker(
+      point: _currentUserLocation,
+      width: markerSize * 2,
+      height: markerSize * 2.5,
+      child: _buildMarkerContent("Me", markerSize),
+    ));
+
+    return markers;
+  }
+
+  Widget _buildMarkerContent(String label, double markerSize) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              )),
+        ),
+        ClipOval(
+          child: Image.asset(
+            'assets/person_marker.png',
+            width: markerSize * 1.8,
+            height: markerSize * 1.8,
+            fit: BoxFit.cover,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDistanceInfo(double padding) {
+    return Padding(
+      padding: EdgeInsets.all(padding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_distance > 0)
+            Text('Distance: ${_distance.toStringAsFixed(2)} km'),
+          const SizedBox(height: 8),
+          const Text('Tap a marker to calculate distance',
+              style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingButtons(Size size) {
+    // Responsive scaling factors
+    final isSmallScreen = size.width < 400;
+    final isLargeScreen = size.width >= 600;
+    final isTablet = size.width >= 600 && size.width < 900;
+
+    // Dynamic sizing based on screen dimensions
+    final buttonSize = isSmallScreen
+        ? 40.0
+        : isTablet
+            ? 52.0
+            : 56.0;
+    final spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
+    final padding = size.width *
+        (isSmallScreen
+            ? 0.02
+            : isLargeScreen
+                ? 0.04
+                : 0.03);
+    final iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
+    final bottomMargin = size.height * (isSmallScreen ? 0.02 : 0.03);
+
+    return Positioned(
+      bottom: bottomMargin, // Changed from top to bottom
+      right: padding,
+      child: Container(
+        padding: EdgeInsets.all(padding * 0.5),
+        decoration: isLargeScreen
+            ? BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              onPressed: _resetRotation,
+              mini: isSmallScreen,
+              heroTag: 'resetRotation',
+              elevation: isLargeScreen ? 0 : 6,
+              backgroundColor: isLargeScreen ? Colors.transparent : null,
+              child: Icon(
+                Icons.explore,
+                size: iconSize,
+                color: isLargeScreen ? Colors.blue : Colors.black,
+              ),
+            ),
+            SizedBox(height: spacing),
+            Transform.scale(
+              scale: isSmallScreen
+                  ? 0.8
+                  : isTablet
+                      ? 1.1
+                      : 1.0,
+              child: Switch(
+                value: _isShareLocation,
+                onChanged: _toggleLocationSharing,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            SizedBox(height: spacing),
+            FloatingActionButton(
+              onPressed: _updateLocation,
+              mini: isSmallScreen,
+              heroTag: 'updateLocation',
+              elevation: isLargeScreen ? 0 : 6,
+              backgroundColor: isLargeScreen ? Colors.transparent : null,
+              child: Icon(
+                Icons.my_location,
+                size: iconSize,
+                color: isLargeScreen ? Colors.blue : Colors.black,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorMessage(Size size, String message) {
+    return Center(
+      child: Container(
+        width: size.width * 0.8,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white)),
       ),
     );
   }
