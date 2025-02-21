@@ -3,152 +3,205 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
+import '../widgets/app_bar_action_name.dart';
 import 'distance_tracker_page.dart';
-import 'register_screen.dart'; // Import the RegisterScreen
+import 'register_screen.dart';
+
+class _Constants {
+  static const double logoScale = 0.3;
+  static const double inputHeightScale = 0.06;
+  static const double fontScale = 0.04;
+  static const double paddingScale = 0.05;
+  static const double buttonHeightScale = 0.07;
+  static const double spacingScale = 0.02;
+  static const int smallScreenBreakpoint = 400;
+  static const int largeScreenBreakpoint = 600;
+  static const double appBarFontScale = 0.05;
+}
 
 class AuthScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  AuthScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    // Get screen dimensions
-    double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
-
-    // Responsive values
-    double logoSize = screenWidth * 0.3; // Logo size relative to screen width
-    double inputHeight = screenHeight * 0.06; // Input field height relative to screen height
-    double fontSize = screenWidth * 0.04; // Font size relative to screen width
-    double paddingValue = screenWidth * 0.05; // Padding relative to screen width
-    double buttonHeight = screenHeight * 0.07; // Button height relative to screen height
+    final size = MediaQuery.of(context).size;
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
-          );
+          _showSnackBar(context, state.message, Colors.green);
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => DistanceTrackerPage()),
+            MaterialPageRoute(builder: (_) => const DistanceTrackerPage()),
           );
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Login'),
-          centerTitle: true,
-        ),
+        appBar: _buildAppBar(size),
         backgroundColor: Colors.white,
-        body: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: paddingValue),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Logo
-                Icon(Icons.lock, size: logoSize, color: Colors.blueAccent),
-                SizedBox(height: screenHeight * 0.02),
+        body: LayoutBuilder(
+          builder: (context, constraints) => _buildBody(context, constraints),
+        ),
+      ),
+    );
+  }
 
-                // Email Input
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: "Email",
-                    labelStyle: TextStyle(fontSize: fontSize),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: Icon(Icons.email, size: fontSize),
-                  ),
-                  style: TextStyle(fontSize: fontSize),
-                  textAlignVertical: TextAlignVertical.center,
-                  maxLines: 1,
-                ),
-                SizedBox(height: screenHeight * 0.02),
+  PreferredSizeWidget _buildAppBar(Size size) {
+    final appBarFontSize = size.width * _Constants.appBarFontScale;
 
-                // Password Input
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: "Password",
-                    labelStyle: TextStyle(fontSize: fontSize),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: Icon(Icons.lock, size: fontSize),
-                  ),
-                  style: TextStyle(fontSize: fontSize),
-                  textAlignVertical: TextAlignVertical.center,
-                  maxLines: 1,
-                ),
-                SizedBox(height: screenHeight * 0.02),
+    return AppBar(
+      title: Text('Login', style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: appBarFontSize,
+      ),),
+      centerTitle: true,
+      elevation: 0,
+      backgroundColor: Colors.white,
+    );
+  }
 
-                // Error Message
-                BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    if (state is AuthFailure) {
-                      return Text(
-                        state.error, // Display the error message
-                        style: TextStyle(color: Colors.red, fontSize: fontSize * 0.8),
-                        textAlign: TextAlign.center,
-                      );
-                    }
-                    return SizedBox.shrink(); // No error message to display
-                  },
-                ),
-                SizedBox(height: screenHeight * 0.01),
+  Widget _buildBody(BuildContext context, BoxConstraints constraints) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < _Constants.smallScreenBreakpoint;
+    final isLargeScreen = size.width >= _Constants.largeScreenBreakpoint;
+    final isLandscape = constraints.maxWidth > constraints.maxHeight;
 
-                // Login Button
-                BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    return ElevatedButton(
-                      onPressed: () {
-                        String email = emailController.text.trim();
-                        String password = passwordController.text.trim();
-                        if (email.isEmpty || password.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text("Please fill all fields"),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-                        context.read<AuthBloc>().add(LoginEvent(email, password));
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(double.infinity, buttonHeight),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: state is AuthLoading
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text("Login", style: TextStyle(fontSize: fontSize)),
-                    );
-                  },
-                ),
-                SizedBox(height: screenHeight * 0.02),
+    final logoSize = size.width * _Constants.logoScale * (isSmallScreen ? 0.8 : 1.0);
+    final inputHeight = size.height * _Constants.inputHeightScale;
+    final fontSize = size.width * _Constants.fontScale * (isSmallScreen ? 0.9 : 1.0);
+    final paddingValue = size.width * _Constants.paddingScale;
+    final buttonHeight = size.height * _Constants.buttonHeightScale;
+    final spacing = size.height * _Constants.spacingScale;
 
-                // Register Button
-                TextButton(
-                  onPressed: () {
-                    // Navigate to the RegisterScreen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => RegisterScreen()),
-                    );
-                  },
-                  child: Text(
-                    "Don't have an account? Register",
-                    style: TextStyle(color: Colors.blueAccent, fontSize: fontSize * 0.9),
-                  ),
-                ),
-              ],
-            ),
+    return Center(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: paddingValue,
+          vertical: isLandscape ? paddingValue * 0.5 : paddingValue,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isLargeScreen ? 400 : double.infinity),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock, size: logoSize, color: Colors.blueAccent),
+              SizedBox(height: spacing),
+              _buildTextField(
+                controller: emailController,
+                label: 'Email',
+                icon: Icons.email,
+                keyboardType: TextInputType.emailAddress,
+                fontSize: fontSize,
+                height: inputHeight,
+              ),
+              SizedBox(height: spacing),
+              _buildTextField(
+                controller: passwordController,
+                label: 'Password',
+                icon: Icons.lock,
+                obscureText: true,
+                fontSize: fontSize,
+                height: inputHeight,
+              ),
+              SizedBox(height: spacing),
+              _buildErrorMessage(context, fontSize),
+              SizedBox(height: spacing * 0.5),
+              _buildLoginButton(context, fontSize, buttonHeight),
+              SizedBox(height: spacing),
+              _buildRegisterButton(context, fontSize),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required double fontSize,
+    required double height,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+  }) {
+    return SizedBox(
+      height: height,
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(fontSize: fontSize),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          prefixIcon: Icon(icon, size: fontSize),
+          contentPadding: EdgeInsets.symmetric(vertical: height * 0.2),
+        ),
+        style: TextStyle(fontSize: fontSize),
+        textAlignVertical: TextAlignVertical.center,
+      ),
+    );
+  }
+
+  Widget _buildErrorMessage(BuildContext context, double fontSize) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) => state is AuthFailure
+          ? Text(
+        state.error,
+        style: TextStyle(color: Colors.red, fontSize: fontSize * 0.8),
+        textAlign: TextAlign.center,
+      )
+          : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildLoginButton(BuildContext context, double fontSize, double height) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) => ElevatedButton(
+        onPressed: state is AuthLoading
+            ? null
+            : () => _handleLogin(context, emailController.text.trim(), passwordController.text.trim()),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blueAccent,
+          foregroundColor: Colors.white,
+          minimumSize: Size(double.infinity, height),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: state is AuthLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text('Login', style: TextStyle(fontSize: fontSize)),
+      ),
+    );
+  }
+
+  Widget _buildRegisterButton(BuildContext context, double fontSize) {
+    return TextButton(
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => RegisterScreen()),
+      ),
+      child: Text(
+        "Don't have an account? Register",
+        style: TextStyle(color: Colors.blueAccent, fontSize: fontSize * 0.9),
+      ),
+    );
+  }
+
+  void _handleLogin(BuildContext context, String email, String password) {
+    if (email.isEmpty || password.isEmpty) {
+      _showSnackBar(context, 'Please fill all fields', Colors.red);
+      return;
+    }
+    context.read<AuthBloc>().add(LoginEvent(email, password));
+  }
+
+  void _showSnackBar(BuildContext context, String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
     );
   }
 }

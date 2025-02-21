@@ -11,190 +11,235 @@ import 'auth_screen.dart';
 import 'distance_tracker_page.dart';
 import 'sidebar.dart';
 
+// Constants class for better organization
+class _Constants {
+  static const double appBarFontScale = 0.05;
+  static const double paddingScale = 0.04;
+  static const double searchFieldHeightScale = 0.06;
+  static const double cardPaddingScale = 0.03;
+}
+
 class UserListScreen extends StatefulWidget {
-  const UserListScreen({Key? key}) : super(key: key);
+  const UserListScreen({super.key});
 
   @override
-  _UserListScreenState createState() => _UserListScreenState();
+  State<UserListScreen> createState() => _UserListScreenState();
 }
 
 class _UserListScreenState extends State<UserListScreen> {
-  List<String> _userNames = [];
-  List<String> _userEmails = [];
-  List<String> _userProfileUrls = [];
+  late final AuthRepository _userRepository = AuthRepository();
+  late final UserService _userService = UserService();
+  late final TextEditingController _searchController = TextEditingController();
+
+  // Use a single list of User objects instead of separate lists
+  List<User> _users = [];
+  List<User> _filteredUsers = [];
+  User? _currentUser;
   bool _isLoading = true;
   String? _errorMessage;
-
-  // Add a controller for the search field
-  final TextEditingController _searchController = TextEditingController();
-  List<String> _filteredUserNames = [];
-  List<String> _filteredUserEmails = [];
-
-  final AuthRepository _userRepository = AuthRepository();
-  final UserService _userService = UserService();
-
-  User? _user;
 
   @override
   void initState() {
     super.initState();
-    _fetchUser();
-    _fetchUsers();
+    _initializeData();
+    _searchController.addListener(_filterUsers);
   }
 
-  Future<void> _fetchUser() async {
+  Future<void> _initializeData() async {
     try {
-      final user = await _userService.fetchUser();
-      setState(() {
-        _user = user;
-        _isLoading = false;
-      });
+      final results = await Future.wait([
+        _userService.fetchUser(),
+        _userRepository.getAllUsers(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _currentUser = results[0] as User;
+          _users = results[1] as List<User>;
+          _filteredUsers = List.from(_users);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load user: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load data: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  Future<void> _fetchUsers() async {
-    try {
-      final List<User> users = await _userRepository.getAllUsers();
+  void _filterUsers() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      final query = _searchController.text.toLowerCase();
       setState(() {
-        _userNames = users.map((user) => user.fullname).toList();
-        _userEmails = users.map((user) => user.email).toList();
-        _filteredUserNames = List.from(_userNames); // Initialize filtered list
-        _filteredUserEmails = List.from(_userEmails);
-        _isLoading = false;
+        _filteredUsers = _users.where((user) =>
+        user.fullname.toLowerCase().contains(query) ||
+            user.email.toLowerCase().contains(query)
+        ).toList();
       });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load user names: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Function to filter users based on search query
-  void _filterUsers(String query) {
-    setState(() {
-      _filteredUserNames = _userNames
-          .where((name) =>
-              name.toLowerCase().contains(query.toLowerCase()) ||
-              _userEmails[_userNames.indexOf(name)]
-                  .toLowerCase()
-                  .contains(query.toLowerCase()))
-          .toList();
-      _filteredUserEmails = _filteredUserNames
-          .map((name) => _userEmails[_userNames.indexOf(name)])
-          .toList();
     });
   }
 
   @override
   void dispose() {
-    _searchController.dispose(); // Dispose the controller to avoid memory leaks
+    _searchController
+      ..removeListener(_filterUsers)
+      ..dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Screen dimensions
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = MediaQuery.of(context).size;
+        final isLargeScreen = constraints.maxWidth >= 600;
 
-    // Responsive sizing
-    final appBarFontSize = screenWidth * 0.05; // 5% of screen width
-    final paddingValue = screenWidth * 0.04; // 4% of screen width
-    final searchFieldHeight = screenHeight * 0.06; // 6% of screen height
-    final cardPadding = screenWidth * 0.03; // 3% of screen width
+        return Scaffold(
+          appBar: _buildAppBar(size),
+          drawer: isLargeScreen ? null : _buildDrawer(context),
+          body: Stack(
+            children: [
+              if (isLargeScreen) _buildSidebar(context, size),
+              _buildBody(size, constraints),
+              if (_isLoading) _buildLoadingIndicator(),
+              if (_errorMessage != null) _buildErrorMessage(size),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'User List',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: appBarFontSize,
+  PreferredSizeWidget _buildAppBar(Size size) {
+    final appBarFontSize = size.width * _Constants.appBarFontScale;
+    return AppBar(
+      title: Text(
+        'User List',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: appBarFontSize,
+        ),
+      ),
+      actions: [AppBarActionName(fontSize: appBarFontSize * 0.8)],
+      centerTitle: true,
+      elevation: 0,
+      backgroundColor: Colors.white,
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(child: _buildSidebarContent(context));
+  }
+
+  Widget _buildSidebar(BuildContext context, Size size) {
+    return Container(
+      width: size.width * 0.25,
+      color: Colors.grey[100],
+      child: _buildSidebarContent(context),
+    );
+  }
+
+  Widget _buildSidebarContent(BuildContext context) {
+    return Sidebar(
+      onHomeTap: () => _navigateTo(context, const DistanceTrackerPage()),
+      onUsersTap: () => _navigateTo(context, const UserListScreen()),
+      onTrackLocationTap: () => _navigateTo(context, const DistanceTrackerPage()),
+      onSettingsTap: () => debugPrint("Settings tapped"),
+      onLogoutTap: () {
+        context.read<AuthBloc>().add(LogoutEvent());
+        _navigateTo(context, AuthScreen());
+      },
+    );
+  }
+
+  Widget _buildBody(Size size, BoxConstraints constraints) {
+    final paddingValue = size.width * _Constants.paddingScale;
+    final appBarFontSize = size.width * _Constants.appBarFontScale;
+    final isSmallScreen = size.width < 400;
+
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.all(paddingValue),
+          child: _buildSearchField(size, appBarFontSize),
+        ),
+        Expanded(
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: _filteredUsers.length,
+            itemBuilder: (context, index) => _buildUserCard(
+              size,
+              _filteredUsers[index],
+              index,
+              isSmallScreen,
+            ),
           ),
         ),
-        actions: [
-          AppBarActionName(fontSize: appBarFontSize * 0.8),
-        ],
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.white,
-      ),
-      drawer: Sidebar(
-        onHomeTap: () {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
-        },
-        onUsersTap: () {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => UserListScreen()));
-        },
-        onTrackLocationTap: () {
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => DistanceTrackerPage()));
-        },
-        onSettingsTap: () {
-          print("Settings tapped");
-        },
-        onLogoutTap: () {
-          context.read<AuthBloc>().add(LogoutEvent());
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => AuthScreen()));
-        },
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(child: Text(_errorMessage!))
-              : Column(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(paddingValue),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search users...',
-                          prefixIcon: Icon(Icons.search, size: appBarFontSize),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                        ),
-                        style: TextStyle(fontSize: appBarFontSize * 0.8),
-                        onChanged: (query) {
-                          _filterUsers(
-                              query); // Trigger filtering when text changes
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: _filteredUserNames.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: cardPadding,
-                              vertical: cardPadding / 2,
-                            ),
-                            child: UserCard(
-                              userName: _filteredUserNames[index],
-                              userEmail: _filteredUserEmails[index],
-                              userProfileUrl:
-                                  'https://i.pravatar.cc/150?img=$index',
-                              fontSize: appBarFontSize * 0.8,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+      ],
     );
+  }
+
+  Widget _buildSearchField(Size size, double appBarFontSize) {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search users...',
+        prefixIcon: Icon(Icons.search, size: appBarFontSize),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        filled: true,
+        fillColor: Colors.grey[200],
+      ),
+      style: TextStyle(fontSize: appBarFontSize * 0.8),
+    );
+  }
+
+  Widget _buildUserCard(Size size, User user, int index, bool isSmallScreen) {
+    final cardPadding = size.width * _Constants.cardPaddingScale;
+    final fontSize = (size.width * _Constants.appBarFontScale) * 0.8;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: cardPadding,
+        vertical: cardPadding * 0.5,
+      ),
+      child: UserCard(
+        userName: user.fullname,
+        userEmail: user.email,
+        userProfileUrl: 'https://i.pravatar.cc/150?img=$index',
+        fontSize: isSmallScreen ? fontSize * 0.9 : fontSize,
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Container(
+      color: Colors.black26,
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildErrorMessage(Size size) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(size.width * 0.05),
+        child: Text(
+          _errorMessage!,
+          style: TextStyle(
+            fontSize: size.width * _Constants.appBarFontScale * 0.8,
+            color: Colors.red,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  void _navigateTo(BuildContext context, Widget page) {
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
   }
 }
