@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gis_osm/screen/register_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
-import '../widgets/app_bar_action_name.dart';
+import '../data/repositories/auth_repository.dart'; // Add this import
 import 'distance_tracker_page.dart';
-import 'register_screen.dart';
+import 'auth_screen.dart';
 
 class _Constants {
   static const double logoScale = 0.3;
@@ -16,7 +18,43 @@ class _Constants {
   static const double spacingScale = 0.02;
   static const int smallScreenBreakpoint = 400;
   static const int largeScreenBreakpoint = 600;
-  static const double appBarFontScale = 0.05;
+  static const int sessionTimeoutHours = 2;
+}
+
+class AppRoot extends StatelessWidget {
+  const AppRoot({super.key});
+
+  Future<bool> _isSessionValid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final loginTime = prefs.getInt('loginTime');
+    final token = prefs.getString('authToken');
+
+    if (loginTime == null || token == null) return false;
+
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    final sessionDuration = const Duration(minutes: _Constants.sessionTimeoutHours).inMilliseconds;
+    return currentTime - loginTime < sessionDuration;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _isSessionValid(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        final isLoggedIn = snapshot.data ?? false;
+        return BlocProvider(
+          create: (context) => AuthBloc(AuthRepository()), // Pass required dependency
+          child: MaterialApp(
+            home: isLoggedIn ? const DistanceTrackerPage() : AuthScreen(),
+            debugShowCheckedModeBanner: false,
+          ),
+        );
+      },
+    );
+  }
 }
 
 class AuthScreen extends StatelessWidget {
@@ -27,11 +65,12 @@ class AuthScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is AuthSuccess) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('authToken', 'some_token'); // Replace with actual token
+          await prefs.setInt('loginTime', DateTime.now().millisecondsSinceEpoch);
           _showSnackBar(context, state.message, Colors.green);
           Navigator.pushReplacement(
             context,
@@ -40,7 +79,7 @@ class AuthScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
-        appBar: _buildAppBar(size),
+        appBar: _buildAppBar(),
         backgroundColor: Colors.white,
         body: LayoutBuilder(
           builder: (context, constraints) => _buildBody(context, constraints),
@@ -49,17 +88,11 @@ class AuthScreen extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(Size size) {
-    final appBarFontSize = size.width * _Constants.appBarFontScale;
-
+  PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: Text('Login', style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: appBarFontSize,
-      ),),
+      title: const Text('Login'),
       centerTitle: true,
       elevation: 0,
-      backgroundColor: Colors.white,
     );
   }
 
@@ -89,23 +122,11 @@ class AuthScreen extends StatelessWidget {
             children: [
               Icon(Icons.lock, size: logoSize, color: Colors.blueAccent),
               SizedBox(height: spacing),
-              _buildTextField(
-                controller: emailController,
-                label: 'Email',
-                icon: Icons.email,
-                keyboardType: TextInputType.emailAddress,
-                fontSize: fontSize,
-                height: inputHeight,
-              ),
+              _buildTextField(emailController, 'Email', Icons.email, fontSize, inputHeight,
+                  keyboardType: TextInputType.emailAddress),
               SizedBox(height: spacing),
-              _buildTextField(
-                controller: passwordController,
-                label: 'Password',
-                icon: Icons.lock,
-                obscureText: true,
-                fontSize: fontSize,
-                height: inputHeight,
-              ),
+              _buildTextField(passwordController, 'Password', Icons.lock, fontSize, inputHeight,
+                  obscureText: true),
               SizedBox(height: spacing),
               _buildErrorMessage(context, fontSize),
               SizedBox(height: spacing * 0.5),
@@ -119,28 +140,22 @@ class AuthScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required double fontSize,
-    required double height,
-    bool obscureText = false,
-    TextInputType? keyboardType,
-  }) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String label,
+      IconData icon,
+      double fontSize,
+      double height, {
+        bool obscureText = false,
+        TextInputType? keyboardType,
+      }) {
     return SizedBox(
       height: height,
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(fontSize: fontSize),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          prefixIcon: Icon(icon, size: fontSize),
-          contentPadding: EdgeInsets.symmetric(vertical: height * 0.2),
-        ),
+        decoration: _inputDecoration(label, icon, fontSize),
         style: TextStyle(fontSize: fontSize),
         textAlignVertical: TextAlignVertical.center,
       ),
@@ -188,6 +203,16 @@ class AuthScreen extends StatelessWidget {
         "Don't have an account? Register",
         style: TextStyle(color: Colors.blueAccent, fontSize: fontSize * 0.9),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon, double fontSize) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: fontSize),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      prefixIcon: Icon(icon, size: fontSize),
+      contentPadding: const EdgeInsets.symmetric(vertical: 0),
     );
   }
 
