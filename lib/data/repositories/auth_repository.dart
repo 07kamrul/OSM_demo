@@ -18,7 +18,7 @@ class AuthRepository {
         return jsonDecode(response.body);
       } else {
         final errorResponse = jsonDecode(response.body);
-        throw Exception(errorResponse['Message'] ?? 'Failed to register user');
+        throw Exception(errorResponse['message'] ?? 'Failed to register user');
       }
     } catch (e) {
       throw Exception('An error occurred: ${e.toString()}');

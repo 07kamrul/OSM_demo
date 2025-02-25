@@ -7,7 +7,6 @@ import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
 import '../data/repositories/auth_repository.dart'; // Add this import
 import 'distance_tracker_page.dart';
-import 'auth_screen.dart';
 
 class _Constants {
   static const double logoScale = 0.3;

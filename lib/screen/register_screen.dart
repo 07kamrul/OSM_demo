@@ -75,12 +75,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthSuccess) {
-          _showSnackBar(context, state.message, Colors.green);
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) _navigateTo(context, AuthScreen());
-          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AuthScreen()),
+          );
         } else if (state is AuthFailure) {
-          _showSnackBar(context, state.error, Colors.red);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.error), backgroundColor: Colors.red),
+          );
         }
       },
       builder: (context, state) => Center(
