@@ -20,6 +20,7 @@ import 'auth_screen.dart';
 
 // Separate constants class for better organization
 class _Constants {
+  static const double appBarFontScale = 0.05;
   static const double minZoom = 10.0;
   static const double defaultZoom = 15.0;
   static const Duration locationUpdateInterval = Duration(seconds: 10);
@@ -249,6 +250,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final padding = size.width * 0.05;
+    final appBarFontSize = size.width * _Constants.appBarFontScale;
 
     return Scaffold(
       appBar: AppBar(
@@ -259,9 +261,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             fontSize: size.width * 0.05,
           ),
         ),
-        actions: const [
+        actions: [
           AppBarActionName(
-            fontSize: 20,
+            fontSize: appBarFontSize * 0.8,
           )
         ],
         centerTitle: true,
