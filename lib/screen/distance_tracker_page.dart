@@ -450,13 +450,13 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             FloatingActionButton(
-              onPressed: _resetRotation,
+              onPressed: _fetchUserLocations,
               mini: isSmallScreen,
-              heroTag: 'resetRotation',
+              heroTag: 'refresh',
               elevation: isLargeScreen ? 0 : 6,
               backgroundColor: isLargeScreen ? Colors.transparent : null,
               child: Icon(
-                Icons.explore,
+                Icons.refresh,
                 size: iconSize,
                 color: isLargeScreen ? Colors.blue : Colors.black,
               ),
@@ -466,12 +466,25 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               scale: isSmallScreen
                   ? 0.8
                   : isTablet
-                      ? 1.1
-                      : 1.0,
+                  ? 1.1
+                  : 1.0,
               child: Switch(
                 value: _isShareLocation,
                 onChanged: _toggleLocationSharing,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            SizedBox(height: spacing),
+            FloatingActionButton(
+              onPressed: _resetRotation,
+              mini: isSmallScreen,
+              heroTag: 'resetRotation',
+              elevation: isLargeScreen ? 0 : 6,
+              backgroundColor: isLargeScreen ? Colors.transparent : null,
+              child: Icon(
+                Icons.explore,
+                size: iconSize,
+                color: isLargeScreen ? Colors.blue : Colors.black,
               ),
             ),
             SizedBox(height: spacing),

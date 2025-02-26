@@ -1,0 +1,2 @@
+D:/Personal Documents/Colgis/App/OSM_demo/android/app/.cxx/Debug/443x6m6g/x86/CMakeFiles/edit_cache.dir
+D:/Personal Documents/Colgis/App/OSM_demo/android/app/.cxx/Debug/443x6m6g/x86/CMakeFiles/rebuild_cache.dir
