@@ -113,27 +113,21 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       if (userId == null) throw 'User ID not found';
 
       final userLocations = await _userLocationRepository.getAllUserLocations();
-      _userLocation =
-          await _userLocationRepository.getUserLocationByUserId(userId);
 
-      if (mounted) {
-        setState(() {
-          _userLocations.clear();
-          _userLocations.addAll(userLocations.where((user) =>
-              user.issharinglocation == true &&
-              user.userid != userId &&
-              (user.latitude != _currentUserLocation.latitude ||
-                  user.longitude != _currentUserLocation.longitude)));
-          _isShareLocation = _userLocation?.issharinglocation ?? false;
-          _isLoading = false;
-        });
-      }
-
-      await _updateUserLocation(userId);
+      setState(() {
+        _userLocations.clear();
+        _userLocations.addAll(userLocations.where((user) =>
+        user.issharinglocation == true &&
+            user.userid != userId &&
+            (user.latitude != _currentUserLocation.latitude ||
+                user.longitude != _currentUserLocation.longitude)));
+        _isLoading = false;
+      });
     } catch (e) {
-      _handleError('Failed to load user locations: $e');
+      _handleError('Failed to load user locations: ${e.toString()}');
     }
   }
+
 
   Future<void> _updateUserLocation(int userId) async {
     if (_userLocation != null) {
@@ -364,7 +358,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), // Reduce vertical padding
+          margin: EdgeInsets.zero, // Remove extra spacing
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(6),
