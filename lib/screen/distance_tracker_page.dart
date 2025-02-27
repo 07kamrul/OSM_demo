@@ -110,7 +110,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _fetchUserLocations() async {
     try {
       final userId = await UserStorage.getUserId();
-      if (userId == null) throw 'User ID not found';
+      if (userId == null) {
+        throw 'User ID not found';
+      } else {
+        await _updateUserLocation(userId);
+      }
 
       final userLocations = await _userLocationRepository.getAllUserLocations();
 
@@ -123,6 +127,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 user.longitude != _currentUserLocation.longitude)));
         _isLoading = false;
       });
+
+      _mapController.move(_currentUserLocation, _Constants.defaultZoom);
     } catch (e) {
       _handleError('Failed to load user locations: ${e.toString()}');
     }
@@ -131,6 +137,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   Future<void> _updateUserLocation(int userId) async {
     if (_userLocation != null) {
+
       final updatedLocation = UserLocation(
         id: _userLocation!.id,
         userid: userId,
@@ -217,7 +224,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         final userId = await UserStorage.getUserId();
         if (userId != null) await _updateUserLocation(userId);
       }
-    } catch (e) {
+      _mapController.move(_currentUserLocation, _Constants.defaultZoom);
+
+      } catch (e) {
       debugPrint('Error updating location: $e');
     }
   }
