@@ -274,15 +274,17 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                     initialCenter: _currentUserLocation,
                     minZoom: _Constants.minZoom,
                     initialRotation: _rotation,
-                    onTap: (_, __) => setState(() {
-                      _routePoints.clear();
-                      _distance = 0.0;
-                    }),
+                    onTap: (_, __) {
+                      setState(() {
+                        _routePoints.clear(); // Clear existing polyline points
+                        _distance = 0.0;
+                      });
+                    },
                   ),
                   children: [
                     TileLayer(urlTemplate: _Constants.tileUrl),
                     MarkerLayer(markers: _buildMarkers(size)),
-                    if (_routePoints.isNotEmpty)
+                    if (_routePoints.isNotEmpty) // Only show polyline if it has points
                       PolylineLayer(polylines: [
                         Polyline(
                           points: _routePoints,
@@ -299,6 +301,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _buildFloatingButtons(size),
           if (_isLoading) const Center(child: CircularProgressIndicator()),
           if (_errorMessage != null) _buildErrorMessage(size, _errorMessage!),
+
         ],
       ),
     );
