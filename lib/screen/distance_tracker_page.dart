@@ -53,12 +53,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   double _distance = 0.0;
   double _rotation = 0.0;
   bool _isLoading = true;
-  bool _isShareLocation = false;
+
   String? _errorMessage;
 
   User? _user;
   UserLocation? _userLocation;
   Timer? _locationUpdateTimer;
+
+  bool _isShareLocation = false;
 
   @override
   void initState() {
@@ -121,11 +123,21 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       setState(() {
         _userLocations.clear();
         _userLocations.addAll(userLocations.where((user) =>
-        user.issharinglocation == true &&
+            user.issharinglocation == true &&
             user.userid != userId &&
             (user.latitude != _currentUserLocation.latitude ||
                 user.longitude != _currentUserLocation.longitude)));
         _isLoading = false;
+
+        _isShareLocation = userLocations
+            .firstWhere((u) => u.userid == userId,
+                orElse: () => UserLocation(
+                    id: 0,
+                    userid: 0,
+                    latitude: 0,
+                    longitude: 0,
+                    issharinglocation: false))
+            .issharinglocation;
       });
 
       _mapController.move(_currentUserLocation, _Constants.defaultZoom);
@@ -134,10 +146,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-
   Future<void> _updateUserLocation(int userId) async {
     if (_userLocation != null) {
-
       final updatedLocation = UserLocation(
         id: _userLocation!.id,
         userid: userId,
@@ -212,21 +222,22 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     _locationUpdateTimer =
         Timer.periodic(_Constants.locationUpdateInterval, (_) async {
       if (!mounted) return;
-      await _updateLocation();
+      await _updateLocation(false);
     });
   }
 
-  Future<void> _updateLocation() async {
+  Future<void> _updateLocation(bool isClick) async {
     try {
       final location = await LocationService.getCurrentLocation();
       if (mounted) {
         setState(() => _currentUserLocation = location);
         final userId = await UserStorage.getUserId();
         if (userId != null) await _updateUserLocation(userId);
+        if (isClick) {
+          _mapController.move(_currentUserLocation, _Constants.defaultZoom);
+        }
       }
-      _mapController.move(_currentUserLocation, _Constants.defaultZoom);
-
-      } catch (e) {
+    } catch (e) {
       debugPrint('Error updating location: $e');
     }
   }
@@ -293,7 +304,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   children: [
                     TileLayer(urlTemplate: _Constants.tileUrl),
                     MarkerLayer(markers: _buildMarkers(size)),
-                    if (_routePoints.isNotEmpty) // Only show polyline if it has points
+                    if (_routePoints
+                        .isNotEmpty) // Only show polyline if it has points
                       PolylineLayer(polylines: [
                         Polyline(
                           points: _routePoints,
@@ -310,7 +322,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _buildFloatingButtons(size),
           if (_isLoading) const Center(child: CircularProgressIndicator()),
           if (_errorMessage != null) _buildErrorMessage(size, _errorMessage!),
-
         ],
       ),
     );
@@ -370,7 +381,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), // Reduce vertical padding
+          padding: const EdgeInsets.symmetric(
+              horizontal: 4, vertical: 1), // Reduce vertical padding
           margin: EdgeInsets.zero, // Remove extra spacing
           decoration: BoxDecoration(
             color: Colors.black54,
@@ -473,8 +485,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               scale: isSmallScreen
                   ? 0.8
                   : isTablet
-                  ? 1.1
-                  : 1.0,
+                      ? 1.1
+                      : 1.0,
               child: Switch(
                 value: _isShareLocation,
                 onChanged: _toggleLocationSharing,
@@ -496,7 +508,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             ),
             SizedBox(height: spacing),
             FloatingActionButton(
-              onPressed: _updateLocation,
+              onPressed: () =>
+                  _updateLocation(true), // Wrap it in a lambda function
               mini: isSmallScreen,
               heroTag: 'updateLocation',
               elevation: isLargeScreen ? 0 : 6,
