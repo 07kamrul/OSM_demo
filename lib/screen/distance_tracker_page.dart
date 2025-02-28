@@ -53,6 +53,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   double _distance = 0.0;
   double _rotation = 0.0;
   bool _isLoading = true;
+  double _maxDistance = 0.5; // Default 500 meters
 
   String? _errorMessage;
 
@@ -146,19 +147,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-  Future<void> _updateUserLocation(int userId) async {
-    if (_userLocation != null) {
-      final updatedLocation = UserLocation(
-        id: _userLocation!.id,
-        userid: userId,
-        latitude: _currentUserLocation.latitude,
-        longitude: _currentUserLocation.longitude,
-        issharinglocation: _isShareLocation,
-      );
-      await _userLocationRepository.updateUserLocation(updatedLocation);
-    }
-  }
-
   Future<void> _calculateDistance(LatLng target) async {
     try {
       final result =
@@ -173,6 +161,19 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       }
     } catch (e) {
       debugPrint('Error calculating distance: $e');
+    }
+  }
+
+  Future<void> _updateUserLocation(int userId) async {
+    if (_userLocation != null) {
+      final updatedLocation = UserLocation(
+        id: _userLocation!.id,
+        userid: userId,
+        latitude: _currentUserLocation.latitude,
+        longitude: _currentUserLocation.longitude,
+        issharinglocation: _isShareLocation,
+      );
+      await _userLocationRepository.updateUserLocation(updatedLocation);
     }
   }
 
@@ -468,6 +469,35 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white, // Background color
+                borderRadius:
+                    BorderRadius.circular(8.0), // Optional: Rounded corners
+                border: Border.all(
+                    color:
+                        Colors.transparent), // Optional: Border for visibility
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 2.0),
+              child: DropdownButton<double>(
+                value: _maxDistance,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _maxDistance = value;
+                    });
+                    _fetchUserLocations(); // Refresh data based on new distance
+                  }
+                },
+                items: [0.1, 0.5, 1.0, 2.0, 5.0].map((double value) {
+                  return DropdownMenuItem<double>(
+                    value: value,
+                    child: Text("${(value * 1000).toInt()}"),
+                  );
+                }).toList(),
+              ),
+            ),
+            SizedBox(height: spacing),
             FloatingActionButton(
               onPressed: _fetchUserLocations,
               mini: isSmallScreen,
