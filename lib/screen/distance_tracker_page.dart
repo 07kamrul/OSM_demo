@@ -313,7 +313,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   ],
                 ),
               ),
-              if (_routePoints.isNotEmpty) _buildDistanceInfo(padding),
+              if (_routePoints.isNotEmpty) _buildDistanceInfo(padding, size),
             ],
           ),
           _buildFloatingButtons(size),
@@ -409,27 +409,46 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     );
   }
 
-  Widget _buildDistanceInfo(double padding) {
+  Widget _buildDistanceInfo(double padding, Size size) {
+    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
+    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
+    final isTablet = size.width >= AppConstants.largeScreenBreakpoint &&
+        size.width < AppConstants.extraLargeScreenBreakpoint;
+
+    // Dynamic Sizing
+    final double buttonSize = isSmallScreen
+        ? 40.0
+        : isTablet
+            ? 50.0
+            : 56.0;
+    final double spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
+    final double iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
+    final double paddingValue = size.width *
+        (isSmallScreen
+            ? 0.02
+            : isLargeScreen
+                ? 0.04
+                : 0.03);
+
     return Padding(
-      padding: EdgeInsets.all(padding),
+      padding: EdgeInsets.all(paddingValue),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Profile avatar
+          // Profile Avatar with Navigation
           GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => ProfileScreen(
-                          user: _users
-                              .where((u) => u.id == _selectedUserId)
-                              .first,
-                        )),
+                  builder: (context) => ProfileScreen(
+                    user: _users.firstWhere((u) => u.id == _selectedUserId),
+                  ),
+                ),
               );
             },
             child: CircleAvatar(
-              radius: 25,
+              radius: isSmallScreen ? 22 : 25,
               backgroundImage: AssetImage(
                   'assets/person_marker.png'), // Change to actual image
             ),
@@ -438,28 +457,52 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           SizedBox(width: 10),
 
           // User Info + Last Active
-          Expanded(
+          Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   _users.firstWhere((u) => u.id == _selectedUserId).fullname ??
                       'Unknown',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: isSmallScreen ? 16 : 18,
+                      fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 4),
                 Text(
                   'Last active 25m ago', // Replace with actual data
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                      color: Colors.grey, fontSize: isSmallScreen ? 12 : 14),
                 ),
               ],
             ),
           ),
 
-          // Distance & Chat
+          // Chat Button & Distance Info
           Row(
             children: [
+              // Chat Button
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(
+                        senderId: 1,
+                        receiverId: 1,
+                      ),
+                    ),
+                  );
+                },
+                icon: Icon(
+                  Icons.chat_rounded,
+                  size: iconSize,
+                  color: isLargeScreen ? Colors.blue : Colors.black,
+                ),
+              ),
+              SizedBox(width: 6),
+
               // Distance Info
               if (_distance > 0 && _selectedUserId != null)
                 Row(
@@ -468,36 +511,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                     SizedBox(width: 4),
                     Text(
                       '${_distance.toStringAsFixed(2)} km',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: isSmallScreen ? 14 : 16,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
-
-              SizedBox(width: 10),
-
-              // Chat Button
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                              senderId: 1,
-                              receiverId: 1,
-                            )), // Navigate to ChatScreen
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  shape: CircleBorder(),
-                  padding: EdgeInsets.all(10),
-                  backgroundColor: Colors.black87, // Adjust color if needed
-                ),
-                child: Icon(Icons.chat, color: Colors.white, size: 18),
-              ),
             ],
           ),
-          SizedBox(width: 50),
         ],
       ),
     );
