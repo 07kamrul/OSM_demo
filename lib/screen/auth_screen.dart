@@ -6,19 +6,8 @@ import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
 import '../data/repositories/auth_repository.dart'; // Add this import
+import '../enum.dart';
 import 'distance_tracker_page.dart';
-
-class _Constants {
-  static const double logoScale = 0.3;
-  static const double inputHeightScale = 0.06;
-  static const double fontScale = 0.04;
-  static const double paddingScale = 0.05;
-  static const double buttonHeightScale = 0.07;
-  static const double spacingScale = 0.02;
-  static const int smallScreenBreakpoint = 400;
-  static const int largeScreenBreakpoint = 600;
-  static const int sessionTimeoutHours = 2;
-}
 
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
@@ -31,7 +20,9 @@ class AppRoot extends StatelessWidget {
     if (loginTime == null || token == null) return false;
 
     final currentTime = DateTime.now().millisecondsSinceEpoch;
-    final sessionDuration = const Duration(minutes: _Constants.sessionTimeoutHours).inMilliseconds;
+    final sessionDuration =
+        const Duration(minutes: AppConstants.sessionTimeoutHours)
+            .inMilliseconds;
     return currentTime - loginTime < sessionDuration;
   }
 
@@ -41,11 +32,13 @@ class AppRoot extends StatelessWidget {
       future: _isSessionValid(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
         }
         final isLoggedIn = snapshot.data ?? false;
         return BlocProvider(
-          create: (context) => AuthBloc(AuthRepository()), // Pass required dependency
+          create: (context) =>
+              AuthBloc(AuthRepository()), // Pass required dependency
           child: MaterialApp(
             home: isLoggedIn ? const DistanceTrackerPage() : AuthScreen(),
             debugShowCheckedModeBanner: false,
@@ -68,8 +61,10 @@ class AuthScreen extends StatelessWidget {
       listener: (context, state) async {
         if (state is AuthSuccess) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('authToken', 'some_token'); // Replace with actual token
-          await prefs.setInt('loginTime', DateTime.now().millisecondsSinceEpoch);
+          await prefs.setString(
+              'authToken', 'some_token'); // Replace with actual token
+          await prefs.setInt(
+              'loginTime', DateTime.now().millisecondsSinceEpoch);
           _showSnackBar(context, state.message, Colors.green);
           Navigator.pushReplacement(
             context,
@@ -97,16 +92,18 @@ class AuthScreen extends StatelessWidget {
 
   Widget _buildBody(BuildContext context, BoxConstraints constraints) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < _Constants.smallScreenBreakpoint;
-    final isLargeScreen = size.width >= _Constants.largeScreenBreakpoint;
+    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
+    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
     final isLandscape = constraints.maxWidth > constraints.maxHeight;
 
-    final logoSize = size.width * _Constants.logoScale * (isSmallScreen ? 0.8 : 1.0);
-    final inputHeight = size.height * _Constants.inputHeightScale;
-    final fontSize = size.width * _Constants.fontScale * (isSmallScreen ? 0.9 : 1.0);
-    final paddingValue = size.width * _Constants.paddingScale;
-    final buttonHeight = size.height * _Constants.buttonHeightScale;
-    final spacing = size.height * _Constants.spacingScale;
+    final logoSize =
+        size.width * AppConstants.logoScale * (isSmallScreen ? 0.8 : 1.0);
+    final inputHeight = size.height * AppConstants.inputHeightScale;
+    final fontSize =
+        size.width * AppConstants.fontScale * (isSmallScreen ? 0.9 : 1.0);
+    final paddingValue = size.width * AppConstants.paddingScale;
+    final buttonHeight = size.height * AppConstants.buttonHeightScale;
+    final spacing = size.height * AppConstants.spacingScale;
 
     return Center(
       child: SingleChildScrollView(
@@ -115,16 +112,19 @@ class AuthScreen extends StatelessWidget {
           vertical: isLandscape ? paddingValue * 0.5 : paddingValue,
         ),
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isLargeScreen ? 400 : double.infinity),
+          constraints:
+              BoxConstraints(maxWidth: isLargeScreen ? 400 : double.infinity),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.lock, size: logoSize, color: Colors.blueAccent),
               SizedBox(height: spacing),
-              _buildTextField(emailController, 'Email', Icons.email, fontSize, inputHeight,
+              _buildTextField(
+                  emailController, 'Email', Icons.email, fontSize, inputHeight,
                   keyboardType: TextInputType.emailAddress),
               SizedBox(height: spacing),
-              _buildTextField(passwordController, 'Password', Icons.lock, fontSize, inputHeight,
+              _buildTextField(passwordController, 'Password', Icons.lock,
+                  fontSize, inputHeight,
                   obscureText: true),
               SizedBox(height: spacing),
               _buildErrorMessage(context, fontSize),
@@ -140,14 +140,14 @@ class AuthScreen extends StatelessWidget {
   }
 
   Widget _buildTextField(
-      TextEditingController controller,
-      String label,
-      IconData icon,
-      double fontSize,
-      double height, {
-        bool obscureText = false,
-        TextInputType? keyboardType,
-      }) {
+    TextEditingController controller,
+    String label,
+    IconData icon,
+    double fontSize,
+    double height, {
+    bool obscureText = false,
+    TextInputType? keyboardType,
+  }) {
     return SizedBox(
       height: height,
       child: TextField(
@@ -165,25 +165,28 @@ class AuthScreen extends StatelessWidget {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) => state is AuthFailure
           ? Text(
-        state.error,
-        style: TextStyle(color: Colors.red, fontSize: fontSize * 0.8),
-        textAlign: TextAlign.center,
-      )
+              state.error,
+              style: TextStyle(color: Colors.red, fontSize: fontSize * 0.8),
+              textAlign: TextAlign.center,
+            )
           : const SizedBox.shrink(),
     );
   }
 
-  Widget _buildLoginButton(BuildContext context, double fontSize, double height) {
+  Widget _buildLoginButton(
+      BuildContext context, double fontSize, double height) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) => ElevatedButton(
         onPressed: state is AuthLoading
             ? null
-            : () => _handleLogin(context, emailController.text.trim(), passwordController.text.trim()),
+            : () => _handleLogin(context, emailController.text.trim(),
+                passwordController.text.trim()),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blueAccent,
           foregroundColor: Colors.white,
           minimumSize: Size(double.infinity, height),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: state is AuthLoading
             ? const CircularProgressIndicator(color: Colors.white)
@@ -205,7 +208,8 @@ class AuthScreen extends StatelessWidget {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, double fontSize) {
+  InputDecoration _inputDecoration(
+      String label, IconData icon, double fontSize) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(fontSize: fontSize),

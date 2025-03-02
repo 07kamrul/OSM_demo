@@ -4,17 +4,8 @@ import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
 import '../data/models/user.dart';
+import '../enum.dart';
 import 'auth_screen.dart';
-
-class _Constants {
-  static const double iconScale = 0.2;
-  static const double inputHeightScale = 0.07;
-  static const double fontScale = 0.04;
-  static const double paddingScale = 0.05;
-  static const double spacingScale = 0.02;
-  static const int smallScreenBreakpoint = 400;
-  static const int largeScreenBreakpoint = 600;
-}
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,7 +16,8 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   late final TextEditingController fullnameController = TextEditingController();
-  late final TextEditingController firstnameController = TextEditingController();
+  late final TextEditingController firstnameController =
+      TextEditingController();
   late final TextEditingController lastnameController = TextEditingController();
   late final TextEditingController emailController = TextEditingController();
   late final TextEditingController passwordController = TextEditingController();
@@ -62,21 +54,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildBody(BuildContext context, BoxConstraints constraints) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < _Constants.smallScreenBreakpoint;
-    final isLargeScreen = size.width >= _Constants.largeScreenBreakpoint;
+    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
+    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
     final isLandscape = constraints.maxWidth > constraints.maxHeight;
 
-    final iconSize = size.width * _Constants.iconScale * (isSmallScreen ? 0.8 : 1.0);
-    final inputHeight = size.height * _Constants.inputHeightScale;
-    final fontSize = size.width * _Constants.fontScale * (isSmallScreen ? 0.9 : 1.0);
-    final paddingValue = size.width * _Constants.paddingScale;
-    final spacing = size.height * _Constants.spacingScale;
+    final iconSize =
+        size.width * AppConstants.iconScale * (isSmallScreen ? 0.8 : 1.0);
+    final inputHeight = size.height * AppConstants.inputHeightScale;
+    final fontSize =
+        size.width * AppConstants.fontScale * (isSmallScreen ? 0.9 : 1.0);
+    final paddingValue = size.width * AppConstants.paddingScale;
+    final spacing = size.height * AppConstants.spacingScale;
 
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            SnackBar(
+                content: Text(state.message), backgroundColor: Colors.green),
           );
           Navigator.push(
             context,
@@ -96,19 +91,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
             vertical: isLandscape ? paddingValue * 0.5 : paddingValue,
           ),
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: isLargeScreen ? 400 : double.infinity),
+            constraints:
+                BoxConstraints(maxWidth: isLargeScreen ? 400 : double.infinity),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.person_add, color: Colors.blueAccent, size: iconSize),
+                Icon(Icons.person_add,
+                    color: Colors.blueAccent, size: iconSize),
                 SizedBox(height: spacing),
-                _buildTextField(fullnameController, 'Full Name', Icons.person, fontSize, inputHeight),
+                _buildTextField(fullnameController, 'Full Name', Icons.person,
+                    fontSize, inputHeight),
                 SizedBox(height: spacing),
-                _buildTextField(firstnameController, 'First Name', Icons.person, fontSize, inputHeight),
+                _buildTextField(firstnameController, 'First Name', Icons.person,
+                    fontSize, inputHeight),
                 SizedBox(height: spacing),
-                _buildTextField(lastnameController, 'Last Name', Icons.person, fontSize, inputHeight),
+                _buildTextField(lastnameController, 'Last Name', Icons.person,
+                    fontSize, inputHeight),
                 SizedBox(height: spacing),
-                _buildTextField(emailController, 'Email', Icons.email, fontSize, inputHeight,
+                _buildTextField(emailController, 'Email', Icons.email, fontSize,
+                    inputHeight,
                     keyboardType: TextInputType.emailAddress),
                 SizedBox(height: spacing),
                 _buildPasswordField(fontSize, inputHeight),
@@ -125,13 +126,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildTextField(
-      TextEditingController controller,
-      String label,
-      IconData icon,
-      double fontSize,
-      double height, {
-        TextInputType? keyboardType,
-      }) {
+    TextEditingController controller,
+    String label,
+    IconData icon,
+    double fontSize,
+    double height, {
+    TextInputType? keyboardType,
+  }) {
     return SizedBox(
       height: height,
       child: TextField(
@@ -167,7 +168,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildRegisterButton(BuildContext context, AuthState state, double fontSize, double height) {
+  Widget _buildRegisterButton(
+      BuildContext context, AuthState state, double fontSize, double height) {
     return ElevatedButton(
       onPressed: state is AuthLoading ? null : () => _handleRegister(context),
       style: ElevatedButton.styleFrom(
@@ -192,7 +194,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, double fontSize) {
+  InputDecoration _inputDecoration(
+      String label, IconData icon, double fontSize) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(fontSize: fontSize),

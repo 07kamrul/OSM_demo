@@ -40,7 +40,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadMessages() async {
-    final messages = await _apiService.getMessages(widget.senderId, widget.receiverId);
+    final messages =
+        await _apiService.getMessages(widget.senderId, widget.receiverId);
     setState(() {
       _messages = messages;
     });
@@ -49,7 +50,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendMessage() async {
     final content = _controller.text;
     if (content.isNotEmpty) {
-      await _apiService.sendMessage(widget.senderId, widget.receiverId, content);
+      await _apiService.sendMessage(
+          widget.senderId, widget.receiverId, content);
       _signalRService.sendMessage("User", content);
       _controller.clear();
     }

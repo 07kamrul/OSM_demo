@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:gis_osm/bloc/auth/auth_event.dart';
 import 'package:gis_osm/common/user_storage.dart';
+import 'package:gis_osm/screen/chat_screen.dart';
 import 'package:gis_osm/screen/sidebar.dart';
 import 'package:gis_osm/screen/user_list_screen.dart';
 import 'package:latlong2/latlong.dart';
@@ -12,21 +12,13 @@ import '../data/models/user.dart';
 import '../data/models/user_location.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/user_location_repository.dart';
+import '../enum.dart';
 import '../services/location_service.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
 import 'auth_screen.dart';
-
-// Separate constants class for better organization
-class _Constants {
-  static const double appBarFontScale = 0.05;
-  static const double minZoom = 10.0;
-  static const double defaultZoom = 15.0;
-  static const Duration locationUpdateInterval = Duration(seconds: 10);
-  static const String tileUrl =
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-}
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({super.key});
@@ -87,7 +79,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _currentUserLocation = location;
           _isLoading = false;
         });
-        _mapController.move(location, _Constants.defaultZoom);
+        _mapController.move(location, AppConstants.defaultZoom);
       }
     } catch (e) {
       _handleError('Error initializing location: $e');
@@ -141,13 +133,15 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             .issharinglocation;
       });
 
-      _mapController.move(_currentUserLocation, _Constants.defaultZoom);
+      _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
     } catch (e) {
       _handleError('Failed to load user locations: ${e.toString()}');
     }
   }
 
-  Future<void> _calculateDistance(LatLng target) async {
+  int? _selectedUserId;
+
+  Future<void> _calculateDistance(int userId, LatLng target) async {
     try {
       final result =
           await LocationService.getRouteDistance(_currentUserLocation, target);
@@ -156,6 +150,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _distance = result!.distance!;
           _routePoints.clear();
           _routePoints.addAll(result.routePoints);
+          _selectedUserId = userId;
         });
         _fitMapToRoute();
       }
@@ -221,7 +216,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   void _startPeriodicUpdates() {
     _locationUpdateTimer?.cancel();
     _locationUpdateTimer =
-        Timer.periodic(_Constants.locationUpdateInterval, (_) async {
+        Timer.periodic(AppConstants.locationUpdateInterval, (_) async {
       if (!mounted) return;
       await _updateLocation(false);
     });
@@ -235,7 +230,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         final userId = await UserStorage.getUserId();
         if (userId != null) await _updateUserLocation(userId);
         if (isClick) {
-          _mapController.move(_currentUserLocation, _Constants.defaultZoom);
+          _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
         }
       }
     } catch (e) {
@@ -265,7 +260,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final padding = size.width * 0.05;
-    final appBarFontSize = size.width * _Constants.appBarFontScale;
+    final appBarFontSize = size.width * AppConstants.appBarFontScale;
 
     return Scaffold(
       appBar: AppBar(
@@ -293,7 +288,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   mapController: _mapController,
                   options: MapOptions(
                     initialCenter: _currentUserLocation,
-                    minZoom: _Constants.minZoom,
+                    minZoom: AppConstants.minZoom,
                     initialRotation: _rotation,
                     onTap: (_, __) {
                       setState(() {
@@ -303,7 +298,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                     },
                   ),
                   children: [
-                    TileLayer(urlTemplate: _Constants.tileUrl),
+                    TileLayer(urlTemplate: AppConstants.tileUrl),
                     MarkerLayer(markers: _buildMarkers(size)),
                     if (_routePoints
                         .isNotEmpty) // Only show polyline if it has points
@@ -317,7 +312,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   ],
                 ),
               ),
-              _buildDistanceInfo(padding),
+              if (_routePoints.isNotEmpty) _buildDistanceInfo(padding),
             ],
           ),
           _buildFloatingButtons(size),
@@ -336,6 +331,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           context, MaterialPageRoute(builder: (_) => const UserListScreen())),
       onTrackLocationTap: () => Navigator.pushReplacement(context,
           MaterialPageRoute(builder: (_) => const DistanceTrackerPage())),
+      // onChatBoxTap: () => Navigator.pushReplacement(
+      //     context,
+      //     MaterialPageRoute(
+      //         builder: (_) => ChatScreen(senderId: 1, receiverId: 1))),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());
@@ -361,7 +360,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         width: markerSize * 2,
         height: markerSize * 2.5,
         child: GestureDetector(
-          onTap: () => _calculateDistance(LatLng(loc.latitude, loc.longitude)),
+          onTap: () => _calculateDistance(
+              loc.userid, LatLng(loc.latitude, loc.longitude)),
           child: _buildMarkerContent(user.firstname, markerSize),
         ),
       );
@@ -411,14 +411,71 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Widget _buildDistanceInfo(double padding) {
     return Padding(
       padding: EdgeInsets.all(padding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (_distance > 0)
-            Text('Distance: ${_distance.toStringAsFixed(2)} km'),
-          const SizedBox(height: 8),
-          const Text('Tap a marker to calculate distance',
-              style: TextStyle(color: Colors.grey)),
+          // Profile avatar
+          CircleAvatar(
+            radius: 25,
+            backgroundImage: AssetImage(
+                'assets/person_marker.png'), // Change to actual image
+          ),
+          SizedBox(width: 10),
+
+          // User Info + Last Active
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _users.firstWhere((u) => u.id == _selectedUserId).fullname ??
+                      'Unknown',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Last active 25m ago', // Replace with actual data
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+
+          // Distance & Chat
+          Row(
+            children: [
+              // Distance Info
+              if (_distance > 0 && _selectedUserId != null)
+                Row(
+                  children: [
+                    Icon(FontAwesomeIcons.car, size: 16, color: Colors.black54),
+                    SizedBox(width: 4),
+                    Text(
+                      '${_distance.toStringAsFixed(2)} km',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+
+              SizedBox(width: 10),
+
+              // Chat Button
+              ElevatedButton(
+                onPressed: () {
+                  // Handle chat action
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: CircleBorder(),
+                  padding: EdgeInsets.all(10),
+                  backgroundColor: Colors.black87, // Adjust color if needed
+                ),
+                child: Icon(Icons.chat, color: Colors.white, size: 18),
+              ),
+            ],
+          ),
+          SizedBox(width: 50),
         ],
       ),
     );
@@ -492,7 +549,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 items: [0.1, 0.5, 1.0, 2.0, 5.0].map((double value) {
                   return DropdownMenuItem<double>(
                     value: value,
-                    child: Text("${(value * 1000).toInt()}"),
+                    child: Text("${(value * 1000).toInt()}M"),
                   );
                 }).toList(),
               ),

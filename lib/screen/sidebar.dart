@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:gis_osm/common/user_storage.dart';
 
-class _Constants {
-  static const double headerFontScale = 0.05;
-  static const double listItemFontScale = 0.04;
-  static const double iconScale = 0.06;
-  static const double headerHeightScale = 0.15;
-  static const double paddingScale = 0.05;
-  static const int smallScreenBreakpoint = 400;
-  static const int largeScreenBreakpoint = 600;
-}
+import '../enum.dart';
 
 class Sidebar extends StatelessWidget {
   final VoidCallback onHomeTap;
   final VoidCallback onUsersTap;
   final VoidCallback onTrackLocationTap;
+  // final VoidCallback onChatBoxTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
 
@@ -23,6 +16,7 @@ class Sidebar extends StatelessWidget {
     required this.onHomeTap,
     required this.onUsersTap,
     required this.onTrackLocationTap,
+    // required this.onChatBoxTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
   });
@@ -33,8 +27,9 @@ class Sidebar extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final size = MediaQuery.of(context).size;
-          final isSmallScreen = size.width < _Constants.smallScreenBreakpoint;
-          final isLargeScreen = size.width >= _Constants.largeScreenBreakpoint;
+          final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
+          final isLargeScreen =
+              size.width >= AppConstants.largeScreenBreakpoint;
 
           return _SidebarContent(
             size: size,
@@ -43,6 +38,7 @@ class Sidebar extends StatelessWidget {
             onHomeTap: onHomeTap,
             onUsersTap: onUsersTap,
             onTrackLocationTap: onTrackLocationTap,
+            // onChatBoxTap: onChatBoxTap,
             onSettingsTap: onSettingsTap,
             onLogoutTap: onLogoutTap,
           );
@@ -59,6 +55,7 @@ class _SidebarContent extends StatelessWidget {
   final VoidCallback onHomeTap;
   final VoidCallback onUsersTap;
   final VoidCallback onTrackLocationTap;
+  // final VoidCallback onChatBoxTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
 
@@ -69,17 +66,27 @@ class _SidebarContent extends StatelessWidget {
     required this.onHomeTap,
     required this.onUsersTap,
     required this.onTrackLocationTap,
+    // required this.onChatBoxTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final headerFontSize = size.width * _Constants.headerFontScale * (isSmallScreen ? 0.9 : 1.0);
-    final listItemFontSize = size.width * _Constants.listItemFontScale * (isSmallScreen ? 0.9 : 1.0);
-    final iconSize = size.width * _Constants.iconScale * (isSmallScreen ? 0.8 : isLargeScreen ? 1.1 : 1.0);
-    final headerHeight = size.height * _Constants.headerHeightScale;
-    final padding = size.width * _Constants.paddingScale;
+    final headerFontSize =
+        size.width * AppConstants.headerFontScale * (isSmallScreen ? 0.9 : 1.0);
+    final listItemFontSize = size.width *
+        AppConstants.listItemFontScale *
+        (isSmallScreen ? 0.9 : 1.0);
+    final iconSize = size.width *
+        AppConstants.iconScale *
+        (isSmallScreen
+            ? 0.8
+            : isLargeScreen
+                ? 1.1
+                : 1.0);
+    final headerHeight = size.height * AppConstants.headerHeightScale;
+    final padding = size.width * AppConstants.paddingScale;
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -101,6 +108,14 @@ class _SidebarContent extends StatelessWidget {
           iconSize: iconSize,
           fontSize: listItemFontSize,
         ),
+        // _buildMenuItem(
+        //   context,
+        //   icon: Icons.chat,
+        //   title: 'Chat box',
+        //   onTap: onChatBoxTap,
+        //   iconSize: iconSize,
+        //   fontSize: listItemFontSize,
+        // ),
         _buildMenuItem(
           context,
           icon: Icons.location_on,
@@ -129,7 +144,8 @@ class _SidebarContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, double height, double fontSize, double padding) {
+  Widget _buildHeader(
+      BuildContext context, double height, double fontSize, double padding) {
     return DrawerHeader(
       decoration: const BoxDecoration(color: Colors.blue),
       padding: EdgeInsets.all(padding),
@@ -140,26 +156,27 @@ class _SidebarContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (snapshot.connectionState == ConnectionState.waiting)
-              const Center(child: CircularProgressIndicator(color: Colors.white))
+              const Center(
+                  child: CircularProgressIndicator(color: Colors.white))
             else if (snapshot.hasError)
               Text(
                 'Error: ${snapshot.error}',
                 style: TextStyle(color: Colors.white, fontSize: fontSize * 0.8),
               )
             else ...[
-                Text(
-                  'Welcome',
-                  style: TextStyle(color: Colors.white, fontSize: fontSize * 0.8),
+              Text(
+                'Welcome',
+                style: TextStyle(color: Colors.white, fontSize: fontSize * 0.8),
+              ),
+              Text(
+                snapshot.data ?? 'Guest',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
                 ),
-                Text(
-                  snapshot.data ?? 'Guest',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+              ),
+            ],
           ],
         ),
       ),
@@ -167,13 +184,13 @@ class _SidebarContent extends StatelessWidget {
   }
 
   Widget _buildMenuItem(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required VoidCallback onTap,
-        required double iconSize,
-        required double fontSize,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    required double iconSize,
+    required double fontSize,
+  }) {
     return ListTile(
       leading: Icon(icon, size: iconSize),
       title: Text(
@@ -186,7 +203,9 @@ class _SidebarContent extends StatelessWidget {
       },
       dense: isSmallScreen,
       contentPadding: EdgeInsets.symmetric(
-        horizontal: size.width * _Constants.paddingScale * (isSmallScreen ? 0.8 : 1.0),
+        horizontal: size.width *
+            AppConstants.paddingScale *
+            (isSmallScreen ? 0.8 : 1.0),
         vertical: isSmallScreen ? 4 : 8,
       ),
     );

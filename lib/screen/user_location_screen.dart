@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/user_location/user_location_bloc.dart';
 import '../data/models/user_location.dart';
 
-
 class UserLocationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -19,7 +18,8 @@ class UserLocationScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final location = state.locations[index];
                 return ListTile(
-                  title: Text('Latitude: ${location.latitude}, Longitude: ${location.longitude}'),
+                  title: Text(
+                      'Latitude: ${location.latitude}, Longitude: ${location.longitude}'),
                   subtitle: Text('Sharing: ${location.issharinglocation}'),
                 );
               },
@@ -39,7 +39,9 @@ class UserLocationScreen extends StatelessWidget {
             longitude: -74.0060,
             issharinglocation: true,
           );
-          context.read<UserLocationBloc>().add(AddUserLocationEvent(newLocation));
+          context
+              .read<UserLocationBloc>()
+              .add(AddUserLocationEvent(newLocation));
         },
         child: Icon(Icons.add),
       ),

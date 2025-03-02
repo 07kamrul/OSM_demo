@@ -1,3 +1,4 @@
+import 'package:signalr_core/signalr_core.dart';
 
 import '../config/api_config.dart';
 
@@ -12,7 +13,8 @@ class SignalRService {
     await _hubConnection.start();
   }
 
-  void listenForMessages(Function(String user, String message) onMessageReceived) {
+  void listenForMessages(
+      Function(String user, String message) onMessageReceived) {
     _hubConnection.on("ReceiveMessage", (arguments) {
       onMessageReceived(arguments![0], arguments[1]);
     });

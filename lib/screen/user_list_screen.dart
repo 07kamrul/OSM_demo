@@ -5,19 +5,13 @@ import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../data/models/user.dart';
 import '../data/repositories/auth_repository.dart';
+import '../enum.dart';
 import '../services/user_service.dart';
 import '../widgets/user_card.dart';
 import 'auth_screen.dart';
+import 'chat_screen.dart';
 import 'distance_tracker_page.dart';
 import 'sidebar.dart';
-
-// Constants class for better organization
-class _Constants {
-  static const double appBarFontScale = 0.05;
-  static const double paddingScale = 0.04;
-  static const double searchFieldHeightScale = 0.06;
-  static const double cardPaddingScale = 0.03;
-}
 
 class UserListScreen extends StatefulWidget {
   const UserListScreen({super.key});
@@ -74,10 +68,11 @@ class _UserListScreenState extends State<UserListScreen> {
       if (!mounted) return;
       final query = _searchController.text.toLowerCase();
       setState(() {
-        _filteredUsers = _users.where((user) =>
-        user.fullname.toLowerCase().contains(query) ||
-            user.email.toLowerCase().contains(query)
-        ).toList();
+        _filteredUsers = _users
+            .where((user) =>
+                user.fullname.toLowerCase().contains(query) ||
+                user.email.toLowerCase().contains(query))
+            .toList();
       });
     });
   }
@@ -114,7 +109,7 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(Size size) {
-    final appBarFontSize = size.width * _Constants.appBarFontScale;
+    final appBarFontSize = size.width * AppConstants.appBarFontScale;
     return AppBar(
       title: Text(
         'User List',
@@ -146,7 +141,12 @@ class _UserListScreenState extends State<UserListScreen> {
     return Sidebar(
       onHomeTap: () => _navigateTo(context, const DistanceTrackerPage()),
       onUsersTap: () => _navigateTo(context, const UserListScreen()),
-      onTrackLocationTap: () => _navigateTo(context, const DistanceTrackerPage()),
+      onTrackLocationTap: () =>
+          _navigateTo(context, const DistanceTrackerPage()),
+      // onChatBoxTap: () => Navigator.pushReplacement(
+      //     context,
+      //     MaterialPageRoute(
+      //         builder: (_) => ChatScreen(senderId: 1, receiverId: 1))),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());
@@ -156,8 +156,8 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   Widget _buildBody(Size size, BoxConstraints constraints) {
-    final paddingValue = size.width * _Constants.paddingScale;
-    final appBarFontSize = size.width * _Constants.appBarFontScale;
+    final paddingValue = size.width * AppConstants.paddingScale;
+    final appBarFontSize = size.width * AppConstants.appBarFontScale;
     final isSmallScreen = size.width < 400;
 
     return Column(
@@ -199,8 +199,8 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   Widget _buildUserCard(Size size, User user, int index, bool isSmallScreen) {
-    final cardPadding = size.width * _Constants.cardPaddingScale;
-    final fontSize = (size.width * _Constants.appBarFontScale) * 0.8;
+    final cardPadding = size.width * AppConstants.cardPaddingScale;
+    final fontSize = (size.width * AppConstants.appBarFontScale) * 0.8;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -230,7 +230,7 @@ class _UserListScreenState extends State<UserListScreen> {
         child: Text(
           _errorMessage!,
           style: TextStyle(
-            fontSize: size.width * _Constants.appBarFontScale * 0.8,
+            fontSize: size.width * AppConstants.appBarFontScale * 0.8,
             color: Colors.red,
           ),
           textAlign: TextAlign.center,
