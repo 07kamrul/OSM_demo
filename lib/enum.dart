@@ -19,6 +19,7 @@ class AppConstants {
   // Integer constants
   static const int smallScreenBreakpoint = 400;
   static const int largeScreenBreakpoint = 600;
+  static const int extraLargeScreenBreakpoint = 900;
   static const int sessionTimeoutHours = 2;
 
   // Duration constants

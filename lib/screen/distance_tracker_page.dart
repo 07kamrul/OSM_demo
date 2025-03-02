@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:gis_osm/bloc/auth/auth_event.dart';
 import 'package:gis_osm/common/user_storage.dart';
 import 'package:gis_osm/screen/chat_screen.dart';
+import 'package:gis_osm/screen/profile_screen.dart';
 import 'package:gis_osm/screen/sidebar.dart';
 import 'package:gis_osm/screen/user_list_screen.dart';
 import 'package:latlong2/latlong.dart';
@@ -415,11 +416,25 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Profile avatar
-          CircleAvatar(
-            radius: 25,
-            backgroundImage: AssetImage(
-                'assets/person_marker.png'), // Change to actual image
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ProfileScreen(
+                          user: _users
+                              .where((u) => u.id == _selectedUserId)
+                              .first,
+                        )),
+              );
+            },
+            child: CircleAvatar(
+              radius: 25,
+              backgroundImage: AssetImage(
+                  'assets/person_marker.png'), // Change to actual image
+            ),
           ),
+
           SizedBox(width: 10),
 
           // User Info + Last Active
@@ -464,7 +479,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               // Chat Button
               ElevatedButton(
                 onPressed: () {
-                  // Handle chat action
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                              senderId: 1,
+                              receiverId: 1,
+                            )), // Navigate to ChatScreen
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   shape: CircleBorder(),
@@ -483,9 +505,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   Widget _buildFloatingButtons(Size size) {
     // Responsive scaling factors
-    final isSmallScreen = size.width < 400;
-    final isLargeScreen = size.width >= 600;
-    final isTablet = size.width >= 600 && size.width < 900;
+    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
+    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
+    final isTablet = size.width >= AppConstants.largeScreenBreakpoint &&
+        size.width < AppConstants.extraLargeScreenBreakpoint;
 
     // Dynamic sizing based on screen dimensions
     final buttonSize = isSmallScreen
