@@ -432,55 +432,67 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
     return Padding(
       padding: EdgeInsets.all(paddingValue),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
         children: [
-          // Profile Avatar with Navigation
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProfileScreen(
-                    user: _users.firstWhere((u) => u.id == _selectedUserId),
-                  ),
-                ),
-              );
-            },
-            child: CircleAvatar(
-              radius: isSmallScreen ? 22 : 25,
-              backgroundImage: AssetImage(
-                  'assets/person_marker.png'), // Change to actual image
-            ),
-          ),
-
-          SizedBox(width: 10),
-
-          // User Info + Last Active
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _users.firstWhere((u) => u.id == _selectedUserId).fullname ??
-                      'Unknown',
-                  style: TextStyle(
-                      fontSize: isSmallScreen ? 16 : 18,
-                      fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Last active 25m ago', // Replace with actual data
-                  style: TextStyle(
-                      color: Colors.grey, fontSize: isSmallScreen ? 12 : 14),
-                ),
-              ],
-            ),
-          ),
-
-          // Chat Button & Distance Info
+          // User Information Row (Avatar & Name)
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Profile Avatar with Navigation
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfileScreen(
+                        user: _users.firstWhere((u) => u.id == _selectedUserId),
+                      ),
+                    ),
+                  );
+                },
+                child: CircleAvatar(
+                  radius: isSmallScreen ? 22 : 25,
+                  backgroundImage: AssetImage(
+                      'assets/person_marker.png'), // Change to actual image
+                ),
+              ),
+
+              SizedBox(width: 10),
+
+              // User Info + Last Active
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _users
+                              .firstWhere((u) => u.id == _selectedUserId)
+                              .fullname ??
+                          'Unknown',
+                      style: TextStyle(
+                          fontSize: isSmallScreen ? 16 : 18,
+                          fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Last active 25m ago', // Replace with actual data
+                      style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: isSmallScreen ? 12 : 14),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Spacer pushes content below to the bottom
+          Spacer(),
+
+          // Distance & Chat Section (Pinned at Bottom)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Chat Button
               IconButton(
@@ -501,7 +513,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   color: isLargeScreen ? Colors.blue : Colors.black,
                 ),
               ),
-              SizedBox(width: 6),
+              SizedBox(width: 10),
 
               // Distance Info
               if (_distance > 0 && _selectedUserId != null)
