@@ -16,7 +16,8 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   late final TextEditingController fullnameController = TextEditingController();
-  late final TextEditingController firstnameController = TextEditingController();
+  late final TextEditingController firstnameController =
+      TextEditingController();
   late final TextEditingController lastnameController = TextEditingController();
   late final TextEditingController emailController = TextEditingController();
   late final TextEditingController passwordController = TextEditingController();
@@ -26,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   late final TextEditingController regionController = TextEditingController();
   bool _obscureText = true;
   String? _selectedGender;
+  DateTime? _selectedDate; // State variable for date of birth
 
   @override
   void dispose() {
@@ -109,30 +111,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: spacing),
                 _buildTextField(fullnameController, 'Full Name', Icons.person,
                     fontSize, inputHeight),
-                SizedBox(height: spacing),
+                //SizedBox(height: spacing),
                 _buildTextField(firstnameController, 'First Name', Icons.person,
                     fontSize, inputHeight),
-                SizedBox(height: spacing),
+                //SizedBox(height: spacing),
                 _buildTextField(lastnameController, 'Last Name', Icons.person,
                     fontSize, inputHeight),
-                SizedBox(height: spacing),
+                //SizedBox(height: spacing),
                 _buildTextField(emailController, 'Email', Icons.email, fontSize,
                     inputHeight,
                     keyboardType: TextInputType.emailAddress),
-                SizedBox(height: spacing),
+                //SizedBox(height: spacing),
                 _buildPasswordField(fontSize, inputHeight),
-                SizedBox(height: spacing),
+                //SizedBox(height: spacing),
                 _buildGenderField(fontSize, inputHeight),
-                SizedBox(height: spacing),
-                _buildTextField(dobController, 'Date of Birth', Icons.calendar_today, fontSize,
-                    inputHeight),
-                SizedBox(height: spacing),
-                _buildTextField(hobbyController, 'Hobby', Icons.travel_explore, fontSize,
-                    inputHeight),
-                SizedBox(height: spacing),
-                _buildTextField(regionController, 'Region', Icons.place, fontSize,
-                    inputHeight),
-                SizedBox(height: spacing),
+                //SizedBox(height: spacing),
+                // _buildTextField(dobController, 'Date of Birth',
+                //     Icons.calendar_today, fontSize, inputHeight),
+                _buildDOBField(fontSize, inputHeight),
+                //SizedBox(height: spacing),
+                _buildTextField(hobbyController, 'Hobby', Icons.travel_explore,
+                    fontSize, inputHeight),
+                //SizedBox(height: spacing),
+                _buildTextField(regionController, 'Region', Icons.place,
+                    fontSize, inputHeight),
+                //SizedBox(height: spacing),
                 _buildRegisterButton(context, state, fontSize, inputHeight),
                 SizedBox(height: spacing),
                 _buildLoginLink(context, fontSize),
@@ -192,14 +195,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       height: height,
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey), // Use Border instead of BorderSide
+          border: Border.all(
+              color: Colors.grey), // Use Border instead of BorderSide
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              child: Icon(Icons.male, size: fontSize, color: Colors.blueAccent),
+              child: Icon(Icons.male, size: fontSize, color: Colors.black),
             ),
             Expanded(
               child: Row(
@@ -236,6 +240,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildDOBField(double fontSize, double height) {
+    return SizedBox(
+      height: height,
+      child: TextField(
+        controller: dobController,
+        readOnly: true, // Prevent manual input, use picker only
+        decoration: InputDecoration(
+          labelText: 'Date of Birth',
+          labelStyle: TextStyle(fontSize: fontSize),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          prefixIcon: Icon(Icons.calendar_today, size: fontSize),
+          suffixIcon: IconButton(
+            icon: Icon(Icons.date_range, size: fontSize),
+            onPressed: _selectDate, // Trigger date picker
+          ),
+        ),
+        style: TextStyle(fontSize: fontSize),
+        onTap: _selectDate, // Open picker when tapping the field
+      ),
+    );
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(1900), // Reasonable range start
+      lastDate: DateTime.now(), // Restrict to past dates
+    );
+    if (picked != null && picked != _selectedDate && mounted) {
+      setState(() {
+        _selectedDate = picked;
+        dobController.text =
+            _formatDate(picked); // Update controller with formatted date
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}'; // Customize format as needed
   }
 
   Widget _buildRegisterButton(

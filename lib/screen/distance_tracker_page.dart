@@ -367,8 +367,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               dob: DateTime(1990, 5, 15), // Valid DateTime
               hobby: '',
               region: '',
-              status: ''
-          ));
+              status: ''));
       return Marker(
         point: LatLng(loc.startlatitude, loc.startlongitude),
         width: markerSize * 2,
@@ -446,6 +445,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     return Padding(
       padding: EdgeInsets.all(paddingValue),
       child: Column(
+        mainAxisSize: MainAxisSize.min, // Shrink-wrap the Column
         children: [
           // User Information Row (Avatar & Name)
           Row(
@@ -473,7 +473,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               SizedBox(width: 10),
 
               // User Info + Last Active
-              Expanded(
+              Flexible(
+                // Use Flexible instead of Expanded
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -504,45 +505,49 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           Spacer(),
 
           // Distance & Chat Section (Pinned at Bottom)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Chat Button
-              IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatScreen(
-                        senderId: 1,
-                        receiverId: 1,
-                      ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 16), // Adjust as needed
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(
+                            senderId: 1,
+                            receiverId: 1,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.chat_rounded,
+                      size: iconSize,
+                      color: isLargeScreen ? Colors.blue : Colors.black,
                     ),
-                  );
-                },
-                icon: Icon(
-                  Icons.chat_rounded,
-                  size: iconSize,
-                  color: isLargeScreen ? Colors.blue : Colors.black,
-                ),
+                  ),
+                  SizedBox(width: 10),
+                  if (_distance > 0 && _selectedUserId != null)
+                    Row(
+                      children: [
+                        Icon(FontAwesomeIcons.car,
+                            size: 16, color: Colors.black54),
+                        SizedBox(width: 4),
+                        Text(
+                          '${_distance.toStringAsFixed(2)} km',
+                          style: TextStyle(
+                              fontSize: isSmallScreen ? 14 : 16,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                ],
               ),
-              SizedBox(width: 10),
-
-              // Distance Info
-              if (_distance > 0 && _selectedUserId != null)
-                Row(
-                  children: [
-                    Icon(FontAwesomeIcons.car, size: 16, color: Colors.black54),
-                    SizedBox(width: 4),
-                    Text(
-                      '${_distance.toStringAsFixed(2)} km',
-                      style: TextStyle(
-                          fontSize: isSmallScreen ? 14 : 16,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-            ],
+            ),
           ),
         ],
       ),
