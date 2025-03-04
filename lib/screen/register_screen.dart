@@ -342,7 +342,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       password: fields[4],
       profile_pic: '',
       gender: '',
-      dob: DateTime(2000, 01, 01),
+      dob: '',
       hobby: '',
       region: '',
       status: '',

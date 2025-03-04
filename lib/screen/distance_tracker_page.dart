@@ -55,6 +55,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Timer? _locationUpdateTimer;
 
   bool _isShareLocation = false;
+  int? _selectedUserId;
 
   @override
   void initState() {
@@ -64,10 +65,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   Future<void> _initializeData() async {
     await Future.wait([
+      _initializeLocation(),
       _fetchUser(),
       _fetchUsers(),
-      _initializeLocation(),
       _fetchUserLocations(),
+      _startUpdateLocation(),
     ]);
     _startPeriodicUpdates();
   }
@@ -106,21 +108,23 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _fetchUserLocations() async {
     try {
       final userId = await UserStorage.getUserId();
-      if (userId == null) {
-        throw 'User ID not found';
-      } else {
-        await _updateUserLocation(userId);
-      }
 
       final userLocations = await _userLocationRepository.getAllUserLocations();
 
       setState(() {
+        _userLocation = userLocations.firstWhere((u) => u.userid == userId,
+            orElse: () => UserLocation(
+                id: 0,
+                userid: 0,
+                startlatitude: 0,
+                startlongitude: 0,
+                endlatitude: 0,
+                endlongitude: 0,
+                issharinglocation: false));
+
         _userLocations.clear();
-        _userLocations.addAll(userLocations.where((user) =>
-            user.issharinglocation == true &&
-            user.userid != userId &&
-            (user.endlatitude != _currentUserLocation.latitude ||
-                user.endlongitude != _currentUserLocation.longitude)));
+        _userLocations.addAll(userLocations.where(
+            (user) => user.issharinglocation == true && user.userid != userId));
         _isLoading = false;
 
         _isShareLocation = userLocations
@@ -136,13 +140,36 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             .issharinglocation;
       });
 
+      if (userId == null) {
+        throw 'User ID not found';
+      } else {
+        await _updateUserLocation(userId);
+      }
+
       _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
     } catch (e) {
       _handleError('Failed to load user locations: ${e.toString()}');
     }
   }
 
-  int? _selectedUserId;
+  Future<void> _startUpdateLocation() async {
+    try {
+      if (_userLocation != null) {
+        final updatedLocation = UserLocation(
+          id: _userLocation!.id,
+          userid: _userLocation!.userid,
+          startlatitude: _currentUserLocation.latitude,
+          startlongitude: _currentUserLocation.longitude,
+          endlatitude: _currentUserLocation.latitude,
+          endlongitude: _currentUserLocation.longitude,
+          issharinglocation: _isShareLocation,
+        );
+        await _userLocationRepository.updateUserLocation(updatedLocation);
+      }
+    } catch (e) {
+      _handleError('Error initializing location: $e');
+    }
+  }
 
   Future<void> _calculateDistance(int userId, LatLng target) async {
     try {
@@ -364,7 +391,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               lastname: '',
               profile_pic: '',
               gender: '',
-              dob: DateTime(1990, 5, 15), // Valid DateTime
+              dob: '', // Valid DateTime
               hobby: '',
               region: '',
               status: ''));

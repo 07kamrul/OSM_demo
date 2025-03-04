@@ -7,7 +7,7 @@ class User {
   final String password;
   final String profile_pic;
   final String gender;
-  final DateTime dob;
+  final String dob;
   final String hobby;
   final String region;
   final String status;
