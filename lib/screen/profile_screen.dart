@@ -98,7 +98,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildProfileHeader(size, isSmallScreen, isLargeScreen, padding),
           _buildUserInfo(size, isSmallScreen, isLargeScreen, padding),
-          _buildActions(context, size, padding),
         ],
       ),
     );
@@ -218,40 +217,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildActions(BuildContext context, Size size, double padding) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding),
-      child: ElevatedButton(
-        onPressed: () => _logout(context),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blueAccent,
-          foregroundColor: Colors.white,
-          minimumSize:
-              Size.fromHeight(size.height * AppConstants.buttonHeightScale),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        child: const Text('Logout', style: TextStyle(fontSize: 18)),
-      ),
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('authToken');
-      await prefs.remove('loginTime');
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/auth');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showSnackBar(context, 'Logout failed: $e', Colors.blueAccent);
-      }
-      debugPrint('Logout error: $e');
-    }
   }
 
   void _showSnackBar(BuildContext context, String message, Color color) {

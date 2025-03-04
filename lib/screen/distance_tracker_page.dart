@@ -451,130 +451,120 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Widget _buildDistanceInfo(double padding, Size size) {
     final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
     final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
-    final isTablet = size.width >= AppConstants.largeScreenBreakpoint &&
-        size.width < AppConstants.extraLargeScreenBreakpoint;
-
-    // Dynamic Sizing
-    final double buttonSize = isSmallScreen
+    final buttonSize = isSmallScreen
         ? 40.0
-        : isTablet
-            ? 50.0
-            : 56.0;
-    final double spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
-    final double iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
-    final double paddingValue = size.width *
+        : isLargeScreen
+            ? 56.0
+            : 50.0;
+    final spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
+    final iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
+    final paddingValue = size.width *
         (isSmallScreen
             ? 0.02
             : isLargeScreen
                 ? 0.04
                 : 0.03);
 
-    return Padding(
+    final selectedUser = _selectedUserId != null
+        ? _users.firstWhere(
+            (u) => u.id == _selectedUserId,
+            orElse: () => User(
+                id: 0,
+                firstname: "Unknown",
+                email: "",
+                password: "",
+                fullname: '',
+                lastname: '',
+                profile_pic: '',
+                gender: '',
+                dob: '',
+                hobby: '',
+                region: '',
+                status: ''),
+          )
+        : null;
+
+    return Container(
       padding: EdgeInsets.all(paddingValue),
+      color: Colors.white.withOpacity(0.9),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Shrink-wrap the Column
+        mainAxisSize: MainAxisSize.min, // Shrink-wrap content
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // User Information Row (Avatar & Name)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Profile Avatar with Navigation
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
+          if (selectedUser != null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ProfileScreen(
-                        user: _users.firstWhere((u) => u.id == _selectedUserId),
-                      ),
-                    ),
-                  );
-                },
-                child: CircleAvatar(
-                  radius: isSmallScreen ? 22 : 25,
-                  backgroundImage: AssetImage(
-                      'assets/person_marker.png'), // Change to actual image
+                        builder: (_) => ProfileScreen(user: selectedUser)),
+                  ),
+                  child: CircleAvatar(
+                    radius: isSmallScreen ? 22 : 25,
+                    backgroundImage:
+                        const AssetImage('assets/person_marker.png'),
+                  ),
                 ),
-              ),
-
-              SizedBox(width: 10),
-
-              // User Info + Last Active
-              Flexible(
-                // Use Flexible instead of Expanded
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _users
-                              .firstWhere((u) => u.id == _selectedUserId)
-                              .fullname ??
-                          'Unknown',
-                      style: TextStyle(
+                SizedBox(width: padding * 0.5),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selectedUser.fullname,
+                        style: TextStyle(
                           fontSize: isSmallScreen ? 16 : 18,
-                          fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Last active 25m ago', // Replace with actual data
-                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Last active 25m ago', // Replace with dynamic data
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 12 : 14,
                           color: Colors.grey,
-                          fontSize: isSmallScreen ? 12 : 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: padding), // Fixed spacing instead of Spacer
+          ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                        senderId: 1, receiverId: _selectedUserId ?? 1),
+                  ),
+                ),
+                icon: Icon(Icons.chat_rounded,
+                    size: iconSize, color: Colors.blue),
+              ),
+              SizedBox(width: padding * 0.5),
+              if (_distance > 0 && _selectedUserId != null)
+                Row(
+                  children: [
+                    FaIcon(FontAwesomeIcons.car,
+                        size: iconSize, color: Colors.black54),
+                    SizedBox(width: padding * 0.25),
+                    Text(
+                      '${_distance.toStringAsFixed(2)} km',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 14 : 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-              ),
             ],
-          ),
-
-          // Spacer pushes content below to the bottom
-          Spacer(),
-
-          // Distance & Chat Section (Pinned at Bottom)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 16), // Adjust as needed
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatScreen(
-                            senderId: 1,
-                            receiverId: 1,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: Icon(
-                      Icons.chat_rounded,
-                      size: iconSize,
-                      color: isLargeScreen ? Colors.blue : Colors.black,
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  if (_distance > 0 && _selectedUserId != null)
-                    Row(
-                      children: [
-                        Icon(FontAwesomeIcons.car,
-                            size: 16, color: Colors.black54),
-                        SizedBox(width: 4),
-                        Text(
-                          '${_distance.toStringAsFixed(2)} km',
-                          style: TextStyle(
-                              fontSize: isSmallScreen ? 14 : 16,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
