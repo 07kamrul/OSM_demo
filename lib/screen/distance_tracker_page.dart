@@ -119,8 +119,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         _userLocations.addAll(userLocations.where((user) =>
             user.issharinglocation == true &&
             user.userid != userId &&
-            (user.latitude != _currentUserLocation.latitude ||
-                user.longitude != _currentUserLocation.longitude)));
+            (user.endlatitude != _currentUserLocation.latitude ||
+                user.endlongitude != _currentUserLocation.longitude)));
         _isLoading = false;
 
         _isShareLocation = userLocations
@@ -128,8 +128,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 orElse: () => UserLocation(
                     id: 0,
                     userid: 0,
-                    latitude: 0,
-                    longitude: 0,
+                    startlatitude: 0,
+                    startlongitude: 0,
+                    endlatitude: 0,
+                    endlongitude: 0,
                     issharinglocation: false))
             .issharinglocation;
       });
@@ -165,8 +167,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       final updatedLocation = UserLocation(
         id: _userLocation!.id,
         userid: userId,
-        latitude: _currentUserLocation.latitude,
-        longitude: _currentUserLocation.longitude,
+        startlatitude: _userLocation!.startlatitude,
+        startlongitude: _userLocation!.startlongitude,
+        endlatitude: _currentUserLocation.latitude,
+        endlongitude: _currentUserLocation.longitude,
         issharinglocation: _isShareLocation,
       );
       await _userLocationRepository.updateUserLocation(updatedLocation);
@@ -203,8 +207,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         final updatedLocation = UserLocation(
           id: _userLocation!.id,
           userid: _userLocation!.userid,
-          latitude: _currentUserLocation.latitude,
-          longitude: _currentUserLocation.longitude,
+          startlatitude: _userLocation!.startlatitude,
+          startlongitude: _userLocation!.startlongitude,
+          endlatitude: _currentUserLocation.latitude,
+          endlongitude: _currentUserLocation.longitude,
           issharinglocation: _isShareLocation,
         );
         await _userLocationRepository.updateUserLocation(updatedLocation);
@@ -355,14 +361,21 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               email: "",
               password: "",
               fullname: '',
-              lastname: ''));
+              lastname: '',
+              profile_pic: '',
+              gender: '',
+              dob: DateTime(1990, 5, 15), // Valid DateTime
+              hobby: '',
+              region: '',
+              status: ''
+          ));
       return Marker(
-        point: LatLng(loc.latitude, loc.longitude),
+        point: LatLng(loc.startlatitude, loc.startlongitude),
         width: markerSize * 2,
         height: markerSize * 2.5,
         child: GestureDetector(
           onTap: () => _calculateDistance(
-              loc.userid, LatLng(loc.latitude, loc.longitude)),
+              loc.userid, LatLng(loc.startlatitude, loc.startlongitude)),
           child: _buildMarkerContent(user.firstname, markerSize),
         ),
       );

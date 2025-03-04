@@ -16,12 +16,16 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   late final TextEditingController fullnameController = TextEditingController();
-  late final TextEditingController firstnameController =
-      TextEditingController();
+  late final TextEditingController firstnameController = TextEditingController();
   late final TextEditingController lastnameController = TextEditingController();
   late final TextEditingController emailController = TextEditingController();
   late final TextEditingController passwordController = TextEditingController();
+  late final TextEditingController genderController = TextEditingController();
+  late final TextEditingController dobController = TextEditingController();
+  late final TextEditingController hobbyController = TextEditingController();
+  late final TextEditingController regionController = TextEditingController();
   bool _obscureText = true;
+  String? _selectedGender;
 
   @override
   void dispose() {
@@ -30,6 +34,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     lastnameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    genderController.dispose();
+    dobController.dispose();
+    hobbyController.dispose();
+    regionController.dispose();
     super.dispose();
   }
 
@@ -114,6 +122,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: spacing),
                 _buildPasswordField(fontSize, inputHeight),
                 SizedBox(height: spacing),
+                _buildGenderField(fontSize, inputHeight),
+                SizedBox(height: spacing),
+                _buildTextField(dobController, 'Date of Birth', Icons.calendar_today, fontSize,
+                    inputHeight),
+                SizedBox(height: spacing),
+                _buildTextField(hobbyController, 'Hobby', Icons.travel_explore, fontSize,
+                    inputHeight),
+                SizedBox(height: spacing),
+                _buildTextField(regionController, 'Region', Icons.place, fontSize,
+                    inputHeight),
+                SizedBox(height: spacing),
                 _buildRegisterButton(context, state, fontSize, inputHeight),
                 SizedBox(height: spacing),
                 _buildLoginLink(context, fontSize),
@@ -165,6 +184,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         style: TextStyle(fontSize: fontSize),
       ),
+    );
+  }
+
+  Widget _buildGenderField(double fontSize, double height) {
+    return SizedBox(
+      height: height,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey), // Use Border instead of BorderSide
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: Icon(Icons.male, size: fontSize, color: Colors.blueAccent),
+            ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildRadioOption('Male', fontSize),
+                  _buildRadioOption('Female', fontSize),
+                  _buildRadioOption('Other', fontSize),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRadioOption(String value, double fontSize) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Radio<String>(
+          value: value,
+          groupValue: _selectedGender,
+          onChanged: (newValue) {
+            setState(() => _selectedGender = newValue);
+          },
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact, // Reduce padding for tight fit
+        ),
+        Text(
+          value,
+          style: TextStyle(fontSize: fontSize * 0.8), // Slightly smaller text
+        ),
+      ],
     );
   }
 
@@ -224,6 +294,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       lastname: fields[2],
       email: fields[3],
       password: fields[4],
+      profile_pic: '',
+      gender: '',
+      dob: DateTime(2000, 01, 01),
+      hobby: '',
+      region: '',
+      status: '',
     );
     context.read<AuthBloc>().add(RegisterEvent(user));
   }
