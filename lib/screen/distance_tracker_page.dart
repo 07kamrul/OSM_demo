@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gis_osm/enum.dart';
 import 'package:latlong2/latlong.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
@@ -19,18 +20,6 @@ import '../screen/user_list_screen.dart';
 import '../services/location_service.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
-
-// Constants for consistency
-class _TrackerConstants {
-  static const double minZoom = 10.0;
-  static const double defaultZoom = 15.0;
-  static const Duration locationUpdateInterval = Duration(seconds: 10);
-  static const String tileUrl =
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-  static const double smallScreenBreakpoint = 400;
-  static const double largeScreenBreakpoint = 600;
-  static const double extraLargeScreenBreakpoint = 900;
-}
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({super.key});
@@ -50,10 +39,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   final List<UserLocation> _userLocations = [];
   final List<User> _users = [];
   final List<LatLng> _routePoints = [];
+  double _startDistance = 0.0;
   double _distance = 0.0;
   double _rotation = 0.0;
   bool _isLoading = true;
-  double _maxDistance = 0.5; // Default 500 meters
+  double _maxDistance = 0.5;
   String? _errorMessage;
   User? _user;
   UserLocation? _userLocation;
@@ -89,7 +79,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _currentUserLocation = location;
           _isLoading = false;
         });
-        _mapController.move(location, _TrackerConstants.defaultZoom);
+
+        if (_userLocation != null) await _updateStartLocation();
+
+        _mapController.move(location, AppConstants.defaultZoom);
       }
     } catch (e) {
       _handleError('Error initializing location: $e');
@@ -141,8 +134,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         });
       }
 
-      await _updateUserLocation(userId);
-      _mapController.move(_currentUserLocation, _TrackerConstants.defaultZoom);
+      await _updateEndUserLocation();
+      _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
     } catch (e) {
       _handleError('Failed to load user locations: $e');
     }
@@ -160,22 +153,48 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _selectedUserId = userId;
         });
         _fitMapToRoute();
+
+        if (_userLocation != null) {
+          final result = await LocationService.getRouteDistance(
+              LatLng(
+                  _userLocation!.startlatitude, _userLocation!.startlongitude),
+              _currentUserLocation);
+
+          if (result!.distance % 2 != 0) _updateEndUserLocation();
+        }
       }
     } catch (e) {
       debugPrint('Error calculating distance: $e');
     }
   }
 
-  Future<void> _updateUserLocation(int userId) async {
+  Future<void> _updateStartLocation() async {
+    try {
+      final updatedLocation = UserLocation(
+        id: _userLocation!.id,
+        userid: _userLocation!.userid,
+        startlatitude: _currentUserLocation.latitude,
+        startlongitude: _currentUserLocation.longitude,
+        endlatitude: _currentUserLocation.latitude,
+        endlongitude: _currentUserLocation.longitude,
+        issharinglocation: _isShareLocation,
+      );
+      await _userLocationRepository.updateUserLocation(updatedLocation);
+      if (mounted) setState(() => _userLocation = updatedLocation);
+    } catch (e) {
+      debugPrint('Error updating user location: $e');
+    }
+  }
+
+  Future<void> _updateEndUserLocation() async {
     try {
       if (_userLocation != null) {
         final updatedLocation = UserLocation(
           id: _userLocation!.id,
-          userid: userId,
-          startlatitude:
-              _userLocation!.startlatitude, // Preserve start location
+          userid: _userLocation!.userid,
+          startlatitude: _userLocation!.startlatitude,
           startlongitude: _userLocation!.startlongitude,
-          endlatitude: _currentUserLocation.latitude, // Update end location
+          endlatitude: _currentUserLocation.latitude,
           endlongitude: _currentUserLocation.longitude,
           issharinglocation: _isShareLocation,
         );
@@ -237,7 +256,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   void _startPeriodicUpdates() {
     _locationUpdateTimer?.cancel();
     _locationUpdateTimer =
-        Timer.periodic(_TrackerConstants.locationUpdateInterval, (_) async {
+        Timer.periodic(AppConstants.locationUpdateInterval, (_) async {
       if (mounted) await _updateLocation(false);
     });
   }
@@ -248,13 +267,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       if (mounted) {
         setState(() {
           _currentUserLocation = location;
-          if (isClick)
-            _mapController.move(location, _TrackerConstants.defaultZoom);
+          if (isClick) _mapController.move(location, AppConstants.defaultZoom);
         });
 
         final userId = await UserStorage.getUserId();
-        if (userId != null && _isShareLocation)
-          await _updateUserLocation(userId);
+        if (userId != null && _isShareLocation) await _updateEndUserLocation();
 
         // Recalculate polyline and distance if a user is selected
         if (_selectedUserId != null) {
@@ -344,7 +361,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       mapController: _mapController,
       options: MapOptions(
         initialCenter: _currentUserLocation,
-        minZoom: _TrackerConstants.minZoom,
+        minZoom: AppConstants.minZoom,
         initialRotation: _rotation,
         onTap: (_, __) {
           if (mounted) {
@@ -357,7 +374,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         },
       ),
       children: [
-        TileLayer(urlTemplate: _TrackerConstants.tileUrl),
+        TileLayer(urlTemplate: AppConstants.tileUrl),
         MarkerLayer(markers: _buildMarkers()),
         if (_routePoints.isNotEmpty)
           PolylineLayer(
@@ -393,8 +410,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         ),
       );
       return Marker(
-        point: LatLng(loc.endlatitude,
-            loc.endlongitude), // Use end location for other users
+        point: LatLng(loc.endlatitude, loc.endlongitude),
         width: markerSize * 2,
         height: markerSize * 2.5,
         child: GestureDetector(
@@ -453,8 +469,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   }
 
   Widget _buildDistanceInfo(double padding, Size size) {
-    final isSmallScreen = size.width < _TrackerConstants.smallScreenBreakpoint;
-    final isLargeScreen = size.width >= _TrackerConstants.largeScreenBreakpoint;
+    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
+    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
     final buttonSize = isSmallScreen
         ? 40.0
         : isLargeScreen
@@ -577,8 +593,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   }
 
   Widget _buildFloatingButtons(Size size) {
-    final isSmallScreen = size.width < _TrackerConstants.smallScreenBreakpoint;
-    final isLargeScreen = size.width >= _TrackerConstants.largeScreenBreakpoint;
+    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
+    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
     final padding = size.width * 0.05;
     final buttonSize = isSmallScreen
         ? 40.0
