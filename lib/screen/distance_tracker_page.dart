@@ -25,7 +25,8 @@ class _TrackerConstants {
   static const double minZoom = 10.0;
   static const double defaultZoom = 15.0;
   static const Duration locationUpdateInterval = Duration(seconds: 10);
-  static const String tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  static const String tileUrl =
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   static const double smallScreenBreakpoint = 400;
   static const double largeScreenBreakpoint = 600;
   static const double extraLargeScreenBreakpoint = 900;
@@ -39,7 +40,8 @@ class DistanceTrackerPage extends StatefulWidget {
 }
 
 class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
-  late final UserLocationRepository _userLocationRepository = UserLocationRepository();
+  late final UserLocationRepository _userLocationRepository =
+      UserLocationRepository();
   late final AuthRepository _userRepository = AuthRepository();
   late final UserService _userService = UserService();
   late final MapController _mapController = MapController();
@@ -120,7 +122,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       if (mounted) {
         setState(() {
           _userLocation = userLocations.firstWhere(
-                (u) => u.userid == userId,
+            (u) => u.userid == userId,
             orElse: () => UserLocation(
               id: 0,
               userid: userId,
@@ -133,7 +135,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           );
           _userLocations.clear();
           _userLocations.addAll(userLocations.where(
-                  (user) => user.issharinglocation && user.userid != userId));
+              (user) => user.issharinglocation && user.userid != userId));
           _isShareLocation = _userLocation?.issharinglocation ?? false;
           _isLoading = false;
         });
@@ -148,7 +150,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   Future<void> _calculateDistance(int userId, LatLng target) async {
     try {
-      final result = await LocationService.getRouteDistance(_currentUserLocation, target);
+      final result =
+          await LocationService.getRouteDistance(_currentUserLocation, target);
       if (result?.distance != null && mounted) {
         setState(() {
           _distance = result!.distance!;
@@ -169,7 +172,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         final updatedLocation = UserLocation(
           id: _userLocation!.id,
           userid: userId,
-          startlatitude: _userLocation!.startlatitude, // Preserve start location
+          startlatitude:
+              _userLocation!.startlatitude, // Preserve start location
           startlongitude: _userLocation!.startlongitude,
           endlatitude: _currentUserLocation.latitude, // Update end location
           endlongitude: _currentUserLocation.longitude,
@@ -186,7 +190,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   void _fitMapToRoute() {
     if (_routePoints.isEmpty) return;
     final bounds = LatLngBounds.fromPoints(_routePoints);
-    _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
+    _mapController.fitCamera(
+        CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
   }
 
   void _resetRotation() {
@@ -231,7 +236,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   void _startPeriodicUpdates() {
     _locationUpdateTimer?.cancel();
-    _locationUpdateTimer = Timer.periodic(_TrackerConstants.locationUpdateInterval, (_) async {
+    _locationUpdateTimer =
+        Timer.periodic(_TrackerConstants.locationUpdateInterval, (_) async {
       if (mounted) await _updateLocation(false);
     });
   }
@@ -242,16 +248,18 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       if (mounted) {
         setState(() {
           _currentUserLocation = location;
-          if (isClick) _mapController.move(location, _TrackerConstants.defaultZoom);
+          if (isClick)
+            _mapController.move(location, _TrackerConstants.defaultZoom);
         });
 
         final userId = await UserStorage.getUserId();
-        if (userId != null && _isShareLocation) await _updateUserLocation(userId);
+        if (userId != null && _isShareLocation)
+          await _updateUserLocation(userId);
 
         // Recalculate polyline and distance if a user is selected
         if (_selectedUserId != null) {
           final selectedUserLocation = _userLocations.firstWhere(
-                (loc) => loc.userid == _selectedUserId,
+            (loc) => loc.userid == _selectedUserId,
             orElse: () => UserLocation(
               id: 0,
               userid: 0,
@@ -264,7 +272,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           );
           await _calculateDistance(
             _selectedUserId!,
-            LatLng(selectedUserLocation.endlatitude, selectedUserLocation.endlongitude),
+            LatLng(selectedUserLocation.endlatitude,
+                selectedUserLocation.endlongitude),
           );
         }
       }
@@ -326,7 +335,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       ),
       actions: [AppBarActionName(fontSize: fontSize * 0.8)],
       centerTitle: true,
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: Colors.lightBlueAccent,
     );
   }
 
@@ -353,7 +362,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         if (_routePoints.isNotEmpty)
           PolylineLayer(
             polylines: [
-              Polyline(points: _routePoints, color: Colors.green, strokeWidth: 4.0),
+              Polyline(
+                  points: _routePoints, color: Colors.green, strokeWidth: 4.0),
             ],
           ),
       ],
@@ -366,7 +376,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
     final markers = _userLocations.map((loc) {
       final user = _users.firstWhere(
-            (u) => u.id == loc.userid,
+        (u) => u.id == loc.userid,
         orElse: () => User(
           id: 0,
           firstname: "Unknown",
@@ -383,11 +393,13 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         ),
       );
       return Marker(
-        point: LatLng(loc.endlatitude, loc.endlongitude), // Use end location for other users
+        point: LatLng(loc.endlatitude,
+            loc.endlongitude), // Use end location for other users
         width: markerSize * 2,
         height: markerSize * 2.5,
         child: GestureDetector(
-          onTap: () => _calculateDistance(loc.userid, LatLng(loc.endlatitude, loc.endlongitude)),
+          onTap: () => _calculateDistance(
+              loc.userid, LatLng(loc.endlatitude, loc.endlongitude)),
           child: _buildMarkerContent(user.firstname, markerSize),
         ),
       );
@@ -409,7 +421,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: EdgeInsets.symmetric(horizontal: fontSize * 0.5, vertical: fontSize * 0.25),
+          padding: EdgeInsets.symmetric(
+              horizontal: fontSize * 0.5, vertical: fontSize * 0.25),
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(fontSize * 0.5),
@@ -431,7 +444,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
             width: markerSize * 1.8,
             height: markerSize * 1.8,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Icon(Icons.person, size: markerSize * 1.8, color: Colors.grey),
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.person, size: markerSize * 1.8, color: Colors.grey),
           ),
         ),
       ],
@@ -441,29 +455,38 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Widget _buildDistanceInfo(double padding, Size size) {
     final isSmallScreen = size.width < _TrackerConstants.smallScreenBreakpoint;
     final isLargeScreen = size.width >= _TrackerConstants.largeScreenBreakpoint;
-    final buttonSize = isSmallScreen ? 40.0 : isLargeScreen ? 56.0 : 50.0;
+    final buttonSize = isSmallScreen
+        ? 40.0
+        : isLargeScreen
+            ? 56.0
+            : 50.0;
     final spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
     final iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
-    final paddingValue = size.width * (isSmallScreen ? 0.02 : isLargeScreen ? 0.04 : 0.03);
+    final paddingValue = size.width *
+        (isSmallScreen
+            ? 0.02
+            : isLargeScreen
+                ? 0.04
+                : 0.03);
 
     final selectedUser = _selectedUserId != null
         ? _users.firstWhere(
-          (u) => u.id == _selectedUserId,
-      orElse: () => User(
-        id: 0,
-        firstname: "Unknown",
-        email: "",
-        password: "",
-        fullname: '',
-        lastname: '',
-        profile_pic: '',
-        gender: '',
-        dob: '',
-        hobby: '',
-        region: '',
-        status: '',
-      ),
-    )
+            (u) => u.id == _selectedUserId,
+            orElse: () => User(
+              id: 0,
+              firstname: "Unknown",
+              email: "",
+              password: "",
+              fullname: '',
+              lastname: '',
+              profile_pic: '',
+              gender: '',
+              dob: '',
+              hobby: '',
+              region: '',
+              status: '',
+            ),
+          )
         : null;
 
     return Container(
@@ -480,11 +503,13 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 GestureDetector(
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => ProfileScreen(user: selectedUser)),
+                    MaterialPageRoute(
+                        builder: (_) => ProfileScreen(user: selectedUser)),
                   ),
                   child: CircleAvatar(
                     radius: isSmallScreen ? 22 : 25,
-                    backgroundImage: const AssetImage('assets/person_marker.png'),
+                    backgroundImage:
+                        const AssetImage('assets/person_marker.png'),
                   ),
                 ),
                 SizedBox(width: padding * 0.5),
@@ -521,16 +546,19 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ChatScreen(senderId: 1, receiverId: _selectedUserId ?? 1),
+                    builder: (_) => ChatScreen(
+                        senderId: 1, receiverId: _selectedUserId ?? 1),
                   ),
                 ),
-                icon: Icon(Icons.chat_rounded, size: iconSize, color: Colors.blueAccent),
+                icon: Icon(Icons.chat_rounded,
+                    size: iconSize, color: Colors.blueAccent),
               ),
               SizedBox(width: padding * 0.5),
               if (_distance > 0 && _selectedUserId != null)
                 Row(
                   children: [
-                    FaIcon(FontAwesomeIcons.car, size: iconSize, color: Colors.black54),
+                    FaIcon(FontAwesomeIcons.car,
+                        size: iconSize, color: Colors.black54),
                     SizedBox(width: padding * 0.25),
                     Text(
                       '${_distance.toStringAsFixed(2)} km',
@@ -552,7 +580,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     final isSmallScreen = size.width < _TrackerConstants.smallScreenBreakpoint;
     final isLargeScreen = size.width >= _TrackerConstants.largeScreenBreakpoint;
     final padding = size.width * 0.05;
-    final buttonSize = isSmallScreen ? 40.0 : isLargeScreen ? 56.0 : 52.0;
+    final buttonSize = isSmallScreen
+        ? 40.0
+        : isLargeScreen
+            ? 56.0
+            : 52.0;
     final spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
     final iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
 
@@ -619,7 +651,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       heroTag: heroTag,
       elevation: isLargeScreen ? 0 : 6,
       backgroundColor: isLargeScreen ? Colors.white : null,
-      child: Icon(icon, size: iconSize, color: isLargeScreen ? Colors.blueAccent : Colors.black),
+      child: Icon(icon,
+          size: iconSize,
+          color: isLargeScreen ? Colors.blueAccent : Colors.black),
     );
   }
 
@@ -640,9 +674,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         },
         items: [0.1, 0.5, 1.0, 2.0, 5.0]
             .map((value) => DropdownMenuItem<double>(
-          value: value,
-          child: Text("${(value * 1000).toInt()}M"),
-        ))
+                  value: value,
+                  child: Text("${(value * 1000).toInt()}M"),
+                ))
             .toList(),
         underline: const SizedBox.shrink(),
       ),

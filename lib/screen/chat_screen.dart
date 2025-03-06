@@ -3,6 +3,7 @@ import 'package:gis_osm/data/repositories/message_repository.dart';
 
 import '../data/models/message.dart';
 import '../services/signal_r_service.dart';
+import '../widgets/app_bar_action_name.dart';
 
 class ChatScreen extends StatefulWidget {
   final int senderId;
@@ -65,8 +66,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final fontSize = size.width * 0.04;
     return Scaffold(
-      appBar: AppBar(title: Text("Chat")),
+      appBar: AppBar(
+        title: Text(
+          "Chat",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        ),
+        actions: [AppBarActionName(fontSize: fontSize * 0.8)],
+        centerTitle: true,
+        backgroundColor: Colors.lightBlueAccent,
+      ),
       body: Column(
         children: [
           Expanded(

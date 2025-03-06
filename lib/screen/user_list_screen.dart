@@ -109,19 +109,16 @@ class _UserListScreenState extends State<UserListScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(Size size) {
-    final appBarFontSize = size.width * AppConstants.appBarFontScale;
+    final fontSize = size.width * 0.04;
+
     return AppBar(
       title: Text(
         'User List',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: appBarFontSize,
-        ),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
       ),
-      actions: [AppBarActionName(fontSize: appBarFontSize * 0.8)],
+      actions: [AppBarActionName(fontSize: fontSize * 0.8)],
       centerTitle: true,
-      elevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.lightBlueAccent,
     );
   }
 

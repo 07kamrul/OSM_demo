@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/user.dart';
 import '../enum.dart';
-import 'auth_screen.dart'; // Assuming AuthScreen is here
 
 class ProfileScreen extends StatefulWidget {
-  final User user; // User object passed as parameter
-
+  final User user;
   const ProfileScreen({super.key, required this.user});
 
   @override
@@ -75,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       centerTitle: true,
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: Colors.lightBlueAccent,
       elevation: 0,
       actions: [
         IconButton(
@@ -121,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: EdgeInsets.all(padding),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blueAccent, Colors.lightBlue],
+          colors: [Colors.lightBlueAccent, Colors.lightBlue],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
