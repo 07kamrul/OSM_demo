@@ -553,40 +553,80 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 ),
               ],
             ),
-            SizedBox(height: padding),
           ],
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChatScreen(
-                        senderId: 1, receiverId: _selectedUserId ?? 1),
+              Expanded(
+                child: Card(
+                  elevation: 4.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                        10.0), // Optional for rounded corners
+                  ),
+                  child: InkWell(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatScreen(
+                            senderId: 1, receiverId: _selectedUserId ?? 1),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(
+                          8.0), // Optional padding inside the card
+                      child: Icon(
+                        Icons.chat_rounded,
+                        size: iconSize,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
                   ),
                 ),
-                icon: Icon(Icons.chat_rounded,
-                    size: iconSize, color: Colors.blueAccent),
               ),
               SizedBox(width: padding * 0.5),
               if (_distance > 0 && _selectedUserId != null)
-                Row(
-                  children: [
-                    FaIcon(FontAwesomeIcons.car,
-                        size: iconSize, color: Colors.black54),
-                    SizedBox(width: padding * 0.25),
-                    Text(
-                      '${_distance.toStringAsFixed(2)} km',
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 14 : 16,
-                        fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Card(
+                    elevation: 4.0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                          10.0), // Optional: Rounded corners
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        // Define your onTap action here if needed
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(
+                            8.0), // Padding inside the card
+                        child: Row(
+                          mainAxisSize: MainAxisSize
+                              .min, // Ensures the row only takes as much space as needed
+                          children: [
+                            FaIcon(
+                              FontAwesomeIcons.car,
+                              size: iconSize,
+                              color: Colors.black54,
+                            ),
+                            SizedBox(
+                              width: padding * 0.25,
+                            ), // Add spacing between icon and text
+                            Text(
+                              '${_distance.toStringAsFixed(2)} km',
+                              style: TextStyle(
+                                fontSize: isSmallScreen ? 14 : 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
             ],
-          ),
+          )
         ],
       ),
     );

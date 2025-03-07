@@ -29,4 +29,9 @@ class AppConstants {
   // String constants
   static const String tileUrl =
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  static const spacing = 16.0;
+  static const avatarRadius = 60.0;
+  static const cardPadding = 16.0;
+  static const iconSize = 30.0;
 }

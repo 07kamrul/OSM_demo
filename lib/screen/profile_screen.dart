@@ -1,185 +1,41 @@
 import 'package:flutter/material.dart';
 import '../data/models/user.dart';
 import '../enum.dart';
+import '../widgets/app_bar_action_name.dart';
 
 class ProfileScreen extends StatefulWidget {
   final User user;
   const ProfileScreen({super.key, required this.user});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late String fullName;
-  late String email;
-  late String firstName;
-  late String lastName;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    try {
-      // Use the User object passed via constructor
-      fullName = widget.user.fullname.isNotEmpty
-          ? widget.user.fullname
-          : 'Unknown User';
-      email = widget.user.email.isNotEmpty ? widget.user.email : 'No email';
-      firstName = widget.user.firstname.isNotEmpty ? widget.user.firstname : '';
-      lastName = widget.user.lastname.isNotEmpty ? widget.user.lastname : '';
-
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          fullName = 'Error';
-          email = 'Failed to load: $e';
-        });
-      }
-      debugPrint('Error loading user data: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 600;
+
     return Scaffold(
-      appBar: _buildAppBar(),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(builder: _buildBody),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    final size = MediaQuery.of(context).size;
-    final padding = size.width * AppConstants.paddingScale;
-    final fontSize = size.width * 0.04; // Adjusted for responsiveness
-
-    return AppBar(
-      title: Text(
-        'Profile',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: fontSize,
-        ),
-      ),
-      centerTitle: true,
-      backgroundColor: Colors.lightBlueAccent,
-      elevation: 0,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: () => _showSnackBar(
-              context, 'Edit Profile not implemented yet', Colors.grey),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBody(BuildContext context, BoxConstraints constraints) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
-    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
-    final padding = size.width * AppConstants.paddingScale;
-
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildProfileHeader(size, isSmallScreen, isLargeScreen, padding),
-          _buildUserInfo(size, isSmallScreen, isLargeScreen, padding),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader(
-      Size size, bool isSmallScreen, bool isLargeScreen, double padding) {
-    final avatarRadius = isSmallScreen
-        ? 50.0
-        : isLargeScreen
-            ? 80.0
-            : 70.0;
-    final fontSize = isSmallScreen
-        ? 20.0
-        : isLargeScreen
-            ? 26.0
-            : 24.0;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(padding),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.lightBlueAccent, Colors.lightBlue],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: avatarRadius,
-            backgroundImage: const NetworkImage('https://i.pravatar.cc/150'),
-            backgroundColor: Colors.grey.shade300,
-            child: fullName == 'Error' || fullName == 'Guest'
-                ? Icon(Icons.person,
-                    size: avatarRadius * 1.2, color: Colors.white)
-                : null,
-          ),
-          SizedBox(height: size.height * AppConstants.spacingScale),
-          Text(
-            fullName,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          SizedBox(height: size.height * AppConstants.spacingScale * 0.5),
-          Text(
-            email,
-            style: TextStyle(
-              fontSize: fontSize * 0.75,
-              color: Colors.white70,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserInfo(
-      Size size, bool isSmallScreen, bool isLargeScreen, double padding) {
-    final cardWidth = isLargeScreen ? size.width * 0.6 : double.infinity;
-
-    return Container(
-      padding: EdgeInsets.all(padding),
-      width: cardWidth,
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      appBar: _buildAppBar(context),
+      body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(padding),
+          padding: EdgeInsets.all(size.width * 0.04), // Responsive padding
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildInfoRow('Full Name', fullName, isSmallScreen),
-              const Divider(height: 1),
-              _buildInfoRow('First Name', firstName, isSmallScreen),
-              const Divider(height: 1),
-              _buildInfoRow('Last Name', lastName, isSmallScreen),
-              const Divider(height: 1),
-              _buildInfoRow('Email', email, isSmallScreen),
+              _buildProfilePicture(size),
+              SizedBox(height: AppConstants.spacing),
+              _buildUserName(isSmallScreen),
+              SizedBox(height: AppConstants.spacing * 0.5),
+              _buildUserTitle(isSmallScreen),
+              SizedBox(height: AppConstants.spacing * 2),
+              _buildAboutMe(size),
+              SizedBox(height: AppConstants.spacing * 2),
+              _buildContactInfo(isSmallScreen),
+              SizedBox(height: AppConstants.spacing * 2),
+              _buildSocialMedia(),
             ],
           ),
         ),
@@ -187,28 +43,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, bool isSmallScreen) {
-    final fontSize = isSmallScreen ? 16.0 : 18.0;
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final fontSize = size.width * 0.04;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return AppBar(
+      title: Text(
+        'Profile Details',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+      ),
+      actions: [AppBarActionName(fontSize: fontSize * 0.8)],
+      centerTitle: true,
+      backgroundColor: Colors.lightBlueAccent,
+    );
+  }
+
+  Widget _buildProfilePicture(Size size) {
+    return CircleAvatar(
+      radius: size.width * 0.15 < AppConstants.avatarRadius
+          ? AppConstants.avatarRadius
+          : size.width * 0.15,
+      backgroundColor: Colors.grey[300],
+      backgroundImage: widget.user.profile_pic.isNotEmpty
+          ? NetworkImage('https://i.pravatar.cc/150')
+          : null,
+      child: widget.user.profile_pic.isEmpty
+          ? Icon(Icons.person,
+              size: AppConstants.avatarRadius, color: Colors.grey[600])
+          : null,
+      onBackgroundImageError: (_, __) => setState(() {
+        // Fallback to default icon if image fails
+      }),
+    );
+  }
+
+  Widget _buildUserName(bool isSmallScreen) {
+    return Text(
+      widget.user.fullname.isNotEmpty ? widget.user.fullname : 'Unknown',
+      style: TextStyle(
+        fontSize: isSmallScreen ? 24 : 28,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+        letterSpacing: 0.5,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildUserTitle(bool isSmallScreen) {
+    return Text(
+      widget.user.hobby.isNotEmpty ? widget.user.hobby : 'No Hobby Listed',
+      style: TextStyle(
+        fontSize: isSmallScreen ? 14 : 16,
+        color: Colors.grey[600],
+        fontStyle: FontStyle.italic,
+      ),
+    );
+  }
+
+  Widget _buildAboutMe(Size size) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: size.width * 0.9,
+      padding: const EdgeInsets.all(AppConstants.cardPadding),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey[50],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
+          const Text(
+            'About Me',
             style: TextStyle(
-              fontSize: fontSize,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
+              color: Colors.blueAccent,
             ),
           ),
-          Flexible(
-            child: Text(
-              value,
-              style: TextStyle(fontSize: fontSize, color: Colors.black87),
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
+          SizedBox(height: AppConstants.spacing * 0.5),
+          Text(
+            _generateAboutMeText(),
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+              height: 1.5, // Improved readability
             ),
           ),
         ],
@@ -216,9 +142,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showSnackBar(BuildContext context, String message, Color color) {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
+  String _generateAboutMeText() {
+    final user = widget.user;
+    return 'Hello, my name is ${user.fullname.isNotEmpty ? user.fullname : "Unknown"}. '
+        'I am a ${user.gender.isNotEmpty ? user.gender : "person"}, born on '
+        '${user.dob.isNotEmpty ? user.dob : "an unknown date"}, in '
+        '${user.region.isNotEmpty ? user.region : "an unknown place"}. '
+        'I am passionate about ${user.hobby.isNotEmpty ? user.hobby : "many things"}. '
+        'My first name is ${user.firstname.isNotEmpty ? user.firstname : "not specified"} '
+        'and my last name is ${user.lastname.isNotEmpty ? user.lastname : "not specified"}. '
+        'Feel free to reach out to me via email at ${user.email.isNotEmpty ? user.email : "N/A"}.';
+  }
+
+  Widget _buildContactInfo(bool isSmallScreen) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildContactItem(
+          icon: Icons.phone,
+          text: '123-456-7890', // Replace with user.phone if available
+          isSmallScreen: isSmallScreen,
+        ),
+        _buildContactItem(
+          icon: Icons.email,
+          text: widget.user.email.isNotEmpty ? widget.user.email : 'N/A',
+          isSmallScreen: isSmallScreen,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContactItem({
+    required IconData icon,
+    required String text,
+    required bool isSmallScreen,
+  }) {
+    return Column(
+      children: [
+        Icon(icon,
+            color: Colors.blueAccent,
+            size: isSmallScreen ? 24 : AppConstants.iconSize),
+        SizedBox(height: AppConstants.spacing * 0.5),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 14 : 16,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialMedia() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildSocialIcon(
+          icon: Icons.facebook,
+          onPressed: () {
+            // Add Facebook URL or action
+            debugPrint('Facebook pressed');
+          },
+        ),
+        SizedBox(width: AppConstants.spacing),
+        _buildSocialIcon(
+          icon: Icons.language, // Placeholder for another social platform
+          onPressed: () {
+            // Add website or other action
+            debugPrint('Website pressed');
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialIcon(
+      {required IconData icon, required VoidCallback onPressed}) {
+    return IconButton(
+      icon: Icon(icon),
+      onPressed: onPressed,
+      iconSize: AppConstants.iconSize,
+      color: Colors.blueAccent,
+      splashRadius: 24,
+      tooltip: icon == Icons.facebook ? 'Facebook' : 'Website',
     );
   }
 }
