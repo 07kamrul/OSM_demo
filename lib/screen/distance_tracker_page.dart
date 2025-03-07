@@ -110,10 +110,33 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     try {
       final userId = await UserStorage.getUserId();
       if (userId == null) throw 'User ID not found';
+
       await _updateEndUserLocation();
 
       final userLocations = await _userLocationRepository.getAllUserLocations();
+
+      // Perform the async work before calling setState
+      List<UserLocation> filteredUserLocations = [];
+
+      if (userLocations.isNotEmpty) {
+        for (var userLocation in userLocations.where((user) =>
+            user.issharinglocation == true && user.userid != userId)) {
+          // Null check before accessing result and its properties
+          final result = await LocationService.getRouteDistance(
+            LatLng(userLocation.endlatitude, userLocation.endlongitude),
+            LatLng(
+                _currentUserLocation.latitude, _currentUserLocation.longitude),
+          );
+
+          // Safe null check for result and distance
+          if (result?.distance != null && result!.distance! <= 10) {
+            filteredUserLocations.add(userLocation);
+          }
+        }
+      }
+
       if (mounted) {
+        // Now update the state with the data fetched
         setState(() {
           _userLocation = userLocations.firstWhere(
             (u) => u.userid == userId,
@@ -127,48 +150,17 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               issharinglocation: false,
             ),
           );
+
+          // Update _userLocations after async work
           _userLocations.clear();
-          _userLocations.addAll(userLocations.where(
-              (user) => user.issharinglocation && user.userid != userId));
+          _userLocations.addAll(filteredUserLocations);
+
           _isShareLocation = _userLocation?.issharinglocation ?? false;
           _isLoading = false;
         });
       }
-      _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
-    } catch (e) {
-      _handleError('Failed to load user locations: $e');
-    }
-  }
 
-  Future<void> _fetchUserLocationsByMeter(double meter) async {
-    try {
-      final updateUserLocation = List.from(_userLocations);
-
-      List<UserLocation> updateLocation = [];
-
-      _userLocations.clear();
-
-      if (updateUserLocation.isNotEmpty) {
-        for (var userLocation in updateUserLocation) {
-          final result = await LocationService.getRouteDistance(
-            LatLng(userLocation.endlatitude, userLocation.endlongitude),
-            LatLng(
-                _currentUserLocation.latitude, _currentUserLocation.longitude),
-          );
-
-          if (result!.distance! * 1000 <= meter) {
-            updateLocation.add(userLocation);
-          }
-        }
-      }
-
-      if (updateLocation.isNotEmpty) {
-        setState(() {
-          _userLocations.addAll(updateLocation);
-          _isLoading = false;
-        });
-      }
-
+      // Move the map outside of setState
       _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
     } catch (e) {
       _handleError('Failed to load user locations: $e');
@@ -687,8 +679,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _buildDropdownButton(),
-          SizedBox(height: spacing),
           _buildFAB(
             icon: Icons.refresh,
             onPressed: _fetchUserLocations,
@@ -746,32 +736,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       child: Icon(icon,
           size: iconSize,
           color: isLargeScreen ? Colors.blueAccent : Colors.black),
-    );
-  }
-
-  Widget _buildDropdownButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: DropdownButton<double>(
-        value: _maxDistance,
-        onChanged: (value) {
-          if (value != null && mounted) {
-            setState(() => _maxDistance = value);
-            _fetchUserLocationsByMeter(value * 1000);
-          }
-        },
-        items: [1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
-            .map((value) => DropdownMenuItem<double>(
-                  value: value,
-                  child: Text("${(value * 1000).toInt()}M"),
-                ))
-            .toList(),
-        underline: const SizedBox.shrink(),
-      ),
     );
   }
 
