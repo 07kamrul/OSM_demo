@@ -7,7 +7,7 @@ class AppConstants {
   static const double inputHeightScale = 0.07;
   static const double fontScale = 0.04;
   static const double paddingScale = 0.05;
-  static const double buttonHeightScale = 0.07;
+  static const double buttonHeightScale = 0.06;
   static const double spacingScale = 0.02;
   static const double iconScale = 0.06;
   static const double headerFontScale = 0.05;

@@ -47,19 +47,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(context),
       body: LayoutBuilder(
         builder: (context, constraints) => _buildBody(context, constraints),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final fontSize = size.width * 0.04;
+
     return AppBar(
-      title: const Text('Register'),
-      centerTitle: true,
-      elevation: 0,
-    );
+        title: Text(
+          'Register',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.lightBlueAccent);
   }
 
   Widget _buildBody(BuildContext context, BoxConstraints constraints) {
@@ -75,6 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         size.width * AppConstants.fontScale * (isSmallScreen ? 0.9 : 1.0);
     final paddingValue = size.width * AppConstants.paddingScale;
     final spacing = size.height * AppConstants.spacingScale;
+    final buttonHeight = size.height * AppConstants.buttonHeightScale;
 
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
@@ -107,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.person_add,
-                    color: Colors.blueAccent, size: iconSize),
+                    color: Colors.lightBlueAccent, size: iconSize),
                 SizedBox(height: spacing),
                 _buildTextField(fullnameController, 'Full Name', Icons.person,
                     fontSize, inputHeight),
@@ -136,7 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 _buildTextField(regionController, 'Region', Icons.place,
                     fontSize, inputHeight),
                 //SizedBox(height: spacing),
-                _buildRegisterButton(context, state, fontSize, inputHeight),
+                _buildRegisterButton(context, state, fontSize, buttonHeight),
                 SizedBox(height: spacing),
                 _buildLoginLink(context, fontSize),
               ],
@@ -289,7 +295,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return ElevatedButton(
       onPressed: state is AuthLoading ? null : () => _handleRegister(context),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.lightBlueAccent,
         foregroundColor: Colors.white,
         minimumSize: Size(double.infinity, height),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -305,7 +311,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       onPressed: () => _navigateTo(context, AuthScreen()),
       child: Text(
         "Already have an account? Login",
-        style: TextStyle(color: Colors.blueAccent, fontSize: fontSize * 0.9),
+        style:
+            TextStyle(color: Colors.lightBlueAccent, fontSize: fontSize * 0.9),
       ),
     );
   }

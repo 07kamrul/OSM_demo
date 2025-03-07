@@ -534,7 +534,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         : null;
 
     return Container(
-      padding: EdgeInsets.all(paddingValue),
+      padding: EdgeInsets.all(padding),
       color: Colors.white.withOpacity(0.9),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -561,6 +561,27 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Active/Inactive indicator (green dot when active, gray when inactive)
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color:
+                                  selectedUser.status.toLowerCase() == 'active'
+                                      ? Colors.green
+                                      : Colors.grey,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 2,
+                              ), // Border for a more visible dot
+                            ),
+                          ),
+                        ],
+                      ),
                       Text(
                         selectedUser.fullname,
                         style: TextStyle(
@@ -638,8 +659,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                               color: Colors.black54,
                             ),
                             SizedBox(
-                              width: padding * 0.25,
-                            ), // Add spacing between icon and text
+                                width: padding *
+                                    0.25), // Add spacing between icon and text
                             Text(
                               '${_distance.toStringAsFixed(2)} km',
                               style: TextStyle(
@@ -654,7 +675,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   ),
                 ),
             ],
-          )
+          ),
         ],
       ),
     );

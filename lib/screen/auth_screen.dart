@@ -73,7 +73,7 @@ class AuthScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
-        appBar: _buildAppBar(),
+        appBar: _buildAppBar(context),
         backgroundColor: Colors.white,
         body: LayoutBuilder(
           builder: (context, constraints) => _buildBody(context, constraints),
@@ -82,12 +82,17 @@ class AuthScreen extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final fontSize = size.width * 0.04;
+
     return AppBar(
-      title: const Text('Login'),
-      centerTitle: true,
-      elevation: 0,
-    );
+        title: Text(
+          'Login',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.lightBlueAccent);
   }
 
   Widget _buildBody(BuildContext context, BoxConstraints constraints) {
@@ -117,7 +122,7 @@ class AuthScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock, size: logoSize, color: Colors.blueAccent),
+              Icon(Icons.lock, size: logoSize, color: Colors.lightBlueAccent),
               SizedBox(height: spacing),
               _buildTextField(
                   emailController, 'Email', Icons.email, fontSize, inputHeight,
@@ -182,7 +187,7 @@ class AuthScreen extends StatelessWidget {
             : () => _handleLogin(context, emailController.text.trim(),
                 passwordController.text.trim()),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blueAccent,
+          backgroundColor: Colors.lightBlueAccent,
           foregroundColor: Colors.white,
           minimumSize: Size(double.infinity, height),
           shape:
@@ -203,7 +208,8 @@ class AuthScreen extends StatelessWidget {
       ),
       child: Text(
         "Don't have an account? Register",
-        style: TextStyle(color: Colors.blueAccent, fontSize: fontSize * 0.9),
+        style:
+            TextStyle(color: Colors.lightBlueAccent, fontSize: fontSize * 0.9),
       ),
     );
   }
