@@ -160,7 +160,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   _userLocation!.startlatitude, _userLocation!.startlongitude),
               _currentUserLocation);
 
-          if (result!.distance % 2 != 0) _updateEndUserLocation();
+          double distanceInMeters = result!.distance * 1000;
+
+          if (distanceInMeters >= 50) _updateEndUserLocation();
         }
       }
     } catch (e) {

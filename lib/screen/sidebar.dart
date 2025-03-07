@@ -147,7 +147,7 @@ class _SidebarContent extends StatelessWidget {
   Widget _buildHeader(
       BuildContext context, double height, double fontSize, double padding) {
     return DrawerHeader(
-      decoration: const BoxDecoration(color: Colors.blue),
+      decoration: const BoxDecoration(color: Colors.lightBlueAccent),
       padding: EdgeInsets.all(padding),
       child: FutureBuilder<String?>(
         future: UserStorage.getFullName(),
