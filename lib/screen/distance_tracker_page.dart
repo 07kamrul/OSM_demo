@@ -110,6 +110,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     try {
       final userId = await UserStorage.getUserId();
       if (userId == null) throw 'User ID not found';
+      await _updateEndUserLocation();
 
       final userLocations = await _userLocationRepository.getAllUserLocations();
       if (mounted) {
@@ -133,8 +134,41 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _isLoading = false;
         });
       }
+      _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+    } catch (e) {
+      _handleError('Failed to load user locations: $e');
+    }
+  }
 
-      await _updateEndUserLocation();
+  Future<void> _fetchUserLocationsByMeter(double meter) async {
+    try {
+      final updateUserLocation = List.from(_userLocations);
+
+      List<UserLocation> updateLocation = [];
+
+      _userLocations.clear();
+
+      if (updateUserLocation.isNotEmpty) {
+        for (var userLocation in updateUserLocation) {
+          final result = await LocationService.getRouteDistance(
+            LatLng(userLocation.endlatitude, userLocation.endlongitude),
+            LatLng(
+                _currentUserLocation.latitude, _currentUserLocation.longitude),
+          );
+
+          if (result!.distance! * 1000 <= meter) {
+            updateLocation.add(userLocation);
+          }
+        }
+      }
+
+      if (updateLocation.isNotEmpty) {
+        setState(() {
+          _userLocations.addAll(updateLocation);
+          _isLoading = false;
+        });
+      }
+
       _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
     } catch (e) {
       _handleError('Failed to load user locations: $e');
@@ -727,10 +761,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         onChanged: (value) {
           if (value != null && mounted) {
             setState(() => _maxDistance = value);
-            _fetchUserLocations();
+            _fetchUserLocationsByMeter(value * 1000);
           }
         },
-        items: [0.1, 0.5, 1.0, 2.0, 5.0]
+        items: [1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
             .map((value) => DropdownMenuItem<double>(
                   value: value,
                   child: Text("${(value * 1000).toInt()}M"),
