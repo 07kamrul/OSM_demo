@@ -341,19 +341,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     final user = User(
-      id: 0,
-      fullname: fields[0],
-      firstname: fields[1],
-      lastname: fields[2],
-      email: fields[3],
-      password: fields[4],
-      profile_pic: '',
-      gender: '',
-      dob: '',
-      hobby: '',
-      region: '',
-      status: '',
-    );
+        id: 0,
+        fullname: fields[0],
+        firstname: fields[1],
+        lastname: fields[2],
+        email: fields[3],
+        password: fields[4],
+        profile_pic: '',
+        gender: '',
+        dob: '',
+        status: '',
+        koumoku1: '',
+        koumoku2: '',
+        koumoku3: '',
+        koumoku4: '',
+        koumoku5: '',
+        koumoku6: '',
+        koumoku7: '',
+        koumoku8: '',
+        koumoku9: '',
+        koumoku10: '');
     context.read<AuthBloc>().add(RegisterEvent(user));
   }
 

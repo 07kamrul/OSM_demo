@@ -29,8 +29,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SizedBox(height: AppConstants.spacing),
               _buildUserName(isSmallScreen),
               SizedBox(height: AppConstants.spacing * 0.5),
-              _buildUserTitle(isSmallScreen),
-              SizedBox(height: AppConstants.spacing * 2),
+              // _buildUserTitle(isSmallScreen),
+              // SizedBox(height: AppConstants.spacing * 2),
               _buildAboutMe(size),
               SizedBox(height: AppConstants.spacing * 2),
               _buildContactInfo(isSmallScreen),
@@ -90,16 +90,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildUserTitle(bool isSmallScreen) {
-    return Text(
-      widget.user.hobby.isNotEmpty ? widget.user.hobby : 'No Hobby Listed',
-      style: TextStyle(
-        fontSize: isSmallScreen ? 14 : 16,
-        color: Colors.grey[600],
-        fontStyle: FontStyle.italic,
-      ),
-    );
-  }
+  // Widget _buildUserTitle(bool isSmallScreen) {
+  //   return Text(
+  //     widget.user.koumoku1!.isNotEmpty
+  //         ? widget.user.koumoku1
+  //         : 'No Koumoku Listed',
+  //     style: TextStyle(
+  //       fontSize: isSmallScreen ? 14 : 16,
+  //       color: Colors.grey[600],
+  //       fontStyle: FontStyle.italic,
+  //     ),
+  //   );
+  // }
 
   Widget _buildAboutMe(Size size) {
     return AnimatedContainer(
@@ -147,8 +149,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return 'Hello, my name is ${user.fullname.isNotEmpty ? user.fullname : "Unknown"}. '
         'I am a ${user.gender.isNotEmpty ? user.gender : "person"}, born on '
         '${user.dob.isNotEmpty ? user.dob : "an unknown date"}, in '
-        '${user.region.isNotEmpty ? user.region : "an unknown place"}. '
-        'I am passionate about ${user.hobby.isNotEmpty ? user.hobby : "many things"}. '
+        //'${user.koumoku1.isNotEmpty ? user.koumoku1 : "an unknown koumoku1"}. '
+        //'I am passionate about ${user.koumoku2.isNotEmpty ? user.koumoku2 : "many things"}. '
         'My first name is ${user.firstname.isNotEmpty ? user.firstname : "not specified"} '
         'and my last name is ${user.lastname.isNotEmpty ? user.lastname : "not specified"}. '
         'Feel free to reach out to me via email at ${user.email.isNotEmpty ? user.email : "N/A"}.';
