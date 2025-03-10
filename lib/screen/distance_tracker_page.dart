@@ -129,7 +129,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           );
 
           // Safe null check for result and distance
-          if (result?.distance != null && result!.distance! <= 10) {
+          if (result?.distance != null && result!.distance! <= 0.1) {
             filteredUserLocations.add(userLocation);
           }
         }
@@ -188,7 +188,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
           double distanceInMeters = result!.distance * 1000;
 
-          if (distanceInMeters >= 50) _updateEndUserLocation();
+          if (distanceInMeters >= 10) _updateEndUserLocation();
         }
       }
     } catch (e) {
