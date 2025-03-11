@@ -46,25 +46,40 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'],
-      fullname: json['fullname'],
-      firstname: json['firstname'],
-      lastname: json['lastname'],
-      email: json['email'],
-      password: json['password'],
-      profile_pic: json['profile_pic'],
-      gender: json['gender'],
-      dob: json['dob'],
-      koumoku1: json['koumoku1'],
-      koumoku2: json['koumoku2'],
-      status: json['status'],
-      koumoku3: json['koumoku3'],
-      koumoku4: json['koumoku4'],
-      koumoku5: json['koumoku5'],
-      koumoku6: json['koumoku6'],
-      koumoku7: json['koumoku7'],
-      koumoku8: json['koumoku8'],
-      koumoku9: json['koumoku9'],
-      koumoku10: json['koumoku10'],
+      fullname:
+          json['fullname'] ?? '', // Providing default empty string if null
+      firstname:
+          json['firstname'] ?? '', // Providing default empty string if null
+      lastname:
+          json['lastname'] ?? '', // Providing default empty string if null
+      email: json['email'] ?? '', // Providing default empty string if null
+      password:
+          json['password'] ?? '', // Providing default empty string if null
+      profile_pic:
+          json['profile_pic'] ?? '', // Providing default empty string if null
+      gender: json['gender'] ?? '', // Providing default empty string if null
+      dob: json['dob'] ?? '', // Providing default empty string if null
+      koumoku1:
+          json['koumoku1'] ?? '', // Providing default empty string if null
+      koumoku2:
+          json['koumoku2'] ?? '', // Providing default empty string if null
+      status: json['status'] ?? '', // Providing default empty string if null
+      koumoku3:
+          json['koumoku3'] ?? '', // Providing default empty string if null
+      koumoku4:
+          json['koumoku4'] ?? '', // Providing default empty string if null
+      koumoku5:
+          json['koumoku5'] ?? '', // Providing default empty string if null
+      koumoku6:
+          json['koumoku6'] ?? '', // Providing default empty string if null
+      koumoku7:
+          json['koumoku7'] ?? '', // Providing default empty string if null
+      koumoku8:
+          json['koumoku8'] ?? '', // Providing default empty string if null
+      koumoku9:
+          json['koumoku9'] ?? '', // Providing default empty string if null
+      koumoku10:
+          json['koumoku10'] ?? '', // Providing default empty string if null
     );
   }
 
@@ -89,7 +104,7 @@ class User {
       "koumoku7": koumoku7,
       "koumoku8": koumoku8,
       "koumoku9": koumoku9,
-      "koumoku10": koumoku10
+      "koumoku10": koumoku10,
     };
   }
 }
