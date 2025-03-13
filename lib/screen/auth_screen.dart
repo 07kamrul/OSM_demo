@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gis_osm/screen/register_screen.dart';
+import 'package:gis_osm/screen/register_screens/personal_info_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
@@ -204,7 +205,8 @@ class AuthScreen extends StatelessWidget {
     return TextButton(
       onPressed: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => RegisterScreen()),
+        //MaterialPageRoute(builder: (_) => RegisterScreen()),
+        MaterialPageRoute(builder: (_) => PersonalInfoPage()),
       ),
       child: Text(
         "Don't have an account? Register",
