@@ -129,7 +129,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           );
 
           // Safe null check for result and distance
-          if (result?.distance != null && result!.distance! <= 0.02) {
+          if (result?.distance != null && result!.distance! <= 0.2) {
             filteredUserLocations.add(userLocation);
           }
         }
