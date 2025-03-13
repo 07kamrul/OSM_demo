@@ -245,7 +245,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
     if (picked != null) {
       setState(() {
-        dobController.text = '${picked.day}/${picked.month}/${picked.year}';
+        dobController.text = '${picked.year}-${picked.month}-${picked.day}';
       });
     }
   }

@@ -16,6 +16,11 @@ class AuthRepository {
 
       if (response.statusCode == 201) {
         return jsonDecode(response.body);
+      } else if (response.statusCode == 422) {
+        // Handle the 422 error case
+        final errorResponse = jsonDecode(response.body);
+        throw Exception(
+            'Validation Error: ${errorResponse['message'] ?? 'Unprocessable Entity'}');
       } else {
         final errorResponse = jsonDecode(response.body);
         throw Exception(errorResponse['message'] ?? 'Failed to register user');
@@ -58,20 +63,21 @@ class AuthRepository {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
 
-        if (responseBody.containsKey('users') && responseBody['users'] is List) {
+        if (responseBody.containsKey('users') &&
+            responseBody['users'] is List) {
           final data = responseBody['users'] as List;
           return data.map((e) => User.fromJson(e)).toList();
         } else {
           throw Exception('Invalid API response format');
         }
       } else {
-        throw Exception('Failed to load user locations: ${response.statusCode}');
+        throw Exception(
+            'Failed to load user locations: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching user locations: $e');
     }
   }
-
 
   Future<User> getUser(int userId) async {
     try {
@@ -85,7 +91,8 @@ class AuthRepository {
 
           return User.fromJson(userData);
         } else {
-          throw Exception('Invalid API response format: Expected "user" key with a map value');
+          throw Exception(
+              'Invalid API response format: Expected "user" key with a map value');
         }
       } else {
         throw Exception('Failed to load user: ${response.statusCode}');

@@ -84,12 +84,12 @@ class User {
       "koumoku2": koumoku2,
       "koumoku3": koumoku3,
       "koumoku4": koumoku4,
-      "koumoku5": koumoku5,
-      "koumoku6": koumoku6,
-      "koumoku7": koumoku7,
-      "koumoku8": koumoku8,
-      "koumoku9": koumoku9,
-      "koumoku10": koumoku10,
+      "koumoku5": koumoku5.isNotEmpty ? koumoku5 : null,
+      "koumoku6": koumoku6.isNotEmpty ? koumoku6 : null,
+      "koumoku7": koumoku7.isNotEmpty ? koumoku7 : null,
+      "koumoku8": koumoku8.isNotEmpty ? koumoku8 : null,
+      "koumoku9": koumoku9.isNotEmpty ? koumoku9 : null,
+      "koumoku10": koumoku10.isNotEmpty ? koumoku10 : null,
     };
   }
 }
