@@ -190,7 +190,6 @@ class AuthScreen extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.lightBlueAccent,
           foregroundColor: Colors.white,
-          minimumSize: Size(double.infinity, height),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

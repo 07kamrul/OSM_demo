@@ -69,6 +69,12 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
                 (value) => setState(() => _selectedKoumoku10 = value)),
             SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.lightBlueAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
               onPressed: () {
                 // Combine personal information and additional info into a user object
                 final user = {
@@ -106,18 +112,27 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
         value: selectedValue,
+        isExpanded: true, // Ensure the dropdown takes up full width
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12, vertical: 8), // Adjusted padding
+          constraints: const BoxConstraints(
+              minWidth: 100), // Minimum width to avoid collapse
         ),
         items: _options.map((String option) {
           return DropdownMenuItem<String>(
             value: option,
-            child: Text(option),
+            child: Text(option,
+                style:
+                    TextStyle(fontSize: 16)), // Adjust the font size of items
           );
         }).toList(),
         onChanged: onChanged,
+        isDense: true, // Reduces vertical height
+        dropdownColor: Colors.white, // Consistent dropdown background
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
       ),
     );
   }

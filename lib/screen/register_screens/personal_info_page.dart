@@ -78,27 +78,34 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildTextField(
-                fullnameController, 'Full Name', Icons.person, fontSize),
-            _buildTextField(
-                firstnameController, 'First Name', Icons.person, fontSize),
-            _buildTextField(
-                lastnameController, 'Last Name', Icons.person, fontSize),
-            _buildTextField(emailController, 'Email', Icons.email, fontSize,
-                keyboardType: TextInputType.emailAddress),
-            _buildPasswordField(fontSize),
-            _buildDOBField(fontSize),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _validateAndNavigate,
-              child: Text("Next"),
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildTextField(
+                    fullnameController, 'Full Name', Icons.person, fontSize),
+                _buildTextField(
+                    firstnameController, 'First Name', Icons.person, fontSize),
+                _buildTextField(
+                    lastnameController, 'Last Name', Icons.person, fontSize),
+                _buildTextField(emailController, 'Email', Icons.email, fontSize,
+                    keyboardType: TextInputType.emailAddress),
+                _buildPasswordField(fontSize),
+                _buildDOBField(fontSize),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlueAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: _validateAndNavigate,
+                  child: Text("Next"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          )),
     );
   }
 
