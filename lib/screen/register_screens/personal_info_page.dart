@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'additional_info_page.dart';
 
 class PersonalInfoPage extends StatefulWidget {
@@ -28,8 +27,44 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     emailController.dispose();
     passwordController.dispose();
     dobController.dispose();
-
     super.dispose();
+  }
+
+  void _validateAndNavigate() {
+    // Check if any required field is empty
+    if (fullnameController.text.isEmpty ||
+        firstnameController.text.isEmpty ||
+        lastnameController.text.isEmpty ||
+        emailController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        dobController.text.isEmpty) {
+      // Show an error message if any field is empty
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill in all fields"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // If all fields are filled, create a map or object to pass data to the next page
+    final personalInfo = {
+      'fullname': fullnameController.text,
+      'firstname': firstnameController.text,
+      'lastname': lastnameController.text,
+      'email': emailController.text,
+      'password': passwordController.text,
+      'dob': dobController.text,
+    };
+
+    // Navigate to the next page and pass data
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AdditionalInfoPage(personalInfo: personalInfo),
+      ),
+    );
   }
 
   @override
@@ -58,26 +93,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             _buildDOBField(fontSize),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // Create a map or object to pass data to the next page
-                final personalInfo = {
-                  'fullname': fullnameController.text,
-                  'firstname': firstnameController.text,
-                  'lastname': lastnameController.text,
-                  'email': emailController.text,
-                  'password': passwordController.text,
-                  'dob': dobController.text,
-                };
-
-                // Navigate to the next page and pass data
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        AdditionalInfoPage(personalInfo: personalInfo),
-                  ),
-                );
-              },
+              onPressed: _validateAndNavigate,
               child: Text("Next"),
             ),
           ],
