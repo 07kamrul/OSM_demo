@@ -9,35 +9,38 @@ class PersonalInfoPage extends StatefulWidget {
 }
 
 class _PersonalInfoPageState extends State<PersonalInfoPage> {
-  late final TextEditingController fullnameController = TextEditingController();
-  late final TextEditingController firstnameController =
-      TextEditingController();
-  late final TextEditingController lastnameController = TextEditingController();
-  late final TextEditingController emailController = TextEditingController();
-  late final TextEditingController passwordController = TextEditingController();
-  late final TextEditingController dobController = TextEditingController();
+  final TextEditingController firstnameController = TextEditingController();
+  final TextEditingController lastnameController = TextEditingController();
+  final TextEditingController fullnameController = TextEditingController();
+  final TextEditingController genderController = TextEditingController();
+  final TextEditingController dobController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   bool _obscureText = true;
+  String? _selectedGender = 'Male'; // Set default gender to "Male"
 
   @override
   void dispose() {
-    fullnameController.dispose();
     firstnameController.dispose();
     lastnameController.dispose();
+    fullnameController.dispose();
+    dobController.dispose();
+    genderController.dispose();
     emailController.dispose();
     passwordController.dispose();
-    dobController.dispose();
     super.dispose();
   }
 
   void _validateAndNavigate() {
     // Check if any required field is empty
-    if (fullnameController.text.isEmpty ||
-        firstnameController.text.isEmpty ||
+    if (firstnameController.text.isEmpty ||
         lastnameController.text.isEmpty ||
+        fullnameController.text.isEmpty ||
         emailController.text.isEmpty ||
         passwordController.text.isEmpty ||
-        dobController.text.isEmpty) {
+        dobController.text.isEmpty ||
+        _selectedGender == null) {
       // Show an error message if any field is empty
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -50,12 +53,13 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
     // If all fields are filled, create a map or object to pass data to the next page
     final personalInfo = {
-      'fullname': fullnameController.text,
       'firstname': firstnameController.text,
       'lastname': lastnameController.text,
+      'fullname': fullnameController.text,
+      'gender': _selectedGender!,
+      'dob': dobController.text,
       'email': emailController.text,
       'password': passwordController.text,
-      'dob': dobController.text,
     };
 
     // Navigate to the next page and pass data
@@ -71,6 +75,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontSize = size.width * 0.04;
+    final inputHeight =
+        size.height * 0.07; // Setting a consistent height for inputs
+    final spacing = size.height * 0.02; // Adjust spacing for responsiveness
 
     return Scaffold(
       appBar: AppBar(
@@ -78,46 +85,46 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildTextField(
-                    fullnameController, 'Full Name', Icons.person, fontSize),
-                _buildTextField(
-                    firstnameController, 'First Name', Icons.person, fontSize),
-                _buildTextField(
-                    lastnameController, 'Last Name', Icons.person, fontSize),
-                _buildTextField(emailController, 'Email', Icons.email, fontSize,
-                    keyboardType: TextInputType.emailAddress),
-                _buildPasswordField(fontSize),
-                _buildDOBField(fontSize),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlueAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: _validateAndNavigate,
-                  child: Text("Next"),
+        padding: EdgeInsets.all(
+            size.width * 0.05), // Padding scales with screen width
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildTextField(firstnameController, 'First Name', Icons.person,
+                  fontSize, inputHeight),
+              _buildTextField(lastnameController, 'Last Name', Icons.person,
+                  fontSize, inputHeight),
+              _buildTextField(fullnameController, 'Full Name', Icons.person,
+                  fontSize, inputHeight),
+              _buildGenderField(fontSize, inputHeight),
+              _buildDOBField(fontSize, inputHeight),
+              _buildTextField(
+                  emailController, 'Email', Icons.email, fontSize, inputHeight,
+                  keyboardType: TextInputType.emailAddress),
+              _buildPasswordField(fontSize, inputHeight),
+              SizedBox(height: spacing),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.lightBlueAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-              ],
-            ),
-          )),
+                onPressed: _validateAndNavigate,
+                child: Text("Next", style: TextStyle(fontSize: fontSize)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon,
-    double fontSize, {
-    TextInputType? keyboardType,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+  Widget _buildTextField(TextEditingController controller, String label,
+      IconData icon, double fontSize, double height,
+      {TextInputType? keyboardType}) {
+    return SizedBox(
+      height: height,
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
@@ -132,9 +139,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
   }
 
-  Widget _buildPasswordField(double fontSize) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+  Widget _buildPasswordField(double fontSize, double height) {
+    return SizedBox(
+      height: height,
       child: TextField(
         controller: passwordController,
         obscureText: _obscureText,
@@ -156,9 +163,60 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
   }
 
-  Widget _buildDOBField(double fontSize) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+  Widget _buildGenderField(double fontSize, double height) {
+    return SizedBox(
+      height: height,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: Icon(Icons.male, size: fontSize, color: Colors.black),
+            ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildRadioOption('Male', fontSize),
+                  _buildRadioOption('Female', fontSize),
+                  _buildRadioOption('Other', fontSize),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRadioOption(String value, double fontSize) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Radio<String>(
+          value: value,
+          groupValue: _selectedGender,
+          onChanged: (newValue) {
+            setState(() => _selectedGender = newValue);
+          },
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+        Text(
+          value,
+          style: TextStyle(fontSize: fontSize * 0.8),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDOBField(double fontSize, double height) {
+    return SizedBox(
+      height: height,
       child: TextField(
         controller: dobController,
         readOnly: true,
