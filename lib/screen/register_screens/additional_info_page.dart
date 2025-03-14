@@ -101,20 +101,20 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
       return;
     }
 
-    // Ensure selected values are not null
-    if (_selectedKoumoku1 == null ||
-        _selectedKoumoku2 == null ||
-        _selectedKoumoku3 == null ||
-        _selectedKoumoku4 == null ||
-        _selectedKoumoku5 == null ||
-        _selectedKoumoku6 == null ||
-        _selectedKoumoku7 == null ||
-        _selectedKoumoku8 == null ||
-        _selectedKoumoku9 == null ||
-        _selectedKoumoku10 == null) {
-      _showSnackBar(context, 'Please select all the options', Colors.red);
-      return;
-    }
+    // // Ensure selected values are not null
+    // if (_selectedKoumoku1 == null ||
+    //     _selectedKoumoku2 == null ||
+    //     _selectedKoumoku3 == null ||
+    //     _selectedKoumoku4 == null ||
+    //     _selectedKoumoku5 == null ||
+    //     _selectedKoumoku6 == null ||
+    //     _selectedKoumoku7 == null ||
+    //     _selectedKoumoku8 == null ||
+    //     _selectedKoumoku9 == null ||
+    //     _selectedKoumoku10 == null) {
+    //   _showSnackBar(context, 'Please select all the options', Colors.red);
+    //   return;
+    // }
 
     // Create a User object
     final user = User(
@@ -128,16 +128,16 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
       gender: widget.personalInfo['gender']!,
       dob: widget.personalInfo['dob']!,
       status: 'Active',
-      koumoku1: _selectedKoumoku1!,
-      koumoku2: _selectedKoumoku2!,
-      koumoku3: _selectedKoumoku3!,
-      koumoku4: _selectedKoumoku4!,
-      koumoku5: _selectedKoumoku5!,
-      koumoku6: _selectedKoumoku6!,
-      koumoku7: _selectedKoumoku7!,
-      koumoku8: _selectedKoumoku8!,
-      koumoku9: _selectedKoumoku9!,
-      koumoku10: _selectedKoumoku10!,
+      koumoku1: _selectedKoumoku1 ?? '',
+      koumoku2: _selectedKoumoku2 ?? '',
+      koumoku3: _selectedKoumoku3 ?? '',
+      koumoku4: _selectedKoumoku4 ?? '',
+      koumoku5: _selectedKoumoku5 ?? '',
+      koumoku6: _selectedKoumoku6 ?? '',
+      koumoku7: _selectedKoumoku7 ?? '',
+      koumoku8: _selectedKoumoku8 ?? '',
+      koumoku9: _selectedKoumoku9 ?? '',
+      koumoku10: _selectedKoumoku10 ?? '',
     );
 
     try {
