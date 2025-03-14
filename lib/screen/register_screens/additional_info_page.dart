@@ -168,10 +168,7 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final fontSize = size.width * 0.04;
-    final inputHeight =
-        size.height * 0.07; // Setting a consistent height for inputs
-    final spacing = size.height * 0.02; // Adjust spacing for responsiveness
+    final spacing = size.height * 0.02;
 
     return Scaffold(
       appBar: AppBar(
@@ -179,79 +176,67 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(size.width * 0.05),
         child: _isLoading
-            ? Center(
-                child: CircularProgressIndicator()) // Show loading indicator
+            ? Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Column(
                 children: [
-                  SizedBox(height: spacing),
-                  if (_koumoku1
-                      .values.isNotEmpty) // Check if _koumoku1 is not empty
+                  if (_koumoku1.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku1.name,
                         _selectedKoumoku1,
                         (value) => setState(() => _selectedKoumoku1 = value),
                         _koumoku1.values),
-                  if (_koumoku2
-                      .values.isNotEmpty) // Check if _koumoku2 is not empty
+                  if (_koumoku2.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku2.name,
                         _selectedKoumoku2,
                         (value) => setState(() => _selectedKoumoku2 = value),
                         _koumoku2.values),
-                  if (_koumoku3
-                      .values.isNotEmpty) // Check if _koumoku3 is not empty
+                  if (_koumoku3.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku3.name,
                         _selectedKoumoku3,
                         (value) => setState(() => _selectedKoumoku3 = value),
                         _koumoku3.values),
-                  if (_koumoku4
-                      .values.isNotEmpty) // Check if _koumoku4 is not empty
+                  if (_koumoku4.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku4.name,
                         _selectedKoumoku4,
                         (value) => setState(() => _selectedKoumoku4 = value),
                         _koumoku4.values),
-                  if (_koumoku5
-                      .values.isNotEmpty) // Check if _koumoku5 is not empty
+                  if (_koumoku5.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku5.name,
                         _selectedKoumoku5,
                         (value) => setState(() => _selectedKoumoku5 = value),
                         _koumoku5.values),
-                  if (_koumoku6
-                      .values.isNotEmpty) // Check if _koumoku6 is not empty
+                  if (_koumoku6.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku6.name,
                         _selectedKoumoku6,
                         (value) => setState(() => _selectedKoumoku6 = value),
                         _koumoku6.values),
-                  if (_koumoku7
-                      .values.isNotEmpty) // Check if _koumoku7 is not empty
+                  if (_koumoku7.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku7.name,
                         _selectedKoumoku7,
                         (value) => setState(() => _selectedKoumoku7 = value),
                         _koumoku7.values),
-                  if (_koumoku8
-                      .values.isNotEmpty) // Check if _koumoku8 is not empty
+                  if (_koumoku8.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku8.name,
                         _selectedKoumoku8,
                         (value) => setState(() => _selectedKoumoku8 = value),
                         _koumoku8.values),
-                  if (_koumoku9
-                      .values.isNotEmpty) // Check if _koumoku9 is not empty
+                  if (_koumoku9.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku9.name,
                         _selectedKoumoku9,
                         (value) => setState(() => _selectedKoumoku9 = value),
                         _koumoku9.values),
-                  if (_koumoku10
-                      .values.isNotEmpty) // Check if _koumoku10 is not empty
+                  if (_koumoku10.values.isNotEmpty)
                     _buildKoumokuDropdown(
                         _koumoku10.name,
                         _selectedKoumoku10,
@@ -280,26 +265,23 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: DropdownButtonFormField<String>(
         value: selectedValue,
-        isExpanded: true, // Ensure the dropdown takes up full width
+        isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 8), // Adjusted padding
-          constraints: const BoxConstraints(
-              minWidth: 100), // Minimum width to avoid collapse
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          constraints: const BoxConstraints(minWidth: 100),
         ),
         items: items.map((String option) {
           return DropdownMenuItem<String>(
             value: option,
-            child: Text(option,
-                style:
-                    TextStyle(fontSize: 16)), // Adjust the font size of items
+            child: Text(option, style: TextStyle(fontSize: 16)),
           );
         }).toList(),
         onChanged: onChanged,
-        isDense: true, // Reduces vertical height
-        dropdownColor: Colors.white, // Consistent dropdown background
+        isDense: true,
+        dropdownColor: Colors.white,
         style: const TextStyle(fontSize: 16, color: Colors.black87),
       ),
     );

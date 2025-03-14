@@ -75,9 +75,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontSize = size.width * 0.04;
-    final inputHeight =
-        size.height * 0.07; // Setting a consistent height for inputs
-    final spacing = size.height * 0.02; // Adjust spacing for responsiveness
+    final inputHeight = size.height * 0.07;
+    final spacing = size.height * 0.02;
+    final height = size.height * 0.006;
 
     return Scaffold(
       appBar: AppBar(
@@ -85,23 +85,28 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: Padding(
-        padding: EdgeInsets.all(
-            size.width * 0.05), // Padding scales with screen width
+        padding: EdgeInsets.all(size.width * 0.05),
         child: SingleChildScrollView(
           child: Column(
             children: [
               SizedBox(height: spacing),
               _buildTextField(firstnameController, 'First Name', Icons.person,
                   fontSize, inputHeight),
+              SizedBox(height: height),
               _buildTextField(lastnameController, 'Last Name', Icons.person,
                   fontSize, inputHeight),
+              SizedBox(height: height),
               _buildTextField(fullnameController, 'Full Name', Icons.person,
                   fontSize, inputHeight),
+              SizedBox(height: height),
               _buildGenderField(fontSize, inputHeight),
+              SizedBox(height: spacing),
               _buildDOBField(fontSize, inputHeight),
+              SizedBox(height: height),
               _buildTextField(
                   emailController, 'Email', Icons.email, fontSize, inputHeight,
                   keyboardType: TextInputType.emailAddress),
+              SizedBox(height: height),
               _buildPasswordField(fontSize, inputHeight),
               SizedBox(height: spacing),
               ElevatedButton(
