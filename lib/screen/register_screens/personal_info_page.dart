@@ -90,6 +90,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              SizedBox(height: spacing),
               _buildTextField(firstnameController, 'First Name', Icons.person,
                   fontSize, inputHeight),
               _buildTextField(lastnameController, 'Last Name', Icons.person,

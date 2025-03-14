@@ -1,15 +1,17 @@
+import 'package:gis_osm/data/models/name_value_pair.dart';
+
 class ItemList {
   // Dynamically created properties
-  List<String> Koumoku1;
-  List<String> Koumoku2;
-  List<String> Koumoku3;
-  List<String> Koumoku4;
-  List<String> Koumoku5;
-  List<String> Koumoku6;
-  List<String> Koumoku7;
-  List<String> Koumoku8;
-  List<String> Koumoku9;
-  List<String> Koumoku10;
+  NameValuePair Koumoku1;
+  NameValuePair Koumoku2;
+  NameValuePair Koumoku3;
+  NameValuePair Koumoku4;
+  NameValuePair Koumoku5;
+  NameValuePair Koumoku6;
+  NameValuePair Koumoku7;
+  NameValuePair Koumoku8;
+  NameValuePair Koumoku9;
+  NameValuePair Koumoku10;
 
   ItemList({
     required this.Koumoku1,
@@ -26,16 +28,16 @@ class ItemList {
 
   factory ItemList.fromJson(Map<String, dynamic> json) {
     // Create an empty list for each Koumoku
-    List<String> koumoku1 = [];
-    List<String> koumoku2 = [];
-    List<String> koumoku3 = [];
-    List<String> koumoku4 = [];
-    List<String> koumoku5 = [];
-    List<String> koumoku6 = [];
-    List<String> koumoku7 = [];
-    List<String> koumoku8 = [];
-    List<String> koumoku9 = [];
-    List<String> koumoku10 = [];
+    NameValuePair koumoku1 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku2 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku3 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku4 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku5 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku6 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku7 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku8 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku9 = new NameValuePair(name: '', values: []);
+    NameValuePair koumoku10 = new NameValuePair(name: '', values: []);
 
     // Use a for loop to dynamically assign values to each Koumoku property
     int counter = 1;
@@ -48,34 +50,44 @@ class ItemList {
         // Assign the value to the corresponding Koumoku property
         switch (counter) {
           case 1:
-            koumoku1 = dynamicKoumoku;
+            koumoku1.name = key;
+            koumoku1.values = dynamicKoumoku;
             break;
           case 2:
-            koumoku2 = dynamicKoumoku;
+            koumoku2.name = key;
+            koumoku2.values = dynamicKoumoku;
             break;
           case 3:
-            koumoku3 = dynamicKoumoku;
+            koumoku3.name = key;
+            koumoku3.values = dynamicKoumoku;
             break;
           case 4:
-            koumoku4 = dynamicKoumoku;
+            koumoku4.name = key;
+            koumoku4.values = dynamicKoumoku;
             break;
           case 5:
-            koumoku5 = dynamicKoumoku;
+            koumoku5.name = key;
+            koumoku5.values = dynamicKoumoku;
             break;
           case 6:
-            koumoku6 = dynamicKoumoku;
+            koumoku6.name = key;
+            koumoku6.values = dynamicKoumoku;
             break;
           case 7:
-            koumoku7 = dynamicKoumoku;
+            koumoku7.name = key;
+            koumoku7.values = dynamicKoumoku;
             break;
           case 8:
-            koumoku8 = dynamicKoumoku;
+            koumoku8.name = key;
+            koumoku8.values = dynamicKoumoku;
             break;
           case 9:
-            koumoku9 = dynamicKoumoku;
+            koumoku9.name = key;
+            koumoku9.values = dynamicKoumoku;
             break;
           case 10:
-            koumoku10 = dynamicKoumoku;
+            koumoku10.name = key;
+            koumoku10.values = dynamicKoumoku;
             break;
         }
         counter++;

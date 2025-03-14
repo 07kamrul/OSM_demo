@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gis_osm/data/repositories/auth_repository.dart';
 import 'package:gis_osm/screen/auth_screen.dart';
+import '../../data/models/name_value_pair.dart';
 import '../../data/repositories/item_list_repository.dart';
 import '../../data/models/user.dart';
 
@@ -31,16 +32,16 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  List<String> _koumoku1 = [];
-  List<String> _koumoku2 = [];
-  List<String> _koumoku3 = [];
-  List<String> _koumoku4 = [];
-  List<String> _koumoku5 = [];
-  List<String> _koumoku6 = [];
-  List<String> _koumoku7 = [];
-  List<String> _koumoku8 = [];
-  List<String> _koumoku9 = [];
-  List<String> _koumoku10 = [];
+  NameValuePair _koumoku1 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku2 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku3 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku4 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku5 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku6 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku7 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku8 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku9 = new NameValuePair(name: '', values: []);
+  NameValuePair _koumoku10 = new NameValuePair(name: '', values: []);
 
   @override
   void initState() {
@@ -168,6 +169,9 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final fontSize = size.width * 0.04;
+    final inputHeight =
+        size.height * 0.07; // Setting a consistent height for inputs
+    final spacing = size.height * 0.02; // Adjust spacing for responsiveness
 
     return Scaffold(
       appBar: AppBar(
@@ -182,67 +186,78 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
             : SingleChildScrollView(
                 child: Column(
                 children: [
-                  if (_koumoku1.isNotEmpty) // Check if _koumoku1 is not empty
+                  SizedBox(height: spacing),
+                  if (_koumoku1
+                      .values.isNotEmpty) // Check if _koumoku1 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 1',
+                        _koumoku1.name,
                         _selectedKoumoku1,
                         (value) => setState(() => _selectedKoumoku1 = value),
-                        _koumoku1),
-                  if (_koumoku2.isNotEmpty) // Check if _koumoku2 is not empty
+                        _koumoku1.values),
+                  if (_koumoku2
+                      .values.isNotEmpty) // Check if _koumoku2 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 2',
+                        _koumoku2.name,
                         _selectedKoumoku2,
                         (value) => setState(() => _selectedKoumoku2 = value),
-                        _koumoku2),
-                  if (_koumoku3.isNotEmpty) // Check if _koumoku3 is not empty
+                        _koumoku2.values),
+                  if (_koumoku3
+                      .values.isNotEmpty) // Check if _koumoku3 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 3',
+                        _koumoku3.name,
                         _selectedKoumoku3,
                         (value) => setState(() => _selectedKoumoku3 = value),
-                        _koumoku3),
-                  if (_koumoku4.isNotEmpty) // Check if _koumoku4 is not empty
+                        _koumoku3.values),
+                  if (_koumoku4
+                      .values.isNotEmpty) // Check if _koumoku4 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 4',
+                        _koumoku4.name,
                         _selectedKoumoku4,
                         (value) => setState(() => _selectedKoumoku4 = value),
-                        _koumoku4),
-                  if (_koumoku5.isNotEmpty) // Check if _koumoku5 is not empty
+                        _koumoku4.values),
+                  if (_koumoku5
+                      .values.isNotEmpty) // Check if _koumoku5 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 5',
+                        _koumoku5.name,
                         _selectedKoumoku5,
                         (value) => setState(() => _selectedKoumoku5 = value),
-                        _koumoku5),
-                  if (_koumoku6.isNotEmpty) // Check if _koumoku6 is not empty
+                        _koumoku5.values),
+                  if (_koumoku6
+                      .values.isNotEmpty) // Check if _koumoku6 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 6',
+                        _koumoku6.name,
                         _selectedKoumoku6,
                         (value) => setState(() => _selectedKoumoku6 = value),
-                        _koumoku6),
-                  if (_koumoku7.isNotEmpty) // Check if _koumoku7 is not empty
+                        _koumoku6.values),
+                  if (_koumoku7
+                      .values.isNotEmpty) // Check if _koumoku7 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 7',
+                        _koumoku7.name,
                         _selectedKoumoku7,
                         (value) => setState(() => _selectedKoumoku7 = value),
-                        _koumoku7),
-                  if (_koumoku8.isNotEmpty) // Check if _koumoku8 is not empty
+                        _koumoku7.values),
+                  if (_koumoku8
+                      .values.isNotEmpty) // Check if _koumoku8 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 8',
+                        _koumoku8.name,
                         _selectedKoumoku8,
                         (value) => setState(() => _selectedKoumoku8 = value),
-                        _koumoku8),
-                  if (_koumoku9.isNotEmpty) // Check if _koumoku9 is not empty
+                        _koumoku8.values),
+                  if (_koumoku9
+                      .values.isNotEmpty) // Check if _koumoku9 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 9',
+                        _koumoku9.name,
                         _selectedKoumoku9,
                         (value) => setState(() => _selectedKoumoku9 = value),
-                        _koumoku9),
-                  if (_koumoku10.isNotEmpty) // Check if _koumoku10 is not empty
+                        _koumoku9.values),
+                  if (_koumoku10
+                      .values.isNotEmpty) // Check if _koumoku10 is not empty
                     _buildKoumokuDropdown(
-                        'Koumoku 10',
+                        _koumoku10.name,
                         _selectedKoumoku10,
                         (value) => setState(() => _selectedKoumoku10 = value),
-                        _koumoku10),
-                  SizedBox(height: 20),
+                        _koumoku10.values),
+                  SizedBox(height: spacing),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.lightBlueAccent,
