@@ -77,6 +77,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     final fontSize = size.width * 0.04;
     final inputHeight = size.height * 0.07;
     final spacing = size.height * 0.02;
+    final dobheight = size.height * 0.008;
     final height = size.height * 0.006;
 
     return Scaffold(
@@ -89,24 +90,18 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(height: spacing),
               _buildTextField(firstnameController, 'First Name', Icons.person,
                   fontSize, inputHeight),
-              SizedBox(height: height),
               _buildTextField(lastnameController, 'Last Name', Icons.person,
                   fontSize, inputHeight),
-              SizedBox(height: height),
               _buildTextField(fullnameController, 'Full Name', Icons.person,
                   fontSize, inputHeight),
-              SizedBox(height: height),
               _buildGenderField(fontSize, inputHeight),
-              SizedBox(height: spacing),
+              SizedBox(height: dobheight),
               _buildDOBField(fontSize, inputHeight),
-              SizedBox(height: height),
               _buildTextField(
                   emailController, 'Email', Icons.email, fontSize, inputHeight,
                   keyboardType: TextInputType.emailAddress),
-              SizedBox(height: height),
               _buildPasswordField(fontSize, inputHeight),
               SizedBox(height: spacing),
               ElevatedButton(
@@ -129,8 +124,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Widget _buildTextField(TextEditingController controller, String label,
       IconData icon, double fontSize, double height,
       {TextInputType? keyboardType}) {
-    return SizedBox(
-      height: height,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
@@ -146,8 +141,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   }
 
   Widget _buildPasswordField(double fontSize, double height) {
-    return SizedBox(
-      height: height,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
         controller: passwordController,
         obscureText: _obscureText,
@@ -221,8 +216,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   }
 
   Widget _buildDOBField(double fontSize, double height) {
-    return SizedBox(
-      height: height,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5.0),
       child: TextField(
         controller: dobController,
         readOnly: true,
