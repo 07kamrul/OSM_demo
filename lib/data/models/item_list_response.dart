@@ -18,12 +18,4 @@ class ItemListResponse {
       message: json['message'] ?? '',
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'itemlist': itemList.toJson(),
-      'status': status,
-      'message': message,
-    };
-  }
 }

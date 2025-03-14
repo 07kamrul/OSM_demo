@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gis_osm/data/repositories/auth_repository.dart';
 import 'package:gis_osm/screen/auth_screen.dart';
-import '../../data/models/item_list.dart';
 import '../../data/repositories/item_list_repository.dart';
 import '../../data/models/user.dart';
 
@@ -22,6 +21,12 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
   String? _selectedKoumoku2;
   String? _selectedKoumoku3;
   String? _selectedKoumoku4;
+  String? _selectedKoumoku5;
+  String? _selectedKoumoku6;
+  String? _selectedKoumoku7;
+  String? _selectedKoumoku8;
+  String? _selectedKoumoku9;
+  String? _selectedKoumoku10;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -30,6 +35,12 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
   List<String> _koumoku2 = [];
   List<String> _koumoku3 = [];
   List<String> _koumoku4 = [];
+  List<String> _koumoku5 = [];
+  List<String> _koumoku6 = [];
+  List<String> _koumoku7 = [];
+  List<String> _koumoku8 = [];
+  List<String> _koumoku9 = [];
+  List<String> _koumoku10 = [];
 
   @override
   void initState() {
@@ -61,6 +72,12 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
         _koumoku2 = response.itemList.Koumoku2;
         _koumoku3 = response.itemList.Koumoku3;
         _koumoku4 = response.itemList.Koumoku4;
+        _koumoku5 = response.itemList.Koumoku5;
+        _koumoku6 = response.itemList.Koumoku6;
+        _koumoku7 = response.itemList.Koumoku7;
+        _koumoku8 = response.itemList.Koumoku8;
+        _koumoku9 = response.itemList.Koumoku9;
+        _koumoku10 = response.itemList.Koumoku10;
         _isLoading = false;
       });
     } catch (e) {
@@ -87,7 +104,13 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
     if (_selectedKoumoku1 == null ||
         _selectedKoumoku2 == null ||
         _selectedKoumoku3 == null ||
-        _selectedKoumoku4 == null) {
+        _selectedKoumoku4 == null ||
+        _selectedKoumoku5 == null ||
+        _selectedKoumoku6 == null ||
+        _selectedKoumoku7 == null ||
+        _selectedKoumoku8 == null ||
+        _selectedKoumoku9 == null ||
+        _selectedKoumoku10 == null) {
       _showSnackBar(context, 'Please select all the options', Colors.red);
       return;
     }
@@ -108,12 +131,12 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
       koumoku2: _selectedKoumoku2!,
       koumoku3: _selectedKoumoku3!,
       koumoku4: _selectedKoumoku4!,
-      koumoku5: '', // Add koumoku logic if required
-      koumoku6: '', // Add koumoku logic if required
-      koumoku7: '', // Add koumoku logic if required
-      koumoku8: '', // Add koumoku logic if required
-      koumoku9: '', // Add koumoku logic if required
-      koumoku10: '', // Add koumoku logic if required
+      koumoku5: _selectedKoumoku5!,
+      koumoku6: _selectedKoumoku6!,
+      koumoku7: _selectedKoumoku7!,
+      koumoku8: _selectedKoumoku8!,
+      koumoku9: _selectedKoumoku9!,
+      koumoku10: _selectedKoumoku10!,
     );
 
     try {
@@ -156,28 +179,69 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
         child: _isLoading
             ? Center(
                 child: CircularProgressIndicator()) // Show loading indicator
-            : Column(
+            : SingleChildScrollView(
+                child: Column(
                 children: [
-                  _buildKoumokuDropdown(
-                      'Koumoku 1',
-                      _selectedKoumoku1,
-                      (value) => setState(() => _selectedKoumoku1 = value),
-                      _koumoku1),
-                  _buildKoumokuDropdown(
-                      'Koumoku 2',
-                      _selectedKoumoku2,
-                      (value) => setState(() => _selectedKoumoku2 = value),
-                      _koumoku2),
-                  _buildKoumokuDropdown(
-                      'Koumoku 3',
-                      _selectedKoumoku3,
-                      (value) => setState(() => _selectedKoumoku3 = value),
-                      _koumoku3),
-                  _buildKoumokuDropdown(
-                      'Koumoku 4',
-                      _selectedKoumoku4,
-                      (value) => setState(() => _selectedKoumoku4 = value),
-                      _koumoku4),
+                  if (_koumoku1.isNotEmpty) // Check if _koumoku1 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 1',
+                        _selectedKoumoku1,
+                        (value) => setState(() => _selectedKoumoku1 = value),
+                        _koumoku1),
+                  if (_koumoku2.isNotEmpty) // Check if _koumoku2 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 2',
+                        _selectedKoumoku2,
+                        (value) => setState(() => _selectedKoumoku2 = value),
+                        _koumoku2),
+                  if (_koumoku3.isNotEmpty) // Check if _koumoku3 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 3',
+                        _selectedKoumoku3,
+                        (value) => setState(() => _selectedKoumoku3 = value),
+                        _koumoku3),
+                  if (_koumoku4.isNotEmpty) // Check if _koumoku4 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 4',
+                        _selectedKoumoku4,
+                        (value) => setState(() => _selectedKoumoku4 = value),
+                        _koumoku4),
+                  if (_koumoku5.isNotEmpty) // Check if _koumoku5 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 5',
+                        _selectedKoumoku5,
+                        (value) => setState(() => _selectedKoumoku5 = value),
+                        _koumoku5),
+                  if (_koumoku6.isNotEmpty) // Check if _koumoku6 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 6',
+                        _selectedKoumoku6,
+                        (value) => setState(() => _selectedKoumoku6 = value),
+                        _koumoku6),
+                  if (_koumoku7.isNotEmpty) // Check if _koumoku7 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 7',
+                        _selectedKoumoku7,
+                        (value) => setState(() => _selectedKoumoku7 = value),
+                        _koumoku7),
+                  if (_koumoku8.isNotEmpty) // Check if _koumoku8 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 8',
+                        _selectedKoumoku8,
+                        (value) => setState(() => _selectedKoumoku8 = value),
+                        _koumoku8),
+                  if (_koumoku9.isNotEmpty) // Check if _koumoku9 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 9',
+                        _selectedKoumoku9,
+                        (value) => setState(() => _selectedKoumoku9 = value),
+                        _koumoku9),
+                  if (_koumoku10.isNotEmpty) // Check if _koumoku10 is not empty
+                    _buildKoumokuDropdown(
+                        'Koumoku 10',
+                        _selectedKoumoku10,
+                        (value) => setState(() => _selectedKoumoku10 = value),
+                        _koumoku10),
                   SizedBox(height: 20),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -190,7 +254,7 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
                     child: Text("Register"),
                   ),
                 ],
-              ),
+              )),
       ),
     );
   }
