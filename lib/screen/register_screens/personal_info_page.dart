@@ -82,7 +82,11 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Personal Information"),
+        title: Text(
+          "Personal Information",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        ),
+        centerTitle: true,
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: Padding(

@@ -169,10 +169,15 @@ class _AdditionalInfoPageState extends State<AdditionalInfoPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final spacing = size.height * 0.02;
+    final fontSize = size.width * 0.04;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Additional Information"),
+        title: Text(
+          "Additional Information",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        ),
+        centerTitle: true,
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: Padding(

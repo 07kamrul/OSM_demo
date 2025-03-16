@@ -1,7 +1,6 @@
 import 'package:gis_osm/data/models/name_value_pair.dart';
 
 class ItemList {
-  // Dynamically created properties
   NameValuePair Koumoku1;
   NameValuePair Koumoku2;
   NameValuePair Koumoku3;

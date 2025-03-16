@@ -19,8 +19,8 @@ class UserLocation {
 
   factory UserLocation.fromJson(Map<String, dynamic> json) {
     return UserLocation(
-      id: json['id']?? 0,
-      userid: json['userid']??0,
+      id: json['id'] ?? 0,
+      userid: json['userid'] ?? 0,
       startlatitude: json['startlatitude']?.toDouble() ?? 0.0,
       startlongitude: json['startlongitude']?.toDouble() ?? 0.0,
       endlatitude: json['endlatitude']?.toDouble() ?? 0.0,
@@ -32,12 +32,12 @@ class UserLocation {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'userid': userid, // Use lowercase 'userid' to match the JSON key
+      'userid': userid,
       'startlatitude': startlatitude,
       'startlongitude': startlongitude,
       'endlatitude': endlatitude,
       'endlongitude': endlongitude,
-      'issharinglocation': issharinglocation, // Use lowercase to match the JSON key
+      'issharinglocation': issharinglocation,
     };
   }
 }
