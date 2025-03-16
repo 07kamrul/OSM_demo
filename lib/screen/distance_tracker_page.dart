@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../common/user_storage.dart';
+import '../data/models/match_users.dart';
 import '../data/models/user.dart';
 import '../data/models/user_location.dart';
 import '../data/repositories/auth_repository.dart';
@@ -121,6 +122,67 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       if (userLocations.isNotEmpty) {
         for (var userLocation in userLocations.where((user) =>
             user.issharinglocation == true && user.userid != userId)) {
+          // Null check before accessing result and its properties
+          final result = await LocationService.getRouteDistance(
+            LatLng(userLocation.endlatitude, userLocation.endlongitude),
+            LatLng(
+                _currentUserLocation.latitude, _currentUserLocation.longitude),
+          );
+
+          // Safe null check for result and distance
+          if (result?.distance != null && result!.distance! <= 0.2) {
+            filteredUserLocations.add(userLocation);
+          }
+        }
+      }
+
+      if (mounted) {
+        // Now update the state with the data fetched
+        setState(() {
+          _userLocation = userLocations.firstWhere(
+            (u) => u.userid == userId,
+            orElse: () => UserLocation(
+              id: 0,
+              userid: userId,
+              startlatitude: 0,
+              startlongitude: 0,
+              endlatitude: 0,
+              endlongitude: 0,
+              issharinglocation: false,
+            ),
+          );
+
+          // Update _userLocations after async work
+          _userLocations.clear();
+          _userLocations.addAll(filteredUserLocations);
+
+          _isShareLocation = _userLocation?.issharinglocation ?? false;
+          _isLoading = false;
+        });
+      }
+
+      // Move the map outside of setState
+      _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+    } catch (e) {
+      _handleError('Failed to load user locations: $e');
+    }
+  }
+
+  Future<void> _fetchMatchUsers() async {
+    try {
+      final userId = await UserStorage.getUserId();
+      if (userId == null) throw 'User ID not found';
+
+      await _updateEndUserLocation();
+
+      final userLocations = await _userLocationRepository.getAllUserLocations();
+      final filteredUserLocations =
+          userLocations.where((user) => user.userid != userId).toList();
+
+      List<MatchUsers> matchUsers = [];
+
+      if (userLocations.isNotEmpty) {
+        for (var userLocation in userLocations) {
           // Null check before accessing result and its properties
           final result = await LocationService.getRouteDistance(
             LatLng(userLocation.endlatitude, userLocation.endlongitude),

@@ -1,6 +1,6 @@
 import 'package:gis_osm/data/models/user_location.dart';
 
-class User {
+class MatchUsers {
   final int id;
   final String email;
   final String password;
@@ -23,7 +23,7 @@ class User {
   final String koumoku10;
   final UserLocation location;
 
-  User({
+  MatchUsers({
     required this.id,
     required this.email,
     required this.password,
@@ -48,7 +48,7 @@ class User {
   });
 
   // Factory method to create a User from JSON with proper type checking
-  factory User.fromJson(Map<String, dynamic> json) {
+  factory MatchUsers.fromJson(Map<String, dynamic> json) {
     // Ensure id is an integer, default to 0 if missing or invalid
     final idValue = json['id'];
     if (idValue is! int) {
@@ -69,7 +69,7 @@ class User {
             issharinglocation: false,
           ); // Assuming this is a valid default
 
-    return User(
+    return MatchUsers(
       id: idValue,
       email: json['email'] as String? ?? '',
       password: json['password'] as String? ?? '',
