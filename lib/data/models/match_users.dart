@@ -22,6 +22,7 @@ class MatchUsers {
   final String koumoku9;
   final String koumoku10;
   final UserLocation location;
+  final double distance;
 
   MatchUsers({
     required this.id,
@@ -45,6 +46,7 @@ class MatchUsers {
     required this.koumoku9,
     required this.koumoku10,
     required this.location,
+    required this.distance,
   });
 
   // Factory method to create a User from JSON with proper type checking
@@ -91,6 +93,7 @@ class MatchUsers {
       koumoku9: json['koumoku9'] as String? ?? '',
       koumoku10: json['koumoku10'] as String? ?? '',
       location: userLocation,
+      distance: json['distance'],
     );
   }
 
@@ -118,6 +121,7 @@ class MatchUsers {
       'koumoku9': koumoku9,
       'koumoku10': koumoku10,
       'location': location.toJson(),
+      'distance': distance,
     };
   }
 }
