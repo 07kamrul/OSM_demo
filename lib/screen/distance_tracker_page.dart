@@ -12,6 +12,7 @@ import '../data/models/match_users.dart';
 import '../data/models/user.dart';
 import '../data/models/user_location.dart';
 import '../data/repositories/auth_repository.dart';
+import '../data/repositories/match_user_repository.dart';
 import '../data/repositories/user_location_repository.dart';
 import '../screen/auth_screen.dart';
 import '../screen/chat_screen.dart';
@@ -33,6 +34,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   late final UserLocationRepository _userLocationRepository =
       UserLocationRepository();
   late final AuthRepository _userRepository = AuthRepository();
+  late final MatchUsersRepository _matchUsersRepository =
+      MatchUsersRepository();
   late final UserService _userService = UserService();
   late final MapController _mapController = MapController();
 
@@ -40,6 +43,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   final List<UserLocation> _userLocations = [];
   final List<User> _users = [];
   final List<LatLng> _routePoints = [];
+  final List<MatchUsers> _matchUsers = [];
   double _startDistance = 0.0;
   double _distance = 0.0;
   double _rotation = 0.0;
@@ -64,7 +68,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         _initializeLocation(),
         _fetchUser(),
         _fetchUsers(),
-        _fetchUserLocations(),
+        _fetchMatchUsers(),
       ]);
       _startPeriodicUpdates();
     } catch (e) {
@@ -107,123 +111,41 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     }
   }
 
-  Future<void> _fetchUserLocations() async {
-    try {
-      final userId = await UserStorage.getUserId();
-      if (userId == null) throw 'User ID not found';
-
-      await _updateEndUserLocation();
-
-      final userLocations = await _userLocationRepository.getAllUserLocations();
-
-      // Perform the async work before calling setState
-      List<UserLocation> filteredUserLocations = [];
-
-      if (userLocations.isNotEmpty) {
-        for (var userLocation in userLocations.where((user) =>
-            user.issharinglocation == true && user.userid != userId)) {
-          // Null check before accessing result and its properties
-          final result = await LocationService.getRouteDistance(
-            LatLng(userLocation.endlatitude, userLocation.endlongitude),
-            LatLng(
-                _currentUserLocation.latitude, _currentUserLocation.longitude),
-          );
-
-          // Safe null check for result and distance
-          if (result?.distance != null && result!.distance! <= 0.2) {
-            filteredUserLocations.add(userLocation);
-          }
-        }
-      }
-
-      if (mounted) {
-        // Now update the state with the data fetched
-        setState(() {
-          _userLocation = userLocations.firstWhere(
-            (u) => u.userid == userId,
-            orElse: () => UserLocation(
-              id: 0,
-              userid: userId,
-              startlatitude: 0,
-              startlongitude: 0,
-              endlatitude: 0,
-              endlongitude: 0,
-              issharinglocation: false,
-            ),
-          );
-
-          // Update _userLocations after async work
-          _userLocations.clear();
-          _userLocations.addAll(filteredUserLocations);
-
-          _isShareLocation = _userLocation?.issharinglocation ?? false;
-          _isLoading = false;
-        });
-      }
-
-      // Move the map outside of setState
-      _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
-    } catch (e) {
-      _handleError('Failed to load user locations: $e');
-    }
-  }
-
   Future<void> _fetchMatchUsers() async {
+    print("START Call match users");
     try {
       final userId = await UserStorage.getUserId();
       if (userId == null) throw 'User ID not found';
 
       await _updateEndUserLocation();
 
-      final userLocations = await _userLocationRepository.getAllUserLocations();
-      final filteredUserLocations =
-          userLocations.where((user) => user.userid != userId).toList();
+      _userLocation =
+          await _userLocationRepository.getUserLocationByUserId(userId);
+      _isShareLocation = _userLocation?.issharinglocation ?? false;
 
-      List<MatchUsers> matchUsers = [];
+      // Get match users
+      List<MatchUsers> matchUsers =
+          await _matchUsersRepository.getMatchUsers(userId);
 
-      if (userLocations.isNotEmpty) {
-        for (var userLocation in userLocations) {
-          // Null check before accessing result and its properties
-          final result = await LocationService.getRouteDistance(
-            LatLng(userLocation.endlatitude, userLocation.endlongitude),
-            LatLng(
-                _currentUserLocation.latitude, _currentUserLocation.longitude),
-          );
+      _userLocations.clear();
 
-          // Safe null check for result and distance
-          if (result?.distance != null && result!.distance! <= 0.2) {
-            filteredUserLocations.add(userLocation);
-          }
+      // Assuming matchUsers.location is a single UserLocation object, not an Iterable
+      for (var matchUser in matchUsers) {
+        if (matchUser.location != null) {
+          _userLocations.add(matchUser.location!); // Add UserLocation directly
         }
       }
 
       if (mounted) {
-        // Now update the state with the data fetched
         setState(() {
-          _userLocation = userLocations.firstWhere(
-            (u) => u.userid == userId,
-            orElse: () => UserLocation(
-              id: 0,
-              userid: userId,
-              startlatitude: 0,
-              startlongitude: 0,
-              endlatitude: 0,
-              endlongitude: 0,
-              issharinglocation: false,
-            ),
-          );
-
-          // Update _userLocations after async work
-          _userLocations.clear();
-          _userLocations.addAll(filteredUserLocations);
-
-          _isShareLocation = _userLocation?.issharinglocation ?? false;
-          _isLoading = false;
+          _matchUsers.addAll(matchUsers);
         });
       }
 
-      // Move the map outside of setState
+      _isLoading = false;
       _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+
+      print("END Call match users");
     } catch (e) {
       _handleError('Failed to load user locations: $e');
     }
@@ -354,6 +276,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _updateLocation(bool isClick) async {
     try {
       final location = await LocationService.getCurrentLocation();
+      _fetchMatchUsers();
       if (mounted) {
         setState(() {
           _currentUserLocation = location;
@@ -778,7 +701,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         children: [
           _buildFAB(
             icon: Icons.refresh,
-            onPressed: _fetchUserLocations,
+            onPressed: _fetchMatchUsers,
             heroTag: 'refresh',
             size: buttonSize,
             iconSize: iconSize,
