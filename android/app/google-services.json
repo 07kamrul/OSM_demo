@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "817981722036",
+    "project_id": "gisosm",
+    "storage_bucket": "gisosm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:817981722036:android:3418d1f2379f04e008b6e1",
+        "android_client_info": {
+          "package_name": "com.gis_osm.gis_osm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFE3oeEkdWTY_Vua5PRkzM5Dy75YODvYk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
