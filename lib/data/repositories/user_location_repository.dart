@@ -18,7 +18,8 @@ class UserLocationRepository {
   }
 
   Future<UserLocation> getUserLocationByUserId(int userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/GetUserLocationByUserId/$userId'));
+    final response =
+        await http.get(Uri.parse('$baseUrl/GetUserLocationByUserId/$userId'));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body)['data'];
@@ -30,7 +31,7 @@ class UserLocationRepository {
 
   Future<void> updateUserLocation(UserLocation userLocation) async {
     try {
-      final int? userId = userLocation.userid; // Use nullable type to handle missing values
+      final int? userId = userLocation.userid;
       if (userId == null) {
         throw Exception('User ID is missing in the UserLocation object.');
       }
@@ -48,8 +49,8 @@ class UserLocationRepository {
       } else {
         // Decode the error response body
         final errorBody = jsonDecode(response.body);
-        final errorMessage =
-            errorBody['message'] ?? 'Unknown error'; // Provide a default message
+        final errorMessage = errorBody['message'] ??
+            'Unknown error'; // Provide a default message
 
         // Throw an exception with the error details
         throw Exception('Failed to update user location: $errorMessage');

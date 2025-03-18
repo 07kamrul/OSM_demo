@@ -40,10 +40,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   late final MapController _mapController = MapController();
 
   LatLng _currentUserLocation = const LatLng(0, 0);
-  final List<UserLocation> _userLocations = [];
-  final List<User> _users = [];
+  late List<UserLocation> _userLocations = [];
+  late List<User> _users = [];
   final List<LatLng> _routePoints = [];
-  final List<MatchUsers> _matchUsers = [];
+  late List<MatchUsers> _matchUsers = [];
   double _startDistance = 0.0;
   double _distance = 0.0;
   double _rotation = 0.0;
@@ -69,6 +69,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         _fetchUser(),
         _fetchUsers(),
         _fetchMatchUsers(),
+        _updateStartLocation(),
       ]);
       _startPeriodicUpdates();
     } catch (e) {
@@ -96,58 +97,61 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   Future<void> _fetchUser() async {
     try {
-      _user = await _userService.fetchUser();
+      final userId = await UserStorage.getUserId();
+
+      if (userId != null) {
+        final userFuture = _userService.fetchUser();
+        final userLocationFuture =
+            _userLocationRepository.getUserLocationByUserId(userId);
+
+        _user = await userFuture;
+        _userLocation = await userLocationFuture;
+
+        _isShareLocation = _userLocation?.issharinglocation ?? false;
+      } else {
+        throw 'User ID not found';
+      }
     } catch (e) {
-      _handleError('Failed to load user: $e');
+      _handleError('Failed to load user: $e', e);
     }
   }
 
   Future<void> _fetchUsers() async {
     try {
-      _users.clear();
-      _users.addAll(await _userService.fetchUsers());
+      final users = await _userService.fetchUsers();
+
+      if (mounted) {
+        setState(() {
+          _users = users;
+        });
+      }
     } catch (e) {
-      _handleError('Failed to load users: $e');
+      _handleError('Failed to load users: $e', e);
     }
   }
 
   Future<void> _fetchMatchUsers() async {
-    print("START Call match users");
     try {
-      final userId = await UserStorage.getUserId();
-      if (userId == null) throw 'User ID not found';
+      final userId = _user?.id ?? await UserStorage.getUserId();
 
-      await _updateEndUserLocation();
+      if (userId != null) {
+        final matchUsers = await _matchUsersRepository.getMatchUsers(userId);
 
-      _userLocation =
-          await _userLocationRepository.getUserLocationByUserId(userId);
-      _isShareLocation = _userLocation?.issharinglocation ?? false;
-
-      // Get match users
-      List<MatchUsers> matchUsers =
-          await _matchUsersRepository.getMatchUsers(userId);
-
-      _userLocations.clear();
-
-      // Assuming matchUsers.location is a single UserLocation object, not an Iterable
-      for (var matchUser in matchUsers) {
-        if (matchUser.location != null) {
-          _userLocations.add(matchUser.location!); // Add UserLocation directly
+        if (mounted) {
+          setState(() {
+            _matchUsers = matchUsers;
+            _userLocations =
+                matchUsers.map((matchUser) => matchUser.location).toList();
+          });
         }
+
+        _isLoading = false;
+        _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+      } else {
+        throw 'User ID not found';
       }
-
-      if (mounted) {
-        setState(() {
-          _matchUsers.addAll(matchUsers);
-        });
-      }
-
-      _isLoading = false;
-      _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
-
-      print("END Call match users");
     } catch (e) {
-      _handleError('Failed to load user locations: $e');
+      _handleError('Failed to load user locations: $e', e);
     }
   }
 
@@ -172,7 +176,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
           double distanceInMeters = result!.distance * 1000;
 
-          if (distanceInMeters >= 10) _updateEndUserLocation();
+          if (distanceInMeters >= 10) _updateLocation();
         }
       }
     } catch (e) {
@@ -193,26 +197,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       );
       await _userLocationRepository.updateUserLocation(updatedLocation);
       if (mounted) setState(() => _userLocation = updatedLocation);
-    } catch (e) {
-      debugPrint('Error updating user location: $e');
-    }
-  }
-
-  Future<void> _updateEndUserLocation() async {
-    try {
-      if (_userLocation != null) {
-        final updatedLocation = UserLocation(
-          id: _userLocation!.id,
-          userid: _userLocation!.userid,
-          startlatitude: _userLocation!.startlatitude,
-          startlongitude: _userLocation!.startlongitude,
-          endlatitude: _currentUserLocation.latitude,
-          endlongitude: _currentUserLocation.longitude,
-          issharinglocation: _isShareLocation,
-        );
-        await _userLocationRepository.updateUserLocation(updatedLocation);
-        if (mounted) setState(() => _userLocation = updatedLocation);
-      }
     } catch (e) {
       debugPrint('Error updating user location: $e');
     }
@@ -269,52 +253,93 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     _locationUpdateTimer?.cancel();
     _locationUpdateTimer =
         Timer.periodic(AppConstants.locationUpdateInterval, (_) async {
-      if (mounted) await _updateLocation(false);
+      if (mounted) await _updateLocation();
     });
   }
 
-  Future<void> _updateLocation(bool isClick) async {
+  Future<void> _updateLocation() async {
     try {
       final location = await LocationService.getCurrentLocation();
-      _fetchMatchUsers();
-      if (mounted) {
-        setState(() {
-          _currentUserLocation = location;
-          if (isClick) _mapController.move(location, AppConstants.defaultZoom);
-        });
 
-        final userId = await UserStorage.getUserId();
-        if (userId != null && _isShareLocation) await _updateEndUserLocation();
+      _updateCurrentLocation(location);
 
-        // Recalculate polyline and distance if a user is selected
-        if (_selectedUserId != null) {
-          final selectedUserLocation = _userLocations.firstWhere(
-            (loc) => loc.userid == _selectedUserId,
-            orElse: () => UserLocation(
-              id: 0,
-              userid: 0,
-              startlatitude: 0,
-              startlongitude: 0,
-              endlatitude: 0,
-              endlongitude: 0,
-              issharinglocation: false,
-            ),
-          );
-          await _calculateDistance(
-            _selectedUserId!,
-            LatLng(selectedUserLocation.endlatitude,
-                selectedUserLocation.endlongitude),
-          );
-        }
+      final userId = await UserStorage.getUserId();
+
+      if (userId != null && _isShareLocation) {
+        await _updateUserLocation(_userLocation);
       }
+
+      if (_selectedUserId != null) {
+        await _recalculateDistanceForSelectedUser();
+      }
+
+      await _fetchMatchUsers();
     } catch (e) {
       debugPrint('Error updating location: $e');
     }
   }
 
+  void _updateCurrentLocation(LatLng location) {
+    if (mounted) {
+      setState(() {
+        _currentUserLocation = location;
+        _mapController.move(location, AppConstants.defaultZoom);
+      });
+    }
+  }
+
+  Future<void> _updateUserLocation(userLocation) async {
+    final result = await LocationService.getRouteDistance(
+        LatLng(userLocation!.startlatitude, userLocation!.startlongitude),
+        _currentUserLocation);
+
+    double distanceInMeters = result!.distance * 1000;
+
+    if (distanceInMeters >= 10) {
+      final updatedLocation = UserLocation(
+        id: userLocation!.id,
+        userid: userLocation.userid,
+        startlatitude: _currentUserLocation.latitude,
+        startlongitude: _currentUserLocation.longitude,
+        endlatitude: _currentUserLocation.latitude,
+        endlongitude: _currentUserLocation.longitude,
+        issharinglocation: _isShareLocation,
+      );
+
+      await _userLocationRepository.updateUserLocation(updatedLocation);
+
+      if (mounted) {
+        setState(() {
+          userLocation = updatedLocation;
+        });
+      }
+    }
+  }
+
+  Future<void> _recalculateDistanceForSelectedUser() async {
+    final selectedUserLocation = _userLocations.firstWhere(
+      (loc) => loc.userid == _selectedUserId,
+      orElse: () => UserLocation(
+        id: 0,
+        userid: 0,
+        startlatitude: 0,
+        startlongitude: 0,
+        endlatitude: 0,
+        endlongitude: 0,
+        issharinglocation: false,
+      ),
+    );
+
+    await _calculateDistance(
+      _selectedUserId!,
+      LatLng(
+          selectedUserLocation.endlatitude, selectedUserLocation.endlongitude),
+    );
+  }
+
   void _stopPeriodicUpdates() => _locationUpdateTimer?.cancel();
 
-  void _handleError(String message) {
+  void _handleError(String message, [dynamic error]) {
     if (mounted) {
       setState(() {
         _errorMessage = message;
@@ -728,7 +753,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           SizedBox(height: spacing),
           _buildFAB(
             icon: Icons.my_location,
-            onPressed: () => _updateLocation(true),
+            onPressed: () => _updateLocation(),
             heroTag: 'updateLocation',
             size: buttonSize,
             iconSize: iconSize,
