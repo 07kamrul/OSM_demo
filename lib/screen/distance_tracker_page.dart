@@ -39,6 +39,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   late final UserService _userService = UserService();
   late final MapController _mapController = MapController();
 
+  LatLng? _previousLocation;
   LatLng _currentUserLocation = const LatLng(0, 0);
   late List<UserLocation> _userLocations = [];
   late List<User> _users = [];
@@ -65,11 +66,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _initializeData() async {
     try {
       await Future.wait([
-        _initializeLocation(),
         _fetchUser(),
+        _updateStartLocation(),
+        _initializeLocation(),
         _fetchUsers(),
         _fetchMatchUsers(),
-        _updateStartLocation(),
       ]);
       _startPeriodicUpdates();
     } catch (e) {
@@ -88,7 +89,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
         if (_userLocation != null) await _updateStartLocation();
 
-        _mapController.move(location, AppConstants.defaultZoom);
+        if (_previousLocation == null ||
+            _previousLocation != _currentUserLocation) {
+          _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+          _previousLocation = _currentUserLocation;
+        }
       }
     } catch (e) {
       _handleError('Error initializing location: $e');
@@ -106,6 +111,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
         _user = await userFuture;
         _userLocation = await userLocationFuture;
+
+        _previousLocation =
+            LatLng(_userLocation!.startlatitude, _userLocation!.startlongitude);
 
         _isShareLocation = _userLocation?.issharinglocation ?? false;
       } else {
@@ -146,7 +154,12 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         }
 
         _isLoading = false;
-        _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+
+        if (_previousLocation == null ||
+            _previousLocation != _currentUserLocation) {
+          _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+          _previousLocation = _currentUserLocation;
+        }
       } else {
         throw 'User ID not found';
       }
@@ -204,9 +217,15 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
   void _fitMapToRoute() {
     if (_routePoints.isEmpty) return;
+
     final bounds = LatLngBounds.fromPoints(_routePoints);
+
     _mapController.fitCamera(
-        CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(50),
+      ),
+    );
   }
 
   void _resetRotation() {
@@ -261,8 +280,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     try {
       final location = await LocationService.getCurrentLocation();
 
-      _updateCurrentLocation(location);
-
+      if (_previousLocation == null || _previousLocation != location) {
+        _updateCurrentLocation(location);
+        _previousLocation = location;
+      }
       final userId = await UserStorage.getUserId();
 
       if (userId != null && _isShareLocation) {
@@ -283,7 +304,11 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     if (mounted) {
       setState(() {
         _currentUserLocation = location;
-        _mapController.move(location, AppConstants.defaultZoom);
+        if (_previousLocation == null ||
+            _previousLocation != _currentUserLocation) {
+          _mapController.move(location, AppConstants.defaultZoom);
+          _previousLocation = _currentUserLocation;
+        }
       });
     }
   }
