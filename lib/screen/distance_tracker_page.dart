@@ -56,6 +56,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Timer? _locationUpdateTimer;
   bool _isShareLocation = false;
   int? _selectedUserId;
+  double? _currentZoom; // Track the current zoom level
 
   @override
   void initState() {
@@ -85,13 +86,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         setState(() {
           _currentUserLocation = location;
           _isLoading = false;
+          _currentZoom = AppConstants.defaultZoom; // Initial zoom
         });
 
         if (_userLocation != null) await _updateStartLocation();
 
         if (_previousLocation == null ||
             _previousLocation != _currentUserLocation) {
-          _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
+          _mapController.move(_currentUserLocation, _currentZoom!);
           _previousLocation = _currentUserLocation;
         }
       }
@@ -103,7 +105,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _fetchUser() async {
     try {
       final userId = await UserStorage.getUserId();
-
       if (userId != null) {
         final userFuture = _userService.fetchUser();
         final userLocationFuture =
@@ -114,7 +115,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
 
         _previousLocation =
             LatLng(_userLocation!.startlatitude, _userLocation!.startlongitude);
-
         _isShareLocation = _userLocation?.issharinglocation ?? false;
       } else {
         throw 'User ID not found';
@@ -127,11 +127,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _fetchUsers() async {
     try {
       final users = await _userService.fetchUsers();
-
       if (mounted) {
-        setState(() {
-          _users = users;
-        });
+        setState(() => _users = users);
       }
     } catch (e) {
       _handleError('Failed to load users: $e', e);
@@ -141,24 +138,22 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _fetchMatchUsers() async {
     try {
       final userId = _user?.id ?? await UserStorage.getUserId();
-
       if (userId != null) {
         final matchUsers = await _matchUsersRepository.getMatchUsers(userId);
-
         if (mounted) {
           setState(() {
             _matchUsers = matchUsers;
             _userLocations =
                 matchUsers.map((matchUser) => matchUser.location).toList();
+            _isLoading = false;
           });
-        }
 
-        _isLoading = false;
-
-        if (_previousLocation == null ||
-            _previousLocation != _currentUserLocation) {
-          _mapController.move(_currentUserLocation, AppConstants.defaultZoom);
-          _previousLocation = _currentUserLocation;
+          if (_previousLocation == null ||
+              _previousLocation != _currentUserLocation) {
+            _mapController.move(
+                _currentUserLocation, _currentZoom ?? AppConstants.defaultZoom);
+            _previousLocation = _currentUserLocation;
+          }
         }
       } else {
         throw 'User ID not found';
@@ -179,18 +174,16 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           _routePoints.addAll(result.routePoints);
           _selectedUserId = userId;
         });
-        _fitMapToRoute();
+        _fitMapToRoute(); // Zoom to fit polyline only when explicitly tapped
+      }
 
-        if (_userLocation != null) {
-          final result = await LocationService.getRouteDistance(
-              LatLng(
-                  _userLocation!.startlatitude, _userLocation!.startlongitude),
-              _currentUserLocation);
+      if (_userLocation != null) {
+        final result = await LocationService.getRouteDistance(
+            LatLng(_userLocation!.startlatitude, _userLocation!.startlongitude),
+            _currentUserLocation);
 
-          double distanceInMeters = result!.distance * 1000;
-
-          if (distanceInMeters >= 10) _updateLocation();
-        }
+        double distanceInMeters = result!.distance * 1000;
+        if (distanceInMeters >= 10) _updateLocation();
       }
     } catch (e) {
       debugPrint('Error calculating distance: $e');
@@ -219,13 +212,14 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     if (_routePoints.isEmpty) return;
 
     final bounds = LatLngBounds.fromPoints(_routePoints);
-
     _mapController.fitCamera(
       CameraFit.bounds(
         bounds: bounds,
         padding: const EdgeInsets.all(50),
       ),
     );
+    _currentZoom =
+        _mapController.camera.zoom; // Update current zoom after fitting
   }
 
   void _resetRotation() {
@@ -279,7 +273,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
   Future<void> _updateLocation() async {
     try {
       final location = await LocationService.getCurrentLocation();
-
       if (_previousLocation == null || _previousLocation != location) {
         _updateCurrentLocation(location);
         _previousLocation = location;
@@ -304,25 +297,30 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
     if (mounted) {
       setState(() {
         _currentUserLocation = location;
-        if (_previousLocation == null ||
-            _previousLocation != _currentUserLocation) {
-          _mapController.move(location, AppConstants.defaultZoom);
-          _previousLocation = _currentUserLocation;
+        // Only move the map if no polyline is selected, otherwise keep the current zoom
+        if (_routePoints.isEmpty &&
+            (_previousLocation == null ||
+                _previousLocation != _currentUserLocation)) {
+          _mapController.move(
+              location, _currentZoom ?? AppConstants.defaultZoom);
+          _currentZoom = _mapController.camera.zoom;
         }
       });
     }
   }
 
-  Future<void> _updateUserLocation(userLocation) async {
+  Future<void> _updateUserLocation(UserLocation? userLocation) async {
+    if (userLocation == null) return;
+
     final result = await LocationService.getRouteDistance(
-        LatLng(userLocation!.startlatitude, userLocation!.startlongitude),
+        LatLng(userLocation.startlatitude, userLocation.startlongitude),
         _currentUserLocation);
 
     double distanceInMeters = result!.distance * 1000;
 
     if (distanceInMeters >= 10) {
       final updatedLocation = UserLocation(
-        id: userLocation!.id,
+        id: userLocation.id,
         userid: userLocation.userid,
         startlatitude: _currentUserLocation.latitude,
         startlongitude: _currentUserLocation.longitude,
@@ -332,12 +330,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       );
 
       await _userLocationRepository.updateUserLocation(updatedLocation);
-
-      if (mounted) {
-        setState(() {
-          userLocation = updatedLocation;
-        });
-      }
+      if (mounted) setState(() => _userLocation = updatedLocation);
     }
   }
 
@@ -432,6 +425,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
               _routePoints.clear();
               _distance = 0.0;
               _selectedUserId = null;
+              _currentZoom =
+                  AppConstants.defaultZoom; // Reset zoom when clearing polyline
+              _mapController.move(_currentUserLocation, _currentZoom!);
             });
           }
         },
@@ -443,7 +439,10 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
           PolylineLayer(
             polylines: [
               Polyline(
-                  points: _routePoints, color: Colors.green, strokeWidth: 4.0),
+                points: _routePoints,
+                color: Colors.green,
+                strokeWidth: 4.0,
+              ),
             ],
           ),
       ],
@@ -458,26 +457,27 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       final user = _users.firstWhere(
         (u) => u.id == loc.userid,
         orElse: () => User(
-            id: 0,
-            firstname: "Unknown",
-            email: "",
-            password: "",
-            fullname: '',
-            lastname: '',
-            profile_pic: '',
-            gender: '',
-            dob: '',
-            status: '',
-            koumoku1: '',
-            koumoku2: '',
-            koumoku3: '',
-            koumoku4: '',
-            koumoku5: '',
-            koumoku6: '',
-            koumoku7: '',
-            koumoku8: '',
-            koumoku9: '',
-            koumoku10: ''),
+          id: 0,
+          firstname: "Unknown",
+          email: "",
+          password: "",
+          fullname: '',
+          lastname: '',
+          profile_pic: '',
+          gender: '',
+          dob: '',
+          status: '',
+          koumoku1: '',
+          koumoku2: '',
+          koumoku3: '',
+          koumoku4: '',
+          koumoku5: '',
+          koumoku6: '',
+          koumoku7: '',
+          koumoku8: '',
+          koumoku9: '',
+          koumoku10: '',
+        ),
       );
       return Marker(
         point: LatLng(loc.endlatitude, loc.endlongitude),
@@ -485,7 +485,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         height: markerSize * 2.5,
         child: GestureDetector(
           onTap: () => _calculateDistance(
-              loc.userid, LatLng(loc.endlatitude, loc.endlongitude)),
+            loc.userid,
+            LatLng(loc.endlatitude, loc.endlongitude),
+          ),
           child: _buildMarkerContent(user.firstname, markerSize),
         ),
       );
@@ -508,7 +510,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       children: [
         Container(
           padding: EdgeInsets.symmetric(
-              horizontal: fontSize * 0.5, vertical: fontSize * 0.25),
+            horizontal: fontSize * 0.5,
+            vertical: fontSize * 0.25,
+          ),
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(fontSize * 0.5),
@@ -559,26 +563,27 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
         ? _users.firstWhere(
             (u) => u.id == _selectedUserId,
             orElse: () => User(
-                id: 0,
-                firstname: "Unknown",
-                email: "",
-                password: "",
-                fullname: '',
-                lastname: '',
-                profile_pic: '',
-                gender: '',
-                dob: '',
-                status: '',
-                koumoku1: '',
-                koumoku2: '',
-                koumoku3: '',
-                koumoku4: '',
-                koumoku5: '',
-                koumoku6: '',
-                koumoku7: '',
-                koumoku8: '',
-                koumoku9: '',
-                koumoku10: ''),
+              id: 0,
+              firstname: "Unknown",
+              email: "",
+              password: "",
+              fullname: '',
+              lastname: '',
+              profile_pic: '',
+              gender: '',
+              dob: '',
+              status: '',
+              koumoku1: '',
+              koumoku2: '',
+              koumoku3: '',
+              koumoku4: '',
+              koumoku5: '',
+              koumoku6: '',
+              koumoku7: '',
+              koumoku8: '',
+              koumoku9: '',
+              koumoku10: '',
+            ),
           )
         : null;
 
@@ -610,7 +615,6 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Active/Inactive indicator (green dot when active, gray when inactive)
                       Stack(
                         alignment: Alignment.bottomRight,
                         children: [
@@ -623,10 +627,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                                       ? Colors.green
                                       : Colors.grey,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 2,
-                              ), // Border for a more visible dot
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                           ),
                         ],
@@ -659,9 +660,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                 child: Card(
                   elevation: 4.0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                        10.0), // Optional for rounded corners
-                  ),
+                      borderRadius: BorderRadius.circular(10.0)),
                   child: InkWell(
                     onTap: () => Navigator.push(
                       context,
@@ -671,13 +670,9 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(
-                          8.0), // Optional padding inside the card
-                      child: Icon(
-                        Icons.chat_rounded,
-                        size: iconSize,
-                        color: Colors.blueAccent,
-                      ),
+                      padding: const EdgeInsets.all(8.0),
+                      child: Icon(Icons.chat_rounded,
+                          size: iconSize, color: Colors.blueAccent),
                     ),
                   ),
                 ),
@@ -688,28 +683,17 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                   child: Card(
                     elevation: 4.0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                          10.0), // Optional: Rounded corners
-                    ),
+                        borderRadius: BorderRadius.circular(10.0)),
                     child: InkWell(
-                      onTap: () {
-                        // Define your onTap action here if needed
-                      },
+                      onTap: () {},
                       child: Padding(
-                        padding: const EdgeInsets.all(
-                            8.0), // Padding inside the card
+                        padding: const EdgeInsets.all(8.0),
                         child: Row(
-                          mainAxisSize: MainAxisSize
-                              .min, // Ensures the row only takes as much space as needed
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            FaIcon(
-                              FontAwesomeIcons.car,
-                              size: iconSize,
-                              color: Colors.black54,
-                            ),
-                            SizedBox(
-                                width: padding *
-                                    0.25), // Add spacing between icon and text
+                            FaIcon(FontAwesomeIcons.car,
+                                size: iconSize, color: Colors.black54),
+                            SizedBox(width: padding * 0.25),
                             Text(
                               '${_distance.toStringAsFixed(2)} km',
                               style: TextStyle(
