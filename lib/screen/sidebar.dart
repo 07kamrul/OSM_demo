@@ -7,7 +7,7 @@ class Sidebar extends StatelessWidget {
   final VoidCallback onHomeTap;
   final VoidCallback onUsersTap;
   final VoidCallback onTrackLocationTap;
-  // final VoidCallback onChatBoxTap;
+  final VoidCallback onChatBoxTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
 
@@ -16,7 +16,7 @@ class Sidebar extends StatelessWidget {
     required this.onHomeTap,
     required this.onUsersTap,
     required this.onTrackLocationTap,
-    // required this.onChatBoxTap,
+    required this.onChatBoxTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
   });
@@ -38,7 +38,7 @@ class Sidebar extends StatelessWidget {
             onHomeTap: onHomeTap,
             onUsersTap: onUsersTap,
             onTrackLocationTap: onTrackLocationTap,
-            // onChatBoxTap: onChatBoxTap,
+            onChatBoxTap: onChatBoxTap,
             onSettingsTap: onSettingsTap,
             onLogoutTap: onLogoutTap,
           );
@@ -55,7 +55,7 @@ class _SidebarContent extends StatelessWidget {
   final VoidCallback onHomeTap;
   final VoidCallback onUsersTap;
   final VoidCallback onTrackLocationTap;
-  // final VoidCallback onChatBoxTap;
+  final VoidCallback onChatBoxTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
 
@@ -66,7 +66,7 @@ class _SidebarContent extends StatelessWidget {
     required this.onHomeTap,
     required this.onUsersTap,
     required this.onTrackLocationTap,
-    // required this.onChatBoxTap,
+    required this.onChatBoxTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
   });
@@ -108,14 +108,14 @@ class _SidebarContent extends StatelessWidget {
           iconSize: iconSize,
           fontSize: listItemFontSize,
         ),
-        // _buildMenuItem(
-        //   context,
-        //   icon: Icons.chat,
-        //   title: 'Chat box',
-        //   onTap: onChatBoxTap,
-        //   iconSize: iconSize,
-        //   fontSize: listItemFontSize,
-        // ),
+        _buildMenuItem(
+          context,
+          icon: Icons.chat,
+          title: 'Chat box',
+          onTap: onChatBoxTap,
+          iconSize: iconSize,
+          fontSize: listItemFontSize,
+        ),
         _buildMenuItem(
           context,
           icon: Icons.location_on,

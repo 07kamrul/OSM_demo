@@ -9,6 +9,7 @@ import '../enum.dart';
 import '../services/user_service.dart';
 import '../widgets/user_card.dart';
 import 'auth_screen.dart';
+import 'chat_box_screen.dart';
 import 'chat_screen.dart';
 import 'distance_tracker_page.dart';
 import 'sidebar.dart';
@@ -140,10 +141,7 @@ class _UserListScreenState extends State<UserListScreen> {
       onUsersTap: () => _navigateTo(context, const UserListScreen()),
       onTrackLocationTap: () =>
           _navigateTo(context, const DistanceTrackerPage()),
-      // onChatBoxTap: () => Navigator.pushReplacement(
-      //     context,
-      //     MaterialPageRoute(
-      //         builder: (_) => ChatScreen(senderId: 1, receiverId: 1))),
+      onChatBoxTap: () => _navigateTo(context, ChatBoxScreen()),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());

@@ -22,6 +22,7 @@ import '../screen/user_list_screen.dart';
 import '../services/location_service.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
+import 'chat_box_screen.dart';
 
 class DistanceTrackerPage extends StatefulWidget {
   const DistanceTrackerPage({super.key});
@@ -817,6 +818,7 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
       onHomeTap: () => _navigate(context, const DistanceTrackerPage()),
       onUsersTap: () => _navigate(context, const UserListScreen()),
       onTrackLocationTap: () => _navigate(context, const DistanceTrackerPage()),
+      onChatBoxTap: () => _navigate(context, ChatBoxScreen()),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());
