@@ -8,27 +8,6 @@ class MessageRepository {
   CollectionReference get _messagesCollection =>
       _firestore.collection('messages');
 
-  // Send a message
-  Future<Message> sendMessage(
-      int senderId, int receiverId, String content) async {
-    try {
-      final messageRef = _messagesCollection.doc(); // Auto-generate ID
-      final message = Message(
-        messageId: messageRef.id,
-        senderId: senderId,
-        receiverId: receiverId,
-        content: content,
-        sentAt: DateTime.now(),
-        isRead: false,
-      );
-
-      await messageRef.set(message.toJson());
-      return message;
-    } catch (e) {
-      throw Exception('Failed to send message: $e');
-    }
-  }
-
   // Stream of messages between two users (real-time)
   Stream<List<Message>> getMessages(int senderId, int receiverId) {
     try {

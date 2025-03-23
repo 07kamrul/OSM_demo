@@ -8,14 +8,7 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e) {
-    print('Failed to initialize Firebase: $e');
-  }
+  initializeFirebase();
   runApp(
     MultiBlocProvider(
       providers: [
@@ -24,5 +17,11 @@ void main() async {
       ],
       child: MyApp(),
     ),
+  );
+}
+
+initializeFirebase() async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
 }

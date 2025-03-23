@@ -1,0 +1,2 @@
+/Users/07kamrul/Documents/Colgis/gis_osm/android/app/.cxx/Debug/401p6k1u/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/07kamrul/Documents/Colgis/gis_osm/android/app/.cxx/Debug/401p6k1u/armeabi-v7a/CMakeFiles/rebuild_cache.dir

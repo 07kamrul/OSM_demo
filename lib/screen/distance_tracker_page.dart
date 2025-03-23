@@ -666,7 +666,8 @@ class _DistanceTrackerPageState extends State<DistanceTrackerPage> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => ChatScreen(
-                            senderId: 1, receiverId: _selectedUserId ?? 1),
+                            senderId: _user!.id.toString(),
+                            receiverId: _selectedUserId.toString() ?? ''),
                       ),
                     ),
                     child: Padding(

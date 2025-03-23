@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gis_osm/data/models/message.dart';
-import 'package:gis_osm/data/repositories/message_repository.dart';
+import 'package:gis_osm/services/message_service.dart';
 
 class ChatScreen extends StatefulWidget {
-  final int senderId;
-  final int receiverId;
+  final String senderId;
+  final String receiverId;
 
   const ChatScreen({
     super.key,
@@ -17,7 +17,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final MessageRepository _messageRepository = MessageRepository();
+  final MessageService _messageService = MessageService();
   final TextEditingController _messageController = TextEditingController();
 
   @override
@@ -27,19 +27,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) return;
-
-    try {
-      await _messageRepository.sendMessage(
-        widget.senderId,
-        widget.receiverId,
-        _messageController.text.trim(),
-      );
-      _messageController.clear();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+    if (_messageController.text.isNotEmpty) {
+      await _messageService.sendMessage(
+          widget.receiverId, _messageController.text);
+      _messageController.clear(); // Clear input after sending message
     }
   }
 
@@ -54,7 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<Message>>(
-              stream: _messageRepository.getMessages(
+              stream: _messageService.getMessages(
                   widget.senderId, widget.receiverId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -109,7 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${message.sentAt.hour}:${message.sentAt.minute}',
+              '${message.sentAt.toDate().hour}:${message.sentAt.toDate().minute}',
               style: TextStyle(
                 color: isSender ? Colors.white70 : Colors.black54,
                 fontSize: 12,
