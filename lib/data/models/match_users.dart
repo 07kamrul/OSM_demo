@@ -93,7 +93,7 @@ class MatchUsers {
       koumoku9: json['koumoku9'] as String? ?? '',
       koumoku10: json['koumoku10'] as String? ?? '',
       location: userLocation,
-      distance: json['distance'],
+      distance: _toDouble(json['distance']),
     );
   }
 
@@ -123,5 +123,16 @@ class MatchUsers {
       'location': location.toJson(),
       'distance': distance,
     };
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is int) {
+      return value.toDouble(); // Convert int to double (e.g., 5 -> 5.0)
+    } else if (value is double) {
+      return value; // Already a double, no conversion needed
+    } else if (value is String) {
+      return double.tryParse(value) ?? 0.0; // Handle string input
+    }
+    return 0.0; // Fallback for null or unexpected types
   }
 }

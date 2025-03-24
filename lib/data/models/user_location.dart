@@ -17,18 +17,6 @@ class UserLocation {
     required this.issharinglocation,
   });
 
-  // factory UserLocation.fromJson(Map<String, dynamic> json) {
-  //   return UserLocation(
-  //     id: json['id'] ?? 0,
-  //     userid: json['userid'] ?? 0,
-  //     startlatitude: json['startlatitude']?.toDouble() ?? 0.0,
-  //     startlongitude: json['startlongitude']?.toDouble() ?? 0.0,
-  //     endlatitude: json['endlatitude']?.toDouble() ?? 0.0,
-  //     endlongitude: json['endlongitude']?.toDouble() ?? 0.0,
-  //     issharinglocation: json['issharinglocation'] ?? false,
-  //   );
-  // }
-
   factory UserLocation.fromJson(Map<String, dynamic> json) {
     return UserLocation(
       id: json['id'] ?? 0,
@@ -43,9 +31,12 @@ class UserLocation {
 
   static double _toDouble(dynamic value) {
     if (value is String) {
-      return double.tryParse(value) ?? 0.0;
+      final parsed = double.tryParse(value) ?? 0.0;
+      return double.parse(parsed.toStringAsFixed(8)); // Limit to 8 digits
     } else if (value is double) {
-      return value;
+      return double.parse(value.toStringAsFixed(8));
+    } else if (value is int) {
+      return value.toDouble();
     }
     return 0.0;
   }
