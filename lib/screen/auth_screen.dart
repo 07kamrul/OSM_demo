@@ -9,6 +9,7 @@ import '../bloc/auth/auth_state.dart';
 import '../data/repositories/auth_repository.dart'; // Add this import
 import '../enum.dart';
 import 'distance_tracker_page.dart';
+import 'distance_tracker_screen.dart';
 
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
@@ -69,7 +70,7 @@ class AuthScreen extends StatelessWidget {
           _showSnackBar(context, state.message, Colors.green);
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const DistanceTrackerPage()),
+            MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
           );
         }
       },

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gis_osm/data/models/message.dart';
 import 'package:gis_osm/services/message_service.dart';
+import '../data/models/user.dart';
+import '../services/user_service.dart';
+import 'distance_tracker_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String senderId;
@@ -19,11 +22,35 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final MessageService _messageService = MessageService();
   final TextEditingController _messageController = TextEditingController();
+  final UserService _userService = UserService();
+
+  Future<User>? _userFuture;
 
   @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    int receiverId = int.tryParse(widget.receiverId) ?? 0;
+    _userFuture =
+        _fetchUser(receiverId); // Fetch user when the screen initializes
+  }
+
+  Future<User> _fetchUser(int userId) async {
+    try {
+      if (userId != 0) {
+        final user = await _userService.fetchUserInfo(userId);
+        return user;
+      } else {
+        throw 'User ID not found';
+      }
+    } catch (e) {
+      throw ('Failed to load user: $e');
+    }
   }
 
   void _sendMessage() async {
@@ -36,43 +63,82 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Chat with User ${widget.receiverId}'),
-        backgroundColor: Colors.lightBlueAccent,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<Message>>(
-              stream: _messageService.getMessages(
-                  widget.senderId, widget.receiverId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No messages yet'));
-                }
-
-                final messages = snapshot.data!;
-                return ListView.builder(
-                  reverse: true, // Latest messages at the bottom
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isSender = message.senderId == widget.senderId;
-                    return _buildMessageBubble(message, isSender);
-                  },
-                );
-              },
-            ),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          flexibleSpace: Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
+                  );
+                },
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.black54,
+                ),
+              ),
+              SizedBox(width: 10),
+              // Use FutureBuilder to handle user data loading asynchronously
+              FutureBuilder<User>(
+                future: _userFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator(); // Show a loading indicator
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}'); // Handle errors
+                  } else if (!snapshot.hasData) {
+                    return Text('No user data'); // Handle no data case
+                  } else {
+                    final user = snapshot.data!;
+                    return Column(
+                      children: [
+                        Text(user.firstname), // Display user's first name
+                      ],
+                    );
+                  }
+                },
+              ),
+            ],
           ),
-          _buildMessageInput(),
-        ],
+          backgroundColor: Colors.lightBlueAccent,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<List<Message>>(
+                stream: _messageService.getMessages(
+                    widget.senderId, widget.receiverId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No messages yet'));
+                  }
+
+                  final messages = snapshot.data!;
+                  return ListView.builder(
+                    reverse: true, // Latest messages at the bottom
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      final isSender = message.senderId == widget.senderId;
+                      return _buildMessageBubble(message, isSender);
+                    },
+                  );
+                },
+              ),
+            ),
+            _buildMessageInput(),
+          ],
+        ),
       ),
     );
   }

@@ -38,18 +38,13 @@ class ChatBoxScreen extends StatelessWidget {
 
     return AppBar(
       title: Text(
-        'Messaging',
+        'Chat Box',
         style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
       ),
       actions: [
         AppBarActionName(fontSize: fontSize * 0.8),
       ],
       centerTitle: true,
-      titleTextStyle: TextStyle(
-        fontSize: size.width * 0.05,
-        fontWeight: FontWeight.bold,
-      ),
-      elevation: 2,
       backgroundColor: Colors.lightBlueAccent,
     );
   }
