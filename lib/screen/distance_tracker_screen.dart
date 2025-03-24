@@ -35,7 +35,7 @@ class DistanceTrackerScreen extends StatelessWidget {
         userRepository: context.read<AuthRepository>(),
         matchUsersRepository: context.read<MatchUsersRepository>(),
         userService: context.read<UserService>(),
-        mapController: _mapController, // Pass the controller to BLoC
+        mapController: _mapController,
       ),
       child: _DistanceTrackerView(mapController: _mapController),
     );
@@ -49,52 +49,58 @@ class _DistanceTrackerView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final padding = size.width * 0.05;
-
     return Scaffold(
-      appBar: _buildAppBar(context, size),
+      appBar: _buildAppBar(context),
       drawer: _buildDrawer(context),
       body: BlocBuilder<DistanceTrackerBloc, DistanceTrackerState>(
         builder: (context, state) {
-          return Stack(
-            children: [
-              Column(
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final padding = constraints.maxWidth * 0.05;
+              return Stack(
                 children: [
-                  Expanded(child: _buildMap(context, state)),
-                  if (state.routePoints.isNotEmpty)
-                    _buildDistanceInfo(context, padding, size, state),
+                  Column(
+                    children: [
+                      Expanded(child: _buildMap(context, state)),
+                      if (state.routePoints.isNotEmpty)
+                        _buildDistanceInfo(context, padding, state),
+                    ],
+                  ),
+                  _buildFloatingButtons(context, constraints, state),
+                  if (state.isLoading) const _LoadingOverlay(),
+                  if (state.errorMessage != null)
+                    _buildErrorMessage(constraints, state.errorMessage!),
                 ],
-              ),
-              _buildFloatingButtons(context, size, state),
-              if (state.isLoading)
-                const Center(child: CircularProgressIndicator()),
-              if (state.errorMessage != null)
-                _buildErrorMessage(size, state.errorMessage!),
-            ],
+              );
+            },
           );
         },
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context, Size size) {
-    final fontSize = size.width * 0.04;
-
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      title: Text(
+      title: const Text(
         'Location Tracker',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        style: TextStyle(fontWeight: FontWeight.bold),
       ),
-      actions: [AppBarActionName(fontSize: fontSize * 0.8)],
+      titleTextStyle: Theme.of(context)
+          .textTheme
+          .titleLarge
+          ?.copyWith(fontSize: MediaQuery.of(context).size.width * 0.04),
+      actions: [
+        AppBarActionName(fontSize: MediaQuery.of(context).size.width * 0.032),
+      ],
       centerTitle: true,
       backgroundColor: Colors.lightBlueAccent,
+      elevation: 4,
     );
   }
 
   Widget _buildMap(BuildContext context, DistanceTrackerState state) {
     return FlutterMap(
-      mapController: mapController, // Use the local controller
+      mapController: mapController,
       options: MapOptions(
         initialCenter: state.currentUserLocation,
         minZoom: AppConstants.minZoom,
@@ -119,102 +125,63 @@ class _DistanceTrackerView extends StatelessWidget {
   }
 
   List<Marker> _buildMarkers(BuildContext context, DistanceTrackerState state) {
-    final size = MediaQuery.of(context).size;
-    final markerSize = size.width * 0.08;
+    final markerSize = MediaQuery.of(context).size.width * 0.08;
 
-    final markers = state.userLocations.map((loc) {
-      final user = state.users.firstWhere(
-        (u) => u.id == loc.userid,
-        orElse: () => User(
-          id: 0,
-          firstname: "Unknown",
-          email: "",
-          password: "",
-          fullname: '',
-          lastname: '',
-          profile_pic: '',
-          gender: '',
-          dob: '',
-          status: '',
-          koumoku1: '',
-          koumoku2: '',
-          koumoku3: '',
-          koumoku4: '',
-          koumoku5: '',
-          koumoku6: '',
-          koumoku7: '',
-          koumoku8: '',
-          koumoku9: '',
-          koumoku10: '',
-        ),
-      );
-      return Marker(
-        point: LatLng(loc.endlatitude, loc.endlongitude),
+    return [
+      ...state.userLocations.map((loc) {
+        final user = state.users.firstWhere(
+          (u) => u.id == loc.userid,
+          orElse: () => User(
+            id: 0,
+            firstname: "Unknown",
+            email: "",
+            password: "",
+            fullname: '',
+            lastname: '',
+            profile_pic: '',
+            gender: '',
+            dob: '',
+            status: '',
+            koumoku1: '',
+            koumoku2: '',
+            koumoku3: '',
+            koumoku4: '',
+            koumoku5: '',
+            koumoku6: '',
+            koumoku7: '',
+            koumoku8: '',
+            koumoku9: '',
+            koumoku10: '',
+          ),
+        );
+        return Marker(
+          point: LatLng(loc.endlatitude, loc.endlongitude),
+          width: markerSize * 2,
+          height: markerSize * 2.5,
+          child: GestureDetector(
+            onTap: () => context.read<DistanceTrackerBloc>().add(
+                  CalculateDistance(
+                    loc.userid,
+                    LatLng(loc.endlatitude, loc.endlongitude),
+                  ),
+                ),
+            child:
+                _MarkerContent(label: user.firstname, markerSize: markerSize),
+          ),
+        );
+      }),
+      Marker(
+        point: state.currentUserLocation,
         width: markerSize * 2,
         height: markerSize * 2.5,
-        child: GestureDetector(
-          onTap: () => context.read<DistanceTrackerBloc>().add(
-                CalculateDistance(
-                  loc.userid,
-                  LatLng(loc.endlatitude, loc.endlongitude),
-                ),
-              ),
-          child: _buildMarkerContent(user.firstname, markerSize),
-        ),
-      );
-    }).toList();
-
-    markers.add(Marker(
-      point: state.currentUserLocation,
-      width: markerSize * 2,
-      height: markerSize * 2.5,
-      child: _buildMarkerContent("Me", markerSize),
-    ));
-
-    return markers;
+        child: const _MarkerContent(label: "Me"),
+      ),
+    ];
   }
 
-  Widget _buildMarkerContent(String label, double markerSize) {
-    final fontSize = markerSize * 0.3;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: fontSize * 0.5,
-            vertical: fontSize * 0.25,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.black54,
-            borderRadius: BorderRadius.circular(fontSize * 0.5),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: fontSize.clamp(10, 16),
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        ClipOval(
-          child: Image.asset(
-            'assets/person_marker.png',
-            width: markerSize * 1.8,
-            height: markerSize * 1.8,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                Icon(Icons.person, size: markerSize * 1.8, color: Colors.grey),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDistanceInfo(BuildContext context, double padding, Size size,
-      DistanceTrackerState state) {
+  Widget _buildDistanceInfo(
+      BuildContext context, double padding, DistanceTrackerState state) {
+    final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
     final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
     final buttonSize = isSmallScreen
@@ -222,8 +189,7 @@ class _DistanceTrackerView extends StatelessWidget {
         : isLargeScreen
             ? 56.0
             : 50.0;
-    final spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
-    final iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
+    final iconSize = buttonSize * 0.6;
 
     final selectedUser = state.selectedUserId != null
         ? state.users.firstWhere(
@@ -254,6 +220,7 @@ class _DistanceTrackerView extends StatelessWidget {
         : null;
 
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(padding),
       color: Colors.white.withOpacity(0.9),
       child: Column(
@@ -271,110 +238,48 @@ class _DistanceTrackerView extends StatelessWidget {
                         builder: (_) => ProfileScreen(user: selectedUser)),
                   ),
                   child: CircleAvatar(
-                    radius: isSmallScreen ? 22 : 25,
+                    radius: isSmallScreen ? 20 : 25,
                     backgroundImage:
                         const AssetImage('assets/person_marker.png'),
                   ),
                 ),
                 SizedBox(width: padding * 0.5),
                 Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color:
-                                  selectedUser.status.toLowerCase() == 'active'
-                                      ? Colors.green
-                                      : Colors.grey,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        selectedUser.fullname,
-                        style: TextStyle(
-                          fontSize: isSmallScreen ? 16 : 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        'Last active 25m ago', // Replace with dynamic data
-                        style: TextStyle(
-                          fontSize: isSmallScreen ? 12 : 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _UserInfo(
+                      user: selectedUser, isSmallScreen: isSmallScreen),
                 ),
               ],
             ),
+            SizedBox(height: padding),
           ],
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: Card(
-                  elevation: 4.0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0)),
-                  child: InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChatScreen(
-                          senderId: state.user!.id.toString(),
-                          receiverId: state.selectedUserId.toString(),
-                        ),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Icon(Icons.chat_rounded,
-                          size: iconSize, color: Colors.blueAccent),
+              _ActionCard(
+                icon: Icons.chat_rounded,
+                color: Colors.blueAccent,
+                size: buttonSize,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      senderId: state.user!.id.toString(),
+                      receiverId: state.selectedUserId.toString(),
                     ),
                   ),
                 ),
               ),
-              SizedBox(width: padding * 0.5),
-              if (state.distance > 0 && state.selectedUserId != null)
-                Expanded(
-                  child: Card(
-                    elevation: 4.0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0)),
-                    child: InkWell(
-                      onTap: () {},
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FaIcon(FontAwesomeIcons.car,
-                                size: iconSize, color: Colors.black54),
-                            SizedBox(width: padding * 0.25),
-                            Text(
-                              '${state.distance.toStringAsFixed(2)} km',
-                              style: TextStyle(
-                                fontSize: isSmallScreen ? 14 : 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+              if (state.distance > 0 && state.selectedUserId != null) ...[
+                SizedBox(width: padding * 0.5),
+                _ActionCard(
+                  icon: FontAwesomeIcons.car,
+                  color: Colors.black54,
+                  size: buttonSize,
+                  text: '${state.distance.toStringAsFixed(2)} km',
+                  isSmallScreen: isSmallScreen,
+                  onTap: () {},
                 ),
+              ],
             ],
           ),
         ],
@@ -382,25 +287,26 @@ class _DistanceTrackerView extends StatelessWidget {
     );
   }
 
-  Widget _buildFloatingButtons(
-      BuildContext context, Size size, DistanceTrackerState state) {
-    final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
-    final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
-    final padding = size.width * 0.05;
+  Widget _buildFloatingButtons(BuildContext context, BoxConstraints constraints,
+      DistanceTrackerState state) {
+    final isSmallScreen =
+        constraints.maxWidth < AppConstants.smallScreenBreakpoint;
+    final isLargeScreen =
+        constraints.maxWidth >= AppConstants.largeScreenBreakpoint;
+    final padding = constraints.maxWidth * 0.05;
     final buttonSize = isSmallScreen
         ? 40.0
         : isLargeScreen
             ? 56.0
             : 52.0;
-    final spacing = size.height * (isSmallScreen ? 0.015 : 0.02);
-    final iconSize = buttonSize * (isSmallScreen ? 0.5 : 0.6);
+    final spacing = constraints.maxHeight * 0.02;
+    final iconSize = buttonSize * 0.6;
 
     return Positioned(
       bottom: padding,
       right: padding,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           _buildFAB(
             icon: Icons.refresh,
@@ -461,16 +367,18 @@ class _DistanceTrackerView extends StatelessWidget {
       heroTag: heroTag,
       elevation: isLargeScreen ? 0 : 6,
       backgroundColor: isLargeScreen ? Colors.white : null,
-      child: Icon(icon,
-          size: iconSize,
-          color: isLargeScreen ? Colors.blueAccent : Colors.black),
+      child: Icon(
+        icon,
+        size: iconSize,
+        color: isLargeScreen ? Colors.blueAccent : Colors.black,
+      ),
     );
   }
 
-  Widget _buildErrorMessage(Size size, String message) {
+  Widget _buildErrorMessage(BoxConstraints constraints, String message) {
     return Center(
       child: Container(
-        width: size.width * 0.8,
+        width: constraints.maxWidth * 0.8,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.red,
@@ -479,7 +387,7 @@ class _DistanceTrackerView extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
       ),
     );
@@ -501,5 +409,179 @@ class _DistanceTrackerView extends StatelessWidget {
 
   void _navigate(BuildContext context, Widget page) {
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
+  }
+}
+
+// Reusable Widgets
+class _MarkerContent extends StatelessWidget {
+  final String label;
+  final double? markerSize;
+
+  const _MarkerContent({required this.label, this.markerSize});
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveMarkerSize =
+        markerSize ?? MediaQuery.of(context).size.width * 0.08;
+    final fontSize = effectiveMarkerSize * 0.3;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: fontSize * 0.5,
+            vertical: fontSize * 0.25,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.black54,
+            borderRadius: BorderRadius.circular(fontSize * 0.5),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: fontSize.clamp(10, 16),
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        ClipOval(
+          child: Image.asset(
+            'assets/person_marker.png',
+            width: effectiveMarkerSize * 1.8,
+            height: effectiveMarkerSize * 1.8,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Icon(
+              Icons.person,
+              size: effectiveMarkerSize * 1.8,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UserInfo extends StatelessWidget {
+  final User user;
+  final bool isSmallScreen;
+
+  const _UserInfo({required this.user, required this.isSmallScreen});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: user.status.toLowerCase() == 'active'
+                    ? Colors.green
+                    : Colors.grey,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                user.fullname,
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 16 : 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        Text(
+          'Last active 25m ago', // Replace with dynamic data
+          style: TextStyle(
+            fontSize: isSmallScreen ? 12 : 14,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+  final String? text;
+  final bool isSmallScreen;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.color,
+    required this.size,
+    this.text,
+    this.isSmallScreen = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Card(
+        elevation: 4.0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: EdgeInsets.all(size * 0.2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon == FontAwesomeIcons.car)
+                  FaIcon(icon, size: size * 0.6, color: color)
+                else
+                  Icon(icon, size: size * 0.6, color: color),
+                if (text != null) ...[
+                  SizedBox(width: size * 0.1),
+                  Flexible(
+                    child: Text(
+                      text!,
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 14 : 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingOverlay extends StatelessWidget {
+  const _LoadingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+      ),
+    );
   }
 }
