@@ -14,13 +14,13 @@ import '../data/repositories/match_user_repository.dart';
 import '../data/repositories/user_location_repository.dart';
 import '../enum.dart';
 import '../screen/auth_screen.dart';
-import '../screen/chat_screen.dart';
 import '../screen/profile_screen.dart';
 import '../screen/sidebar.dart';
 import '../screen/user_list_screen.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
-import 'chat_box_screen.dart';
+import 'message_screens/chat_box_screen.dart';
+import 'message_screens/chat_screen.dart';
 
 class DistanceTrackerScreen extends StatelessWidget {
   final MapController _mapController = MapController();
@@ -263,8 +263,8 @@ class _DistanceTrackerView extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChatScreen(
-                      senderId: state.user!.id.toString(),
-                      receiverId: state.selectedUserId.toString(),
+                      senderId: state.user!.id ?? 0,
+                      receiverId: state.selectedUserId ?? 0,
                     ),
                   ),
                 ),

@@ -1,62 +1,26 @@
+import 'package:gis_osm/data/models/message.dart';
+import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import '../data/models/message.dart';
 
 class MessageService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final MessageRepository _messageRepository;
 
-  Stream<List<Map<String, dynamic>>> getUsersStream() {
-    return _firestore.collection('users').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final user = doc.data();
-        return user;
-      }).toList();
-    });
+  MessageService({MessageRepository? messageRepository})
+      : _messageRepository = messageRepository ?? MessageRepository();
+
+  Stream<List<Message>> getMessages(int senderId, int receiverId) {
+    return _messageRepository.getMessages(senderId, receiverId);
   }
 
-  // Send a message
-  Future<void> sendMessage(String receiverId, String message) async {
-    final String currentUserId = _auth.currentUser!.uid;
-    final Timestamp timestamp = Timestamp.now();
-
-    Message newMessage = Message(
-      senderId: currentUserId,
-      receiverId: receiverId,
-      content: message,
-      sentAt: timestamp,
+  Future<void> sendMessage(int receiverId, String content, int senderId) async {
+    final message = Message(
+      id: '', // Firestore will auto-generate the ID
+      content: content,
       isRead: false,
+      receiverId: receiverId,
+      senderId: senderId,
+      sentAt: Timestamp.now(),
     );
-
-    List<String> ids = [currentUserId, receiverId];
-    ids.sort();
-    String chatRoomId = ids.join('_');
-
-    await _firestore
-        .collection('chat_rooms')
-        .doc(chatRoomId)
-        .collection('messages')
-        .add(newMessage.toJson()); // Store the new message as JSON
-  }
-
-  Stream<List<Message>> getMessages(String userId, String otherUserId) {
-    List<String> ids = [userId, otherUserId];
-    ids.sort();
-    String chatRoomId = ids.join('_');
-
-    return _firestore
-        .collection('chat_rooms')
-        .doc(chatRoomId)
-        .collection('messages')
-        .orderBy('sentAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Message.fromJson(
-            data); // Convert Firestore data to Message model
-      }).toList();
-    });
+    await _messageRepository.sendMessage(message);
   }
 }

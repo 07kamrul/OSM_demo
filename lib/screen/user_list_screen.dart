@@ -9,9 +9,8 @@ import '../enum.dart';
 import '../services/user_service.dart';
 import '../widgets/user_card.dart';
 import 'auth_screen.dart';
-import 'chat_box_screen.dart';
-import 'chat_screen.dart';
-import 'distance_tracker_page.dart';
+import 'distance_tracker_screen.dart';
+import 'message_screens/chat_box_screen.dart';
 import 'sidebar.dart';
 
 class UserListScreen extends StatefulWidget {
@@ -137,10 +136,9 @@ class _UserListScreenState extends State<UserListScreen> {
 
   Widget _buildSidebarContent(BuildContext context) {
     return Sidebar(
-      onHomeTap: () => _navigateTo(context, const DistanceTrackerPage()),
+      onHomeTap: () => _navigateTo(context, DistanceTrackerScreen()),
       onUsersTap: () => _navigateTo(context, const UserListScreen()),
-      onTrackLocationTap: () =>
-          _navigateTo(context, const DistanceTrackerPage()),
+      onTrackLocationTap: () => _navigateTo(context, DistanceTrackerScreen()),
       onChatBoxTap: () => _navigateTo(context, ChatBoxScreen()),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {

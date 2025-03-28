@@ -1,39 +1,41 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Message {
-  final String senderId;
-  final String receiverId;
+  final String id; // Document ID from Firestore
   final String content;
-  final Timestamp sentAt;
   final bool isRead;
+  final int receiverId;
+  final int senderId;
+  final Timestamp sentAt;
 
   Message({
-    required this.senderId,
-    required this.receiverId,
+    required this.id,
     required this.content,
-    required this.sentAt,
     required this.isRead,
+    required this.receiverId,
+    required this.senderId,
+    required this.sentAt,
   });
 
-  // Factory method to create a Message from Firestore data
-  factory Message.fromJson(Map<String, dynamic> json) {
+  factory Message.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return Message(
-      senderId: json['senderId'] ?? '',
-      receiverId: json['receiverId'] ?? '',
-      content: json['content'] ?? '',
-      sentAt: json['sentAt'] is Timestamp ? json['sentAt'] : Timestamp.now(),
-      isRead: json['isRead'] ?? false,
+      id: doc.id,
+      content: data['content'] ?? '',
+      isRead: data['isRead'] ?? false,
+      receiverId: data['receiverId'] ?? 0,
+      senderId: data['senderId'] ?? 0,
+      sentAt: data['sentAt'] ?? Timestamp.now(),
     );
   }
 
-  // Convert Message to Firestore-compatible data (Map)
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toFirestore() {
     return {
-      'senderId': senderId,
-      'receiverId': receiverId,
       'content': content,
-      'sentAt': sentAt,
       'isRead': isRead,
+      'receiverId': receiverId,
+      'senderId': senderId,
+      'sentAt': sentAt,
     };
   }
 }

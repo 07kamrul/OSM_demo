@@ -12,7 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_map: ^8.0.0
+  flutter_map: ^8.1.1
   geolocator: ^13.0.3
   latlong2: ^0.9.1
   flutter_bloc: ^9.0.0
@@ -33,6 +33,13 @@ dependencies:
   firebase_storage: ^12.4.4
   firebase_messaging: ^15.2.4
   flutter_notification_channel: ^3.1.1
+  flutter_map_marker_cluster: ^2.0.0
+  flutter_map_tile_caching: ^10.1.1
+
+
+dependency_overrides:
+  flutter_map: ^8.1.1
+  flutter_map_marker_cluster: ^1.4.0
 
 
 dev_dependencies:
@@ -42,6 +49,7 @@ dev_dependencies:
   json_serializable: ^6.9.3
   build_runner: ^2.4.14
   flutter_lints: ^5.0.0
+
 
 flutter:
 

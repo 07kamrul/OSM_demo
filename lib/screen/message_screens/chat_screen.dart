@@ -1,15 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gis_osm/data/models/message.dart';
+import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:gis_osm/services/message_service.dart';
 import 'package:image_picker/image_picker.dart';
-import '../data/models/user.dart';
-import '../services/user_service.dart';
-import 'distance_tracker_screen.dart';
+import '../../data/models/user.dart';
+import '../../services/firebase_apis.dart';
+import '../../services/user_service.dart';
+import '../distance_tracker_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  final String senderId;
-  final String receiverId;
+  final int senderId;
+  final int receiverId;
 
   const ChatScreen({
     super.key,
@@ -23,8 +25,11 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final MessageService _messageService = MessageService();
-  final TextEditingController _messageController = TextEditingController();
+  final MessageRepository _messageRepository = MessageRepository();
+  final FirebaseAPIService _firebaseAPIService = FirebaseAPIService();
   final UserService _userService = UserService();
+
+  final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
 
@@ -33,8 +38,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    int receiverId = int.tryParse(widget.receiverId) ?? 0;
-    _userFuture = _fetchUser(receiverId);
+    _userFuture = _fetchUser(widget.receiverId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
@@ -62,7 +66,10 @@ class _ChatScreenState extends State<ChatScreen> {
   void _sendMessage() async {
     if (_messageController.text.trim().isNotEmpty) {
       await _messageService.sendMessage(
-          widget.receiverId, _messageController.text);
+        widget.receiverId,
+        _messageController.text,
+        widget.senderId,
+      );
       _messageController.clear();
       _scrollToBottom();
     }
@@ -83,11 +90,13 @@ class _ChatScreenState extends State<ChatScreen> {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         final File imageFile = File(pickedFile.path);
-        // Here you can implement logic to send the image file via _messageService
-        // For example, upload to a server and send the URL as a message
-        final imageUrl = await _uploadImage(imageFile); // Placeholder method
+        final imageUrl = await _uploadImage(imageFile);
         if (imageUrl != null) {
-          await _messageService.sendMessage(widget.receiverId, imageUrl);
+          await _messageService.sendMessage(
+            widget.receiverId,
+            imageUrl,
+            widget.senderId,
+          );
           _scrollToBottom();
         }
       }
@@ -99,11 +108,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String?> _uploadImage(File imageFile) async {
-    // Placeholder: Implement your image upload logic here (e.g., Firebase, AWS S3)
-    // Return the URL of the uploaded image
+    // Replace this with actual Firebase Storage upload logic
     debugPrint('Uploading image: ${imageFile.path}');
-    await Future.delayed(const Duration(seconds: 1)); // Simulate upload
-    return 'https://example.com/uploaded_image.jpg'; // Replace with actual URL
+    await Future.delayed(const Duration(seconds: 1));
+    return 'https://example.com/uploaded_image.jpg';
   }
 
   void _showAttachmentOptions(BuildContext context) {
@@ -264,6 +272,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(Message message, bool isSender) {
     final time = message.sentAt.toDate();
+    final isImage = message.content.startsWith('http');
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -298,13 +308,26 @@ class _ChatScreenState extends State<ChatScreen> {
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.content,
-                    style: TextStyle(
-                      color: isSender ? Colors.white : Colors.black87,
-                      fontSize: 16,
+                  if (isImage)
+                    Image.network(
+                      message.content,
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.broken_image,
+                        color: Colors.grey,
+                        size: 50,
+                      ),
+                    )
+                  else
+                    Text(
+                      message.content,
+                      style: TextStyle(
+                        color: isSender ? Colors.white : Colors.black87,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 2),
                   Text(
                     '${time.hour}:${time.minute.toString().padLeft(2, '0')}',

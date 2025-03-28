@@ -7,7 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import '../data/models/ChatUser.dart';
 
-class APIS {
+class FirebaseAPIService {
   static FirebaseAuth get auth => FirebaseAuth.instance;
 
   static FirebaseFirestore get firestore => FirebaseFirestore.instance;
@@ -38,5 +38,9 @@ class APIS {
         log('Push Token: $t');
       }
     });
+  }
+
+  static Stream<QuerySnapshot<Map<String, dynamic>>> getAllMessages() {
+    return firestore.collection('message').snapshots();
   }
 }

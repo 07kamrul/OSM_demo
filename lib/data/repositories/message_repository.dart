@@ -4,33 +4,28 @@ import 'package:gis_osm/data/models/message.dart';
 class MessageRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Collection reference for messages
-  CollectionReference get _messagesCollection =>
-      _firestore.collection('messages');
-
-  // Stream of messages between two users (real-time)
   Stream<List<Message>> getMessages(int senderId, int receiverId) {
-    try {
-      return _messagesCollection
-          .where('senderId', whereIn: [senderId, receiverId])
-          .where('receiverId', whereIn: [senderId, receiverId])
-          .orderBy('sentAt', descending: true)
-          .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map(
-                  (doc) => Message.fromJson(doc.data() as Map<String, dynamic>))
-              .toList());
-    } catch (e) {
-      throw Exception('Failed to load messages: $e');
-    }
+    return _firestore
+        .collection('message')
+        .where('senderId', whereIn: [senderId, receiverId])
+        .where('receiverId', whereIn: [senderId, receiverId])
+        .orderBy('sentAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => Message.fromFirestore(doc))
+              .toList();
+        });
   }
 
-  // Mark a message as read
+  Future<void> sendMessage(Message message) async {
+    await _firestore.collection('message').add(message.toFirestore());
+  }
+
   Future<void> markMessageAsRead(String messageId) async {
-    try {
-      await _messagesCollection.doc(messageId).update({'isRead': true});
-    } catch (e) {
-      throw Exception('Failed to mark message as read: $e');
-    }
+    await _firestore
+        .collection('message')
+        .doc(messageId)
+        .update({'isRead': true});
   }
 }

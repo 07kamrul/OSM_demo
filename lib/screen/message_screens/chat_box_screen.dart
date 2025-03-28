@@ -2,14 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart'; // For timestamp formatting
-import '../data/models/message.dart';
-import '../screen/distance_tracker_page.dart'; // Assuming this is your Home screen
-import '../screen/user_list_screen.dart'; // Assuming this is your User screen
-import '../screen/auth_screen.dart'; // For logout navigation
-import '../bloc/auth/auth_bloc.dart'; // For logout event
-import '../bloc/auth/auth_event.dart';
-import '../widgets/app_bar_action_name.dart';
-import '../screen/sidebar.dart'; // Sidebar import
+import '../../data/models/message.dart';
+import '../distance_tracker_screen.dart';
+import '../user_list_screen.dart'; // Assuming this is your User screen
+import '../auth_screen.dart'; // For logout navigation
+import '../../bloc/auth/auth_bloc.dart'; // For logout event
+import '../../bloc/auth/auth_event.dart';
+import '../../widgets/app_bar_action_name.dart';
+import '../sidebar.dart'; // Sidebar import
 
 class ChatBoxScreen extends StatelessWidget {
   final List<Message> messages;
@@ -51,9 +51,9 @@ class ChatBoxScreen extends StatelessWidget {
 
   Widget _buildSidebar(BuildContext context) {
     return Sidebar(
-      onHomeTap: () => _navigate(context, const DistanceTrackerPage()),
+      onHomeTap: () => _navigate(context, DistanceTrackerScreen()),
       onUsersTap: () => _navigate(context, const UserListScreen()),
-      onTrackLocationTap: () => _navigate(context, const DistanceTrackerPage()),
+      onTrackLocationTap: () => _navigate(context, DistanceTrackerScreen()),
       onChatBoxTap: () => _navigate(context, const ChatBoxScreen()),
       onSettingsTap: () => debugPrint("Settings tapped"), // Placeholder
       onLogoutTap: () {
@@ -169,7 +169,7 @@ class ChatBoxScreen extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              message.senderId,
+              message.senderId as String,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: fontSize,

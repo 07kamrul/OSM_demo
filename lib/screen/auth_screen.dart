@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gis_osm/screen/register_screen.dart';
 import 'package:gis_osm/screen/register_screens/personal_info_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../bloc/auth/auth_bloc.dart';
@@ -8,7 +7,6 @@ import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
 import '../data/repositories/auth_repository.dart'; // Add this import
 import '../enum.dart';
-import 'distance_tracker_page.dart';
 import 'distance_tracker_screen.dart';
 
 class AppRoot extends StatelessWidget {
@@ -42,7 +40,7 @@ class AppRoot extends StatelessWidget {
           create: (context) =>
               AuthBloc(AuthRepository()), // Pass required dependency
           child: MaterialApp(
-            home: isLoggedIn ? const DistanceTrackerPage() : AuthScreen(),
+            home: isLoggedIn ? DistanceTrackerScreen() : AuthScreen(),
             debugShowCheckedModeBanner: false,
           ),
         );
