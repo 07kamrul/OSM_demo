@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gis_osm/data/models/message.dart';
 import 'package:gis_osm/services/message_service.dart';
+import 'package:image_picker/image_picker.dart';
 import '../data/models/user.dart';
 import '../services/user_service.dart';
 import 'distance_tracker_screen.dart';
@@ -23,187 +25,346 @@ class _ChatScreenState extends State<ChatScreen> {
   final MessageService _messageService = MessageService();
   final TextEditingController _messageController = TextEditingController();
   final UserService _userService = UserService();
+  final ScrollController _scrollController = ScrollController();
+  final ImagePicker _picker = ImagePicker();
 
   Future<User>? _userFuture;
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
     super.initState();
     int receiverId = int.tryParse(widget.receiverId) ?? 0;
-    _userFuture =
-        _fetchUser(receiverId); // Fetch user when the screen initializes
+    _userFuture = _fetchUser(receiverId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<User> _fetchUser(int userId) async {
     try {
       if (userId != 0) {
-        final user = await _userService.fetchUserInfo(userId);
-        return user;
+        return await _userService.fetchUserInfo(userId);
       } else {
         throw 'User ID not found';
       }
     } catch (e) {
-      throw ('Failed to load user: $e');
+      throw 'Failed to load user: $e';
     }
   }
 
   void _sendMessage() async {
-    if (_messageController.text.isNotEmpty) {
+    if (_messageController.text.trim().isNotEmpty) {
       await _messageService.sendMessage(
           widget.receiverId, _messageController.text);
-      _messageController.clear(); // Clear input after sending message
+      _messageController.clear();
+      _scrollToBottom();
     }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        final File imageFile = File(pickedFile.path);
+        // Here you can implement logic to send the image file via _messageService
+        // For example, upload to a server and send the URL as a message
+        final imageUrl = await _uploadImage(imageFile); // Placeholder method
+        if (imageUrl != null) {
+          await _messageService.sendMessage(widget.receiverId, imageUrl);
+          _scrollToBottom();
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image: $e')),
+      );
+    }
+  }
+
+  Future<String?> _uploadImage(File imageFile) async {
+    // Placeholder: Implement your image upload logic here (e.g., Firebase, AWS S3)
+    // Return the URL of the uploaded image
+    debugPrint('Uploading image: ${imageFile.path}');
+    await Future.delayed(const Duration(seconds: 1)); // Simulate upload
+    return 'https://example.com/uploaded_image.jpg'; // Replace with actual URL
+  }
+
+  void _showAttachmentOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo, color: Color(0xFF0088CC)),
+                title: const Text('Photo from Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFF0088CC)),
+                title: const Text('Take a Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          flexibleSpace: Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
-                  );
-                },
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.black54,
-                ),
-              ),
-              SizedBox(width: 10),
-              // Use FutureBuilder to handle user data loading asynchronously
-              FutureBuilder<User>(
-                future: _userFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return CircularProgressIndicator(); // Show a loading indicator
-                  } else if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}'); // Handle errors
-                  } else if (!snapshot.hasData) {
-                    return Text('No user data'); // Handle no data case
-                  } else {
-                    final user = snapshot.data!;
-                    return Column(
-                      children: [
-                        Text(user.firstname), // Display user's first name
-                      ],
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-          backgroundColor: Colors.lightBlueAccent,
-        ),
+        appBar: _buildAppBar(context),
         body: Column(
           children: [
-            Expanded(
-              child: StreamBuilder<List<Message>>(
-                stream: _messageService.getMessages(
-                    widget.senderId, widget.receiverId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No messages yet'));
-                  }
-
-                  final messages = snapshot.data!;
-                  return ListView.builder(
-                    reverse: true, // Latest messages at the bottom
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final message = messages[index];
-                      final isSender = message.senderId == widget.senderId;
-                      return _buildMessageBubble(message, isSender);
-                    },
-                  );
-                },
-              ),
-            ),
-            _buildMessageInput(),
+            Expanded(child: _buildMessageList()),
+            _buildMessageInput(context),
           ],
         ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
+        ),
+      ),
+      title: FutureBuilder<User>(
+        future: _userFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            );
+          } else if (snapshot.hasError) {
+            return const Text('Error', style: TextStyle(color: Colors.white));
+          } else if (!snapshot.hasData) {
+            return const Text('Unknown', style: TextStyle(color: Colors.white));
+          } else {
+            final user = snapshot.data!;
+            return Row(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundImage: const AssetImage('assets/person_marker.png'),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.fullname,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      user.status.toLowerCase() == 'active'
+                          ? 'Active now'
+                          : 'Offline',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }
+        },
+      ),
+      backgroundColor: const Color(0xFF0088CC),
+      elevation: 0,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.call, color: Colors.white),
+          onPressed: () {},
+        ),
+        IconButton(
+          icon: const Icon(Icons.videocam, color: Colors.white),
+          onPressed: () {},
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMessageList() {
+    return StreamBuilder<List<Message>>(
+      stream: _messageService.getMessages(widget.senderId, widget.receiverId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('Start a conversation!'));
+        }
+
+        final messages = snapshot.data!;
+        return ListView.builder(
+          controller: _scrollController,
+          reverse: true,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          itemCount: messages.length,
+          itemBuilder: (context, index) {
+            final message = messages[index];
+            final isSender = message.senderId == widget.senderId;
+            return _buildMessageBubble(message, isSender);
+          },
+        );
+      },
     );
   }
 
   Widget _buildMessageBubble(Message message, bool isSender) {
-    return Align(
-      alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSender ? Colors.lightBlueAccent : Colors.grey[300],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment:
-              isSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Text(
-              message.content,
-              style: TextStyle(
-                color: isSender ? Colors.white : Colors.black87,
-                fontSize: 16,
-              ),
+    final time = message.sentAt.toDate();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment:
+            isSender ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!isSender) ...[
+            const CircleAvatar(
+              radius: 16,
+              backgroundImage: AssetImage('assets/person_marker.png'),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '${message.sentAt.toDate().hour}:${message.sentAt.toDate().minute}',
-              style: TextStyle(
-                color: isSender ? Colors.white70 : Colors.black54,
-                fontSize: 12,
-              ),
-            ),
-            if (!isSender && !message.isRead)
-              const Text(
-                'Unread',
-                style: TextStyle(color: Colors.red, fontSize: 10),
-              ),
+            const SizedBox(width: 8),
           ],
-        ),
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSender ? const Color(0xFF0088CC) : Colors.grey[200],
+                borderRadius: BorderRadius.circular(18).copyWith(
+                  topLeft: isSender
+                      ? const Radius.circular(18)
+                      : const Radius.circular(0),
+                  topRight: isSender
+                      ? const Radius.circular(0)
+                      : const Radius.circular(18),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: isSender
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.content,
+                    style: TextStyle(
+                      color: isSender ? Colors.white : Colors.black87,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${time.hour}:${time.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      color: isSender ? Colors.white70 : Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isSender) const SizedBox(width: 8),
+        ],
       ),
     );
   }
 
-  Widget _buildMessageInput() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
+  Widget _buildMessageInput(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      color: Colors.white,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          IconButton(
+            icon:
+                const Icon(Icons.add_circle_outline, color: Color(0xFF0088CC)),
+            onPressed: () => _showAttachmentOptions(context),
+          ),
           Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: 'Type a message...',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 100),
+              child: TextField(
+                controller: _messageController,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+                  hintText: 'Message...',
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onSubmitted: (_) => _sendMessage(),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.send, color: Colors.lightBlueAccent),
-            onPressed: _sendMessage,
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: const Color(0xFF0088CC),
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white, size: 20),
+              onPressed: _sendMessage,
+            ),
           ),
         ],
       ),

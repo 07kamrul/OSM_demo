@@ -13,7 +13,7 @@ dependencies:
     sdk: flutter
 
   flutter_map: ^8.0.0
-  geolocator: ^12.0.0
+  geolocator: ^13.0.3
   latlong2: ^0.9.1
   flutter_bloc: ^9.0.0
   cupertino_icons: ^1.0.8
@@ -30,6 +30,10 @@ dependencies:
   web_socket_channel: ^3.0.2
   firebase_auth: ^5.5.1
   shared_preferences_android: ^2.4.8
+  firebase_storage: ^12.4.4
+  firebase_messaging: ^15.2.4
+  flutter_notification_channel: ^3.1.1
+
 
 dev_dependencies:
   flutter_test:
