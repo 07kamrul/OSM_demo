@@ -12,6 +12,7 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initializeFirebase();
+
   runApp(
     MultiBlocProvider(
       providers: [

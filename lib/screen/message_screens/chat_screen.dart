@@ -1,5 +1,9 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:gis_osm/data/models/message.dart';
 import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:gis_osm/services/message_service.dart';
@@ -8,6 +12,11 @@ import '../../data/models/user.dart';
 import '../../services/firebase_apis.dart';
 import '../../services/user_service.dart';
 import '../distance_tracker_screen.dart';
+
+// Function to parse Firestore snapshot in a background isolate
+List<Message> _parseMessages(QuerySnapshot<Map<String, dynamic>> snapshot) {
+  return snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList();
+}
 
 class ChatScreen extends StatefulWidget {
   final int senderId;
@@ -34,6 +43,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final ImagePicker _picker = ImagePicker();
 
   Future<User>? _userFuture;
+  ImageProvider? _personMarkerImage;
+  bool _hasPreloadedAssets = false;
 
   @override
   void initState() {
@@ -42,6 +53,20 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasPreloadedAssets) {
+      _preloadAssets();
+      _hasPreloadedAssets = true;
+    }
+  }
+
+  Future<void> _preloadAssets() async {
+    _personMarkerImage = const AssetImage('assets/person_marker.png');
+    await precacheImage(_personMarkerImage!, context);
   }
 
   @override
@@ -108,7 +133,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String?> _uploadImage(File imageFile) async {
-    // Replace this with actual Firebase Storage upload logic
     debugPrint('Uploading image: ${imageFile.path}');
     await Future.delayed(const Duration(seconds: 1));
     return 'https://example.com/uploaded_image.jpg';
@@ -195,7 +219,8 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundImage: const AssetImage('assets/person_marker.png'),
+                  backgroundImage: _personMarkerImage ??
+                      const AssetImage('assets/person_marker.png'),
                 ),
                 const SizedBox(width: 10),
                 Column(
@@ -258,8 +283,10 @@ class _ChatScreenState extends State<ChatScreen> {
         return ListView.builder(
           controller: _scrollController,
           reverse: true,
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           itemCount: messages.length,
+          cacheExtent: 1000.0,
           itemBuilder: (context, index) {
             final message = messages[index];
             final isSender = message.senderId == widget.senderId;
@@ -281,16 +308,18 @@ class _ChatScreenState extends State<ChatScreen> {
             isSender ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isSender) ...[
-            const CircleAvatar(
+            CircleAvatar(
               radius: 16,
-              backgroundImage: AssetImage('assets/person_marker.png'),
+              backgroundImage: _personMarkerImage ??
+                  const AssetImage('assets/person_marker.png'),
             ),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.7),
+                maxWidth: MediaQuery.of(context).size.width * 0.7,
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: isSender ? const Color(0xFF0088CC) : Colors.grey[200],
@@ -309,12 +338,14 @@ class _ChatScreenState extends State<ChatScreen> {
                     : CrossAxisAlignment.start,
                 children: [
                   if (isImage)
-                    Image.network(
-                      message.content,
+                    CachedNetworkImage(
+                      imageUrl: message.content,
                       width: 200,
                       height: 200,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
+                      placeholder: (context, url) =>
+                          const CircularProgressIndicator(),
+                      errorWidget: (context, url, error) => const Icon(
                         Icons.broken_image,
                         color: Colors.grey,
                         size: 50,

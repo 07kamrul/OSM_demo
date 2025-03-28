@@ -1,26 +1,34 @@
-import 'package:gis_osm/data/models/message.dart';
-import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import '../data/models/message.dart';
 
 class MessageService {
-  final MessageRepository _messageRepository;
-
-  MessageService({MessageRepository? messageRepository})
-      : _messageRepository = messageRepository ?? MessageRepository();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<List<Message>> getMessages(int senderId, int receiverId) {
-    return _messageRepository.getMessages(senderId, receiverId);
+    return _firestore
+        .collection('message')
+        .where('senderId', whereIn: [senderId, receiverId])
+        .where('receiverId', whereIn: [senderId, receiverId])
+        .orderBy('sentAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          return await compute(_parseMessages, snapshot);
+        });
   }
 
   Future<void> sendMessage(int receiverId, String content, int senderId) async {
-    final message = Message(
-      id: '', // Firestore will auto-generate the ID
-      content: content,
-      isRead: false,
-      receiverId: receiverId,
-      senderId: senderId,
-      sentAt: Timestamp.now(),
-    );
-    await _messageRepository.sendMessage(message);
+    await _firestore.collection('message').add({
+      'senderId': senderId,
+      'receiverId': receiverId,
+      'content': content,
+      'sentAt': Timestamp.now(),
+    });
   }
+}
+
+// Function to parse Firestore snapshot in a background isolate
+List<Message> _parseMessages(QuerySnapshot<Map<String, dynamic>> snapshot) {
+  return snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList();
 }

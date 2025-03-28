@@ -20,16 +20,17 @@ class DistanceTrackerBloc
   final AuthRepository _userRepository;
   final MatchUsersRepository _matchUsersRepository;
   final UserService _userService;
-  final MapController mapController; // Made public, passed from UI
+  final MapController mapController;
   Timer? _locationUpdateTimer;
   LatLng? _previousLocation;
+  bool _isClosed = false;
 
   DistanceTrackerBloc({
     required UserLocationRepository userLocationRepository,
     required AuthRepository userRepository,
     required MatchUsersRepository matchUsersRepository,
     required UserService userService,
-    required this.mapController, // Now public and required
+    required this.mapController,
   })  : _userLocationRepository = userLocationRepository,
         _userRepository = userRepository,
         _matchUsersRepository = matchUsersRepository,
@@ -260,11 +261,16 @@ class DistanceTrackerBloc
     _locationUpdateTimer?.cancel();
     _locationUpdateTimer =
         Timer.periodic(AppConstants.locationUpdateInterval, (_) {
-      add(UpdateLocation());
+      if (!_isClosed) {
+        add(UpdateLocation());
+      }
     });
   }
 
-  void _stopPeriodicUpdates() => _locationUpdateTimer?.cancel();
+  void _stopPeriodicUpdates() {
+    _locationUpdateTimer?.cancel();
+    _locationUpdateTimer = null;
+  }
 
   void _fitMapToRoute() {
     if (state.routePoints.isEmpty) return;
@@ -277,6 +283,7 @@ class DistanceTrackerBloc
 
   @override
   Future<void> close() {
+    _isClosed = true;
     _stopPeriodicUpdates();
     return super.close();
   }
