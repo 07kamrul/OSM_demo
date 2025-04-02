@@ -1,41 +1,39 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Message {
-  final String id; // Document ID from Firestore
-  final String content;
-  final bool isRead;
-  final int receiverId;
+  final String id;
   final int senderId;
-  final Timestamp sentAt;
+  final int receiverId;
+  final String content;
+  final DateTime sentAt;
+  final bool isRead;
 
   Message({
     required this.id,
-    required this.content,
-    required this.isRead,
-    required this.receiverId,
     required this.senderId,
+    required this.receiverId,
+    required this.content,
     required this.sentAt,
+    required this.isRead,
   });
 
-  factory Message.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Message.fromMap(Map<String, dynamic> map, String id) {
     return Message(
-      id: doc.id,
-      content: data['content'] ?? '',
-      isRead: data['isRead'] ?? false,
-      receiverId: data['receiverId'] ?? 0,
-      senderId: data['senderId'] ?? 0,
-      sentAt: data['sentAt'] ?? Timestamp.now(),
+      id: id,
+      senderId: (map['senderId'] ?? 0) as int,
+      receiverId: (map['receiverId'] ?? 0) as int,
+      content: (map['content'] ?? '') as String,
+      sentAt: (map['sentAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isRead: (map['isRead'] ?? false) as bool,
     );
   }
-
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'content': content,
-      'isRead': isRead,
-      'receiverId': receiverId,
       'senderId': senderId,
-      'sentAt': sentAt,
+      'receiverId': receiverId,
+      'content': content,
+      'sentAt': Timestamp.fromDate(sentAt),
+      'isRead': isRead,
     };
   }
 }

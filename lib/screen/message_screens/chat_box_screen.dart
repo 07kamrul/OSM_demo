@@ -178,7 +178,7 @@ class ChatBoxScreen extends StatelessWidget {
             ),
           ),
           Text(
-            _formatTimestamp(message.sentAt),
+            _formatTimestamp(message.sentAt as Timestamp),
             style: TextStyle(
               fontSize: timestampFontSize,
               color: Colors.grey,

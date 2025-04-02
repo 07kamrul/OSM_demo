@@ -1,9 +1,7 @@
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:gis_osm/data/models/message.dart';
 import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:gis_osm/services/message_service.dart';
@@ -12,11 +10,6 @@ import '../../data/models/user.dart';
 import '../../services/firebase_apis.dart';
 import '../../services/user_service.dart';
 import '../distance_tracker_screen.dart';
-
-// Function to parse Firestore snapshot in a background isolate
-List<Message> _parseMessages(QuerySnapshot<Map<String, dynamic>> snapshot) {
-  return snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList();
-}
 
 class ChatScreen extends StatefulWidget {
   final int senderId;
@@ -280,13 +273,14 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         final messages = snapshot.data!;
+        print("Messages count: ${messages.length}");
+
         return ListView.builder(
           controller: _scrollController,
           reverse: true,
           physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           itemCount: messages.length,
-          cacheExtent: 1000.0,
           itemBuilder: (context, index) {
             final message = messages[index];
             final isSender = message.senderId == widget.senderId;
@@ -298,7 +292,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(Message message, bool isSender) {
-    final time = message.sentAt.toDate();
+    final time = message.sentAt;
     final isImage = message.content.startsWith('http');
 
     return Padding(
