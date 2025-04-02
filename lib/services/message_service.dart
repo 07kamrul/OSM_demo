@@ -17,8 +17,8 @@ class MessageService {
   Stream<List<Message>> getMessages(int senderId, int receiverId) {
     return _firestore
         .collection('message')
-        .where('senderId', whereIn: [senderId])
-        .where('receiverId', whereIn: [receiverId])
+        .where('senderId', whereIn: [senderId, receiverId])
+        .where('receiverId', whereIn: [senderId, receiverId])
         .orderBy('sentAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -29,20 +29,27 @@ class MessageService {
   Stream<Map<int, List<Message>>> getAllMessages(int currentUserId) {
     return _firestore
         .collection('message')
-        .where('senderId', isEqualTo: currentUserId) // Fetch only sent messages
+        .where(
+          Filter.or(
+            Filter('senderId', isEqualTo: currentUserId),
+            Filter('receiverId', isEqualTo: currentUserId),
+          ),
+        )
         .orderBy('sentAt', descending: true)
         .snapshots()
         .map((snapshot) {
       final messages = snapshot.docs
-          .map(
-            (doc) => Message.fromMap(doc.data(), doc.id),
-          )
+          .map((doc) => Message.fromMap(doc.data(), doc.id))
           .toList();
 
-      // Group messages by receiverId
+      // Group messages by chat partner (other user)
       Map<int, List<Message>> groupedMessages = {};
       for (var message in messages) {
-        groupedMessages.putIfAbsent(message.receiverId, () => []).add(message);
+        int otherUserId = message.senderId == currentUserId
+            ? message.receiverId
+            : message.senderId;
+
+        groupedMessages.putIfAbsent(otherUserId, () => []).add(message);
       }
 
       return groupedMessages;
