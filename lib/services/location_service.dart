@@ -3,6 +3,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class LocationService {
   static Future<LatLng> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -32,8 +34,7 @@ class LocationService {
     });
   }
 
-  static Future<RouteResult?> getRouteDistance(
-      LatLng start, LatLng end) async {
+  static Future<RouteResult?> getRouteDistance(LatLng start, LatLng end) async {
     final String url =
         'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson';
 
@@ -61,7 +62,6 @@ class LocationService {
       return null;
     }
   }
-
 }
 
 class RouteResult {

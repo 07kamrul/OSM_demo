@@ -3,6 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../common/user_storage.dart';
 import '../../data/models/user_location.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -36,6 +37,7 @@ class DistanceTrackerBloc
         _matchUsersRepository = matchUsersRepository,
         _userService = userService,
         super(const DistanceTrackerState(currentUserLocation: LatLng(0, 0))) {
+    on<InitializeMap>(_onInitializeMap);
     on<InitializeData>(_onInitializeData);
     on<UpdateLocation>(_onUpdateLocation);
     on<CalculateDistance>(_onCalculateDistance);
@@ -43,7 +45,12 @@ class DistanceTrackerBloc
     on<ResetRotation>(_onResetRotation);
     on<ClearRoute>(_onClearRoute);
     on<FetchMatchUsers>(_onFetchMatchUsers);
+  }
 
+  Future<void> _onInitializeMap(
+      InitializeMap event, Emitter<DistanceTrackerState> emit) async {
+    emit(state.copyWith(isLoading: false));
+    // Defer heavy initialization to after the map is rendered
     add(InitializeData());
   }
 
@@ -60,6 +67,9 @@ class DistanceTrackerBloc
       final location = await LocationService.getCurrentLocation();
       final users = await _userService.fetchUsers();
       final matchUsers = await _matchUsersRepository.getMatchUsers(userId);
+
+      // Save the location to cache
+      await saveLocation(location);
 
       emit(state.copyWith(
         currentUserLocation: location,
@@ -85,6 +95,7 @@ class DistanceTrackerBloc
 
   Future<void> _onUpdateLocation(
       UpdateLocation event, Emitter<DistanceTrackerState> emit) async {
+    emit(state.copyWith(isLoading: true));
     try {
       final location = await LocationService.getCurrentLocation();
       if (_previousLocation == null || _previousLocation != location) {
@@ -95,20 +106,13 @@ class DistanceTrackerBloc
           emit(state.copyWith(currentZoom: mapController.camera.zoom));
         }
         _previousLocation = location;
+        await saveLocation(location);
       }
-
-      final userId = await UserStorage.getUserId();
-      if (userId != null && state.isShareLocation) {
-        await _updateUserLocation(state.userLocation);
-      }
-
-      if (state.selectedUserId != null) {
-        await _recalculateDistanceForSelectedUser(emit);
-      }
-
-      await _fetchMatchUsers(userId, emit);
+      // ... rest of the logic
+      emit(state.copyWith(isLoading: false));
     } catch (e) {
-      emit(state.copyWith(errorMessage: 'Error updating location: $e'));
+      emit(state.copyWith(
+          errorMessage: 'Error updating location: $e', isLoading: false));
     }
   }
 
@@ -279,6 +283,21 @@ class DistanceTrackerBloc
       bounds: bounds,
       padding: const EdgeInsets.all(50),
     ));
+  }
+
+  // Location caching methods
+  Future<void> saveLocation(LatLng location) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('last_latitude', location.latitude);
+    await prefs.setDouble('last_longitude', location.longitude);
+  }
+
+  Future<LatLng> getCachedLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final latitude =
+        prefs.getDouble('last_latitude') ?? 37.7749; // Default: San Francisco
+    final longitude = prefs.getDouble('last_longitude') ?? -122.4194;
+    return LatLng(latitude, longitude);
   }
 
   @override

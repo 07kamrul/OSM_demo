@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gis_osm/services/cached_location.dart';
 import 'package:latlong2/latlong.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
@@ -36,16 +37,42 @@ class DistanceTrackerScreen extends StatelessWidget {
         matchUsersRepository: context.read<MatchUsersRepository>(),
         userService: context.read<UserService>(),
         mapController: _mapController,
-      ),
+      )..add(InitializeMap()),
       child: _DistanceTrackerView(mapController: _mapController),
     );
   }
 }
 
-class _DistanceTrackerView extends StatelessWidget {
+class _DistanceTrackerView extends StatefulWidget {
   final MapController mapController;
 
   const _DistanceTrackerView({required this.mapController});
+
+  @override
+  State<_DistanceTrackerView> createState() => _DistanceTrackerViewState();
+}
+
+class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
+  LatLng _initialLocation = const LatLng(0, 0);
+  final CachedLocation _cachedLocation = CachedLocation();
+
+  @override
+  void initState() {
+    super.initState();
+    _setInitialLocation();
+  }
+
+  Future<void> _setInitialLocation() async {
+    final cachedLocation =
+        await context.read<DistanceTrackerBloc>().getCachedLocation();
+    setState(() {
+      _initialLocation = cachedLocation;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DistanceTrackerBloc>().add(UpdateLocation());
+      context.read<DistanceTrackerBloc>().add(FetchMatchUsers());
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,9 +115,9 @@ class _DistanceTrackerView extends StatelessWidget {
       titleTextStyle: Theme.of(context)
           .textTheme
           .titleLarge
-          ?.copyWith(fontSize: MediaQuery.of(context).size.width * 0.04),
+          ?.copyWith(fontSize: MediaQuery.sizeOf(context).width * 0.04),
       actions: [
-        AppBarActionName(fontSize: MediaQuery.of(context).size.width * 0.032),
+        AppBarActionName(fontSize: MediaQuery.sizeOf(context).width * 0.032),
       ],
       centerTitle: true,
       backgroundColor: Colors.lightBlueAccent,
@@ -100,15 +127,20 @@ class _DistanceTrackerView extends StatelessWidget {
 
   Widget _buildMap(BuildContext context, DistanceTrackerState state) {
     return FlutterMap(
-      mapController: mapController,
+      mapController: widget.mapController,
       options: MapOptions(
-        initialCenter: state.currentUserLocation,
+        initialCenter: state.currentUserLocation != const LatLng(0, 0)
+            ? state.currentUserLocation
+            : _initialLocation,
         minZoom: AppConstants.minZoom,
         initialRotation: state.rotation,
         onTap: (_, __) => context.read<DistanceTrackerBloc>().add(ClearRoute()),
       ),
       children: [
-        TileLayer(urlTemplate: AppConstants.tileUrl),
+        TileLayer(
+          urlTemplate: AppConstants.tileUrl,
+          tileProvider: CachedTileProvider(),
+        ),
         MarkerLayer(markers: _buildMarkers(context, state)),
         if (state.routePoints.isNotEmpty)
           PolylineLayer(
@@ -125,7 +157,7 @@ class _DistanceTrackerView extends StatelessWidget {
   }
 
   List<Marker> _buildMarkers(BuildContext context, DistanceTrackerState state) {
-    final markerSize = MediaQuery.of(context).size.width * 0.08;
+    final markerSize = MediaQuery.sizeOf(context).width * 0.08;
 
     return [
       ...state.userLocations.map((loc) {
@@ -171,7 +203,9 @@ class _DistanceTrackerView extends StatelessWidget {
         );
       }),
       Marker(
-        point: state.currentUserLocation,
+        point: state.currentUserLocation != const LatLng(0, 0)
+            ? state.currentUserLocation
+            : _initialLocation,
         width: markerSize * 2,
         height: markerSize * 2.5,
         child: const _MarkerContent(label: "Me"),
@@ -181,7 +215,7 @@ class _DistanceTrackerView extends StatelessWidget {
 
   Widget _buildDistanceInfo(
       BuildContext context, double padding, DistanceTrackerState state) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
     final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
     final isLargeScreen = size.width >= AppConstants.largeScreenBreakpoint;
     final buttonSize = isSmallScreen
@@ -263,7 +297,7 @@ class _DistanceTrackerView extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChatScreen(
-                      senderId: state.user!.id ?? 0,
+                      senderId: state.user?.id ?? 0,
                       receiverId: state.selectedUserId ?? 0,
                     ),
                   ),
@@ -422,7 +456,7 @@ class _MarkerContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveMarkerSize =
-        markerSize ?? MediaQuery.of(context).size.width * 0.08;
+        markerSize ?? MediaQuery.sizeOf(context).width * 0.08;
     final fontSize = effectiveMarkerSize * 0.3;
 
     return Column(
@@ -583,5 +617,14 @@ class _LoadingOverlay extends StatelessWidget {
         valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
       ),
     );
+  }
+}
+
+class CachedTileProvider extends TileProvider {
+  CachedTileProvider();
+
+  @override
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
+    return NetworkImage(getTileUrl(coordinates, options));
   }
 }

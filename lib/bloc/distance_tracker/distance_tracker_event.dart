@@ -36,3 +36,5 @@ class ResetRotation extends DistanceTrackerEvent {}
 class ClearRoute extends DistanceTrackerEvent {}
 
 class FetchMatchUsers extends DistanceTrackerEvent {}
+
+class InitializeMap extends DistanceTrackerEvent {}
