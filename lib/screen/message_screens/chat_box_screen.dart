@@ -36,8 +36,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       drawer: _buildSidebar(context),
       body: Column(
         children: [
-          _buildTabSection(context, size, isSmallScreen),
-          Expanded(child: _buildMessageList(context, size, isSmallScreen)),
+          _buildTabSection(size, isSmallScreen),
+          Expanded(child: _buildMessageList(size, isSmallScreen)),
         ],
       ),
     );
@@ -75,7 +75,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  Widget _buildTabSection(BuildContext context, Size size, bool isSmallScreen) {
+  Widget _buildTabSection(Size size, bool isSmallScreen) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -120,8 +120,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  Widget _buildMessageList(
-      BuildContext context, Size size, bool isSmallScreen) {
+  Widget _buildMessageList(Size size, bool isSmallScreen) {
     return FutureBuilder<int?>(
       future: UserStorage.getUserId(),
       builder: (context, userSnapshot) {
@@ -139,56 +138,37 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            if (snapshot.hasError ||
+                !snapshot.hasData ||
+                snapshot.data!.isEmpty) {
               return const Center(child: Text('No messages yet.'));
             }
 
             final groupedMessages = snapshot.data!;
-            return ListView(
-              children: groupedMessages.entries.map((entry) {
-                final receiverId = entry.key;
-                final messages = entry.value;
-                final latestMessage = messages.first; // Show latest message
+            return ListView.builder(
+              itemCount: groupedMessages.length,
+              itemBuilder: (context, index) {
+                final receiverId = groupedMessages.keys.elementAt(index);
+                final messages = groupedMessages[receiverId]!;
+                final latestMessage = messages.first;
 
                 return FutureBuilder<User>(
-                  future:
-                      _authRepository.getUser(receiverId), // Fetch user details
+                  future: _authRepository.getUser(receiverId),
                   builder: (context, userSnapshot) {
                     if (userSnapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return const ListTile(
-                        title: Text('Loading...'),
-                        subtitle: Text('Fetching user info'),
-                      );
+                      return _buildLoadingTile();
                     }
                     if (userSnapshot.hasError || !userSnapshot.hasData) {
-                      return const ListTile(
-                        title: Text('Unknown User'),
-                        subtitle: Text('Failed to load user'),
-                      );
+                      return _buildErrorTile();
                     }
 
                     final user = userSnapshot.data!;
-                    return ListTile(
-                      title: Text(
-                          user.fullname), // Now it's safe to access fullName
-                      subtitle: Text(latestMessage.content),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChatScreen(
-                            senderId: currentUserId,
-                            receiverId: user.id ?? 0,
-                          ),
-                        ),
-                      ),
-                    );
+                    return _buildMessageTile(
+                        user, latestMessage, currentUserId);
                   },
                 );
-              }).toList(),
+              },
             );
           },
         );
@@ -196,9 +176,50 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, Size size) {
-    return Center(
-      child: Text('No messages yet'),
+  Widget _buildLoadingTile() {
+    return const ListTile(
+      leading: CircleAvatar(child: Icon(Icons.person)),
+      title: Text('Loading...'),
+      subtitle: Text('Fetching user info'),
+    );
+  }
+
+  Widget _buildErrorTile() {
+    return const ListTile(
+      leading: CircleAvatar(child: Icon(Icons.error)),
+      title: Text('Unknown User'),
+      subtitle: Text('Failed to load user'),
+    );
+  }
+
+  Widget _buildMessageTile(
+      User user, Message latestMessage, int currentUserId) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Colors.lightBlueAccent,
+        child: Text(user.fullname[0].toUpperCase()), // First letter as avatar
+      ),
+      title: Text(user.fullname,
+          style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(
+        latestMessage.content,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: Colors.grey[700]),
+      ),
+      trailing: Text(
+        _formatTimestamp(latestMessage.sentAt),
+        style: TextStyle(fontSize: 12, color: Colors.grey),
+      ),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            senderId: currentUserId,
+            receiverId: user.id ?? 0,
+          ),
+        ),
+      ),
     );
   }
 

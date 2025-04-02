@@ -16,10 +16,10 @@ class ChatScreen extends StatefulWidget {
   final int receiverId;
 
   const ChatScreen({
-    super.key,
+    Key? key,
     required this.senderId,
     required this.receiverId,
-  });
+  }) : super(key: key);
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -30,7 +30,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final MessageRepository _messageRepository = MessageRepository();
   final FirebaseAPIService _firebaseAPIService = FirebaseAPIService();
   final UserService _userService = UserService();
-
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
@@ -43,9 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _userFuture = _fetchUser(widget.receiverId);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToBottom();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   @override
@@ -70,22 +67,22 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<User> _fetchUser(int userId) async {
+    if (userId == 0) {
+      throw 'User ID not found';
+    }
     try {
-      if (userId != 0) {
-        return await _userService.fetchUserInfo(userId);
-      } else {
-        throw 'User ID not found';
-      }
+      return await _userService.fetchUserInfo(userId);
     } catch (e) {
       throw 'Failed to load user: $e';
     }
   }
 
-  void _sendMessage() async {
-    if (_messageController.text.trim().isNotEmpty) {
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isNotEmpty) {
       await _messageService.sendMessage(
         widget.receiverId,
-        _messageController.text,
+        text,
         widget.senderId,
       );
       _messageController.clear();
@@ -137,37 +134,34 @@ class _ChatScreenState extends State<ChatScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo, color: Color(0xFF0088CC)),
-                title: const Text('Photo from Gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt, color: Color(0xFF0088CC)),
-                title: const Text('Take a Photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo, color: Color(0xFF0088CC)),
+              title: const Text('Photo from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF0088CC)),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Using Scaffold and SafeArea for device responsiveness
     return SafeArea(
       child: Scaffold(
         appBar: _buildAppBar(context),
@@ -206,21 +200,23 @@ class _ChatScreenState extends State<ChatScreen> {
             return const Text('Error', style: TextStyle(color: Colors.white));
           } else if (!snapshot.hasData) {
             return const Text('Unknown', style: TextStyle(color: Colors.white));
-          } else {
-            final user = snapshot.data!;
-            return Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundImage: _personMarkerImage ??
-                      const AssetImage('assets/person_marker.png'),
-                ),
-                const SizedBox(width: 10),
-                Column(
+          }
+          final user = snapshot.data!;
+          return Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundImage: _personMarkerImage ??
+                    const AssetImage('assets/person_marker.png'),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       user.fullname,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -238,9 +234,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ],
                 ),
-              ],
-            );
-          }
+              ),
+            ],
+          );
         },
       ),
       backgroundColor: const Color(0xFF0088CC),
@@ -273,8 +269,6 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         final messages = snapshot.data!;
-        print("Messages count: ${messages.length}");
-
         return ListView.builder(
           controller: _scrollController,
           reverse: true,
@@ -300,23 +294,26 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Row(
         mainAxisAlignment:
             isSender ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!isSender) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundImage: _personMarkerImage ??
-                  const AssetImage('assets/person_marker.png'),
+          if (!isSender)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundImage: _personMarkerImage ??
+                    const AssetImage('assets/person_marker.png'),
+              ),
             ),
-            const SizedBox(width: 8),
-          ],
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.7,
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isSender ? const Color(0xFF0088CC) : Colors.grey[200],
+                color:
+                    isSender ? const Color(0xFF0088CC) : Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(18).copyWith(
                   topLeft: isSender
                       ? const Radius.circular(18)
@@ -338,7 +335,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       height: 200,
                       fit: BoxFit.cover,
                       placeholder: (context, url) =>
-                          const CircularProgressIndicator(),
+                          const Center(child: CircularProgressIndicator()),
                       errorWidget: (context, url, error) => const Icon(
                         Icons.broken_image,
                         color: Colors.grey,
@@ -353,11 +350,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         fontSize: 16,
                       ),
                     ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     '${time.hour}:${time.minute.toString().padLeft(2, '0')}',
                     style: TextStyle(
-                      color: isSender ? Colors.white70 : Colors.grey[600],
+                      color: isSender ? Colors.white70 : Colors.grey.shade600,
                       fontSize: 12,
                     ),
                   ),
@@ -365,7 +362,11 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          if (isSender) const SizedBox(width: 8),
+          if (isSender)
+            const Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: SizedBox(width: 16),
+            ),
         ],
       ),
     );
@@ -374,7 +375,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageInput(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            offset: const Offset(0, -1),
+            blurRadius: 4,
+          ),
+        ],
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -384,24 +394,26 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => _showAttachmentOptions(context),
           ),
           Expanded(
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 100),
-              child: TextField(
-                controller: _messageController,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                decoration: InputDecoration(
-                  hintText: 'Message...',
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 120),
+              child: Scrollbar(
+                child: TextField(
+                  controller: _messageController,
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  decoration: InputDecoration(
+                    hintText: 'Message...',
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
+                  onSubmitted: (_) => _sendMessage(),
                 ),
-                onSubmitted: (_) => _sendMessage(),
               ),
             ),
           ),
