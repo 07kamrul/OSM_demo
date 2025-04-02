@@ -25,4 +25,27 @@ class MessageService {
             .map((doc) => Message.fromMap(doc.data(), doc.id))
             .toList());
   }
+
+  Stream<Map<int, List<Message>>> getAllMessages(int currentUserId) {
+    return _firestore
+        .collection('message')
+        .where('senderId', isEqualTo: currentUserId) // Fetch only sent messages
+        .orderBy('sentAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      final messages = snapshot.docs
+          .map(
+            (doc) => Message.fromMap(doc.data(), doc.id),
+          )
+          .toList();
+
+      // Group messages by receiverId
+      Map<int, List<Message>> groupedMessages = {};
+      for (var message in messages) {
+        groupedMessages.putIfAbsent(message.receiverId, () => []).add(message);
+      }
+
+      return groupedMessages;
+    });
+  }
 }

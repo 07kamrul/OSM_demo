@@ -1,51 +1,63 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart'; // For timestamp formatting
+import 'package:intl/intl.dart';
+import 'package:gis_osm/common/user_storage.dart';
 import '../../data/models/message.dart';
+import '../../data/models/user.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../services/message_service.dart';
 import '../distance_tracker_screen.dart';
-import '../user_list_screen.dart'; // Assuming this is your User screen
-import '../auth_screen.dart'; // For logout navigation
-import '../../bloc/auth/auth_bloc.dart'; // For logout event
+import '../user_list_screen.dart';
+import '../auth_screen.dart';
+import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_event.dart';
 import '../../widgets/app_bar_action_name.dart';
-import '../sidebar.dart'; // Sidebar import
+import '../sidebar.dart';
+import 'chat_screen.dart';
 
-class ChatBoxScreen extends StatelessWidget {
-  final List<Message> messages;
+class ChatBoxScreen extends StatefulWidget {
+  const ChatBoxScreen({super.key});
 
-  const ChatBoxScreen({super.key, this.messages = const []});
+  @override
+  State<ChatBoxScreen> createState() => _ChatBoxScreenState();
+}
+
+class _ChatBoxScreenState extends State<ChatBoxScreen> {
+  final MessageService _messageService = MessageService();
+  final AuthRepository _authRepository = AuthRepository();
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 600; // Define small screen threshold
+    final isSmallScreen = size.width < 600;
 
     return Scaffold(
       appBar: _buildAppBar(context, size),
-      drawer: _buildSidebar(context), // Add sidebar here
+      drawer: _buildSidebar(context),
       body: Column(
         children: [
           _buildTabSection(context, size, isSmallScreen),
-          _buildMessageList(context, size, isSmallScreen),
+          Expanded(child: _buildMessageList(context, size, isSmallScreen)),
         ],
       ),
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context, Size size) {
-    final fontSize = size.width * 0.04;
-
     return AppBar(
       title: Text(
-        'Chat Box',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        'Messages',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: size.width * 0.045,
+        ),
       ),
       actions: [
-        AppBarActionName(fontSize: fontSize * 0.8),
+        AppBarActionName(fontSize: size.width * 0.035),
       ],
       centerTitle: true,
       backgroundColor: Colors.lightBlueAccent,
+      elevation: 1,
     );
   }
 
@@ -55,7 +67,7 @@ class ChatBoxScreen extends StatelessWidget {
       onUsersTap: () => _navigate(context, const UserListScreen()),
       onTrackLocationTap: () => _navigate(context, DistanceTrackerScreen()),
       onChatBoxTap: () => _navigate(context, const ChatBoxScreen()),
-      onSettingsTap: () => debugPrint("Settings tapped"), // Placeholder
+      onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());
         _navigate(context, AuthScreen());
@@ -63,179 +75,141 @@ class ChatBoxScreen extends StatelessWidget {
     );
   }
 
-  void _navigate(BuildContext context, Widget page) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => page),
-    );
-  }
-
   Widget _buildTabSection(BuildContext context, Size size, bool isSmallScreen) {
-    final chipPadding = size.width * 0.02;
-    final chipFontSize = isSmallScreen ? 12.0 : 14.0;
-
-    return Padding(
-      padding: EdgeInsets.all(chipPadding),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+          ),
+        ],
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            _buildChip(
-              label: 'Focused',
-              color: Colors.green,
-              fontSize: chipFontSize,
-              padding: chipPadding,
-            ),
-            SizedBox(width: chipPadding),
-            _buildChip(
-              label: 'Unread',
-              color: Colors.blue,
-              fontSize: chipFontSize,
-              padding: chipPadding,
-            ),
-            SizedBox(width: chipPadding),
-            _buildChip(
-              label: 'My Contacts',
-              color: Colors.grey,
-              fontSize: chipFontSize,
-              padding: chipPadding,
-            ),
+            const SizedBox(width: 16),
+            _buildFilterChip('All', isActive: true),
+            const SizedBox(width: 8),
+            _buildFilterChip('Unread'),
+            const SizedBox(width: 8),
+            _buildFilterChip('Groups'),
+            const SizedBox(width: 8),
+            _buildFilterChip('Favorites'),
+            const SizedBox(width: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildChip({
-    required String label,
-    required Color color,
-    required double fontSize,
-    required double padding,
-  }) {
-    return ActionChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: fontSize,
-          color: Colors.white,
-        ),
+  Widget _buildFilterChip(String label, {bool isActive = false}) {
+    return FilterChip(
+      label: Text(label),
+      selected: isActive,
+      backgroundColor: Colors.grey[200],
+      selectedColor: Colors.lightBlueAccent,
+      labelStyle: TextStyle(
+        color: isActive ? Colors.white : Colors.black87,
       ),
-      backgroundColor: color,
-      padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding / 2),
-      onPressed: () {},
+      onSelected: (_) {},
     );
   }
 
   Widget _buildMessageList(
       BuildContext context, Size size, bool isSmallScreen) {
-    return Expanded(
-      child: messages.isEmpty
-          ? _buildEmptyState(context, size)
-          : ListView.builder(
-              itemCount: messages.length,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(vertical: size.height * 0.01),
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return _buildMessageTile(context, message, size, isSmallScreen);
-              },
-            ),
-    );
-  }
+    return FutureBuilder<int?>(
+      future: UserStorage.getUserId(),
+      builder: (context, userSnapshot) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (userSnapshot.hasError || userSnapshot.data == null) {
+          return Center(child: Text('Error fetching user ID'));
+        }
 
-  Widget _buildMessageTile(
-    BuildContext context,
-    Message message,
-    Size size,
-    bool isSmallScreen,
-  ) {
-    final avatarSize = size.width * (isSmallScreen ? 0.1 : 0.08);
-    final fontSize = isSmallScreen ? 14.0 : 16.0;
-    final timestampFontSize = isSmallScreen ? 10.0 : 12.0;
+        final int currentUserId = userSnapshot.data!;
+        return StreamBuilder<Map<int, List<Message>>>(
+          stream: _messageService.getAllMessages(currentUserId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No messages yet.'));
+            }
 
-    return ListTile(
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: size.width * 0.04,
-        vertical: size.height * 0.005,
-      ),
-      leading: CircleAvatar(
-        radius: avatarSize / 2,
-        backgroundImage: const NetworkImage('https://i.pravatar.cc/150'),
-        onBackgroundImageError: (_, __) => const Icon(Icons.person),
-      ),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              message.senderId as String,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: fontSize,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            _formatTimestamp(message.sentAt as Timestamp),
-            style: TextStyle(
-              fontSize: timestampFontSize,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text(
-        message.content,
-        style: TextStyle(fontSize: fontSize * 0.9),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Icon(
-        message.isRead ? Icons.check_circle : Icons.check_circle_outline,
-        color: message.isRead ? Colors.green : Colors.grey,
-        size: size.width * 0.06,
-      ),
-      onTap: () {
-        // Navigate to chat details or mark as read
+            final groupedMessages = snapshot.data!;
+            return ListView(
+              children: groupedMessages.entries.map((entry) {
+                final receiverId = entry.key;
+                final messages = entry.value;
+                final latestMessage = messages.first; // Show latest message
+
+                return FutureBuilder<User>(
+                  future:
+                      _authRepository.getUser(receiverId), // Fetch user details
+                  builder: (context, userSnapshot) {
+                    if (userSnapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const ListTile(
+                        title: Text('Loading...'),
+                        subtitle: Text('Fetching user info'),
+                      );
+                    }
+                    if (userSnapshot.hasError || !userSnapshot.hasData) {
+                      return const ListTile(
+                        title: Text('Unknown User'),
+                        subtitle: Text('Failed to load user'),
+                      );
+                    }
+
+                    final user = userSnapshot.data!;
+                    return ListTile(
+                      title: Text(
+                          user.fullname), // Now it's safe to access fullName
+                      subtitle: Text(latestMessage.content),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            senderId: currentUserId,
+                            receiverId: user.id ?? 0,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }).toList(),
+            );
+          },
+        );
       },
-      tileColor: message.isRead ? null : Colors.grey[100],
     );
   }
 
   Widget _buildEmptyState(BuildContext context, Size size) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: size.width * 0.15,
-            color: Colors.grey,
-          ),
-          SizedBox(height: size.height * 0.02),
-          Text(
-            'No messages yet',
-            style: TextStyle(
-              fontSize: size.width * 0.05,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
+      child: Text('No messages yet'),
     );
   }
 
-  String _formatTimestamp(Timestamp timestamp) {
-    final dateTime = timestamp.toDate();
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+  String _formatTimestamp(DateTime dateTime) {
+    return DateFormat('MMM d, h:mm a').format(dateTime);
+  }
 
-    if (difference.inDays > 0) {
-      return DateFormat('MMM d').format(dateTime);
-    } else {
-      return DateFormat('HH:mm').format(dateTime);
-    }
+  void _navigate(BuildContext context, Widget page) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
   }
 }
