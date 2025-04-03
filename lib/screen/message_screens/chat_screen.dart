@@ -2,14 +2,25 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'
+    as local_notifications; // Added 'as' prefix
 import 'package:gis_osm/data/models/message.dart';
 import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:gis_osm/services/message_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/user.dart';
+import '../../notification/notification_page.dart';
 import '../../services/firebase_apis.dart';
 import '../../services/user_service.dart';
 import '../distance_tracker_screen.dart';
+
+// Background message handler
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (kDebugMode) {
+    print('Background message: ${message.notification?.body}');
+  }
+}
 
 class ChatScreen extends StatefulWidget {
   final int senderId;
@@ -33,6 +44,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
+  final local_notifications.FlutterLocalNotificationsPlugin
+      _notificationsPlugin = local_notifications
+          .FlutterLocalNotificationsPlugin(); // Updated with prefix
 
   Future<User>? _userFuture;
   ImageProvider? _personMarkerImage;
@@ -42,6 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _userFuture = _fetchUser(widget.receiverId);
+    _initializeNotifications();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -54,16 +69,81 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _preloadAssets() async {
-    _personMarkerImage = const AssetImage('assets/person_marker.png');
-    await precacheImage(_personMarkerImage!, context);
-  }
-
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // Initialize notifications for foreground and background
+  Future<void> _initializeNotifications() async {
+    // Request permission for notifications (iOS)
+    await FirebaseMessaging.instance.requestPermission();
+
+    // Configure local notifications
+    const local_notifications.AndroidInitializationSettings
+        initializationSettingsAndroid =
+        local_notifications.AndroidInitializationSettings(
+            '@mipmap/ic_launcher');
+    const local_notifications.InitializationSettings initializationSettings =
+        local_notifications.InitializationSettings(
+            android: initializationSettingsAndroid);
+    await _notificationsPlugin.initialize(initializationSettings);
+
+    // Handle foreground messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _showLocalNotification(message);
+    });
+
+    // Handle background messages
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // Handle when the app is opened from a notification
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (kDebugMode) {
+        print('Message opened app: ${message.notification?.body}');
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => NotificationPage()),
+      );
+    });
+
+    // Get initial message (if app was opened from a terminated state)
+    RemoteMessage? initialMessage =
+        await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => NotificationPage()),
+      );
+    }
+  }
+
+  // Show local notification for foreground messages
+  void _showLocalNotification(RemoteMessage message) {
+    const local_notifications.AndroidNotificationDetails androidDetails =
+        local_notifications.AndroidNotificationDetails(
+      'chat_channel_id',
+      'Chat Notifications',
+      importance: local_notifications.Importance.max,
+      priority: local_notifications.Priority.high,
+    );
+    const local_notifications.NotificationDetails notificationDetails =
+        local_notifications.NotificationDetails(android: androidDetails);
+
+    _notificationsPlugin.show(
+      0,
+      message.notification?.title ?? 'New Message',
+      message.notification?.body ?? 'You have a new message',
+      notificationDetails,
+    );
+  }
+
+  Future<void> _preloadAssets() async {
+    _personMarkerImage = const AssetImage('assets/person_marker.png');
+    await precacheImage(_personMarkerImage!, context);
   }
 
   Future<User> _fetchUser(int userId) async {
@@ -87,7 +167,33 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       _messageController.clear();
       _scrollToBottom();
+
+      // Send notification to receiver
+      await _sendNotificationToReceiver(text);
     }
+  }
+
+  // Send notification to the receiver
+  Future<void> _sendNotificationToReceiver(String messageContent) async {
+    try {
+      final receiverFcmToken = await _fetchReceiverFcmToken(widget.receiverId);
+      if (receiverFcmToken != null) {
+        await _firebaseAPIService.sendNotification(
+          receiverFcmToken,
+          'New Message',
+          messageContent,
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to send notification: $e');
+      }
+    }
+  }
+
+  // Fetch receiver's FCM token (assumes it's stored in Firebase)
+  Future<String?> _fetchReceiverFcmToken(int receiverId) async {
+    return await _firebaseAPIService.getUserFcmToken(receiverId);
   }
 
   void _scrollToBottom() {
@@ -113,6 +219,9 @@ class _ChatScreenState extends State<ChatScreen> {
             widget.senderId,
           );
           _scrollToBottom();
+
+          // Send notification for image message
+          await _sendNotificationToReceiver('Image received');
         }
       }
     } catch (e) {
@@ -161,7 +270,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Using Scaffold and SafeArea for device responsiveness
     return SafeArea(
       child: Scaffold(
         appBar: _buildAppBar(context),
@@ -429,5 +537,18 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+}
+
+class FirebaseAPIService {
+  Future<void> sendNotification(
+      String fcmToken, String title, String body) async {
+    if (kDebugMode) {
+      print('Sending notification to $fcmToken: $title - $body');
+    }
+  }
+
+  Future<String?> getUserFcmToken(int userId) async {
+    return 'sample_fcm_token';
   }
 }

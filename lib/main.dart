@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,22 +8,28 @@ import 'bloc/auth/auth_bloc.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/match_user_repository.dart';
 import 'data/repositories/user_location_repository.dart';
-import 'notification_setup.dart';
+import 'firebase_options.dart';
+import 'notification/bloc/chat_bloc.dart';
+import 'notification/bloc/chat_event.dart';
+import 'notification/bloc/notification_bloc.dart';
+import 'notification/bloc/notification_event.dart';
+import 'notification/notification_setup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  NotificattionSetup.initializeFirebase();
+  await Firebase.initializeApp();
+  NotificattionSetup.initialize();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(
       NotificattionSetup.firebaseMessagingBackgroundHandler);
-  NotificattionSetup.getToken();
-  NotificattionSetup.handleTerminatedMessages();
-  NotificattionSetup.setupForegroundNotification();
 
   runApp(
     MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => AuthBloc(AuthRepository())),
-        //BlocProvider(create: (context) => LocationBloc(LocationRepository())),
+        BlocProvider(
+            create: (_) => NotificationBloc()..add(ListenForMessages())),
+        BlocProvider(create: (_) => ChatBloc()..add(LoadMessages())),
       ],
       child: MaterialApp(
         home: MultiRepositoryProvider(
