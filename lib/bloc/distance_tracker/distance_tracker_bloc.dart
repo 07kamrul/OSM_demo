@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../common/location_storage.dart';
 import '../../common/user_storage.dart';
 import '../../data/models/user_location.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -69,7 +70,7 @@ class DistanceTrackerBloc
       final matchUsers = await _matchUsersRepository.getMatchUsers(userId);
 
       // Save the location to cache
-      await saveLocation(location);
+      CachedLocationStorage.saveLocation(location);
 
       emit(state.copyWith(
         currentUserLocation: location,
@@ -106,7 +107,7 @@ class DistanceTrackerBloc
           emit(state.copyWith(currentZoom: mapController.camera.zoom));
         }
         _previousLocation = location;
-        await saveLocation(location);
+        CachedLocationStorage.saveLocation(location);
       }
       // ... rest of the logic
       emit(state.copyWith(isLoading: false));
@@ -183,6 +184,7 @@ class DistanceTrackerBloc
       int? userId, Emitter<DistanceTrackerState> emit) async {
     try {
       if (userId == null) throw 'User ID not found';
+      CachedLocationStorage.clearLocation();
       final matchUsers = await _matchUsersRepository.getMatchUsers(userId);
       emit(state.copyWith(
         matchUsers: matchUsers,
@@ -283,21 +285,6 @@ class DistanceTrackerBloc
       bounds: bounds,
       padding: const EdgeInsets.all(50),
     ));
-  }
-
-  // Location caching methods
-  Future<void> saveLocation(LatLng location) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('last_latitude', location.latitude);
-    await prefs.setDouble('last_longitude', location.longitude);
-  }
-
-  Future<LatLng> getCachedLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    final latitude =
-        prefs.getDouble('last_latitude') ?? 37.7749; // Default: San Francisco
-    final longitude = prefs.getDouble('last_longitude') ?? -122.4194;
-    return LatLng(latitude, longitude);
   }
 
   @override

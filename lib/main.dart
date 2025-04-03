@@ -1,4 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gis_osm/services/user_service.dart';
@@ -7,11 +7,16 @@ import 'bloc/auth/auth_bloc.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/match_user_repository.dart';
 import 'data/repositories/user_location_repository.dart';
-import 'firebase_options.dart';
+import 'notification_setup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  initializeFirebase();
+  NotificattionSetup.initializeFirebase();
+  FirebaseMessaging.onBackgroundMessage(
+      NotificattionSetup.firebaseMessagingBackgroundHandler);
+  NotificattionSetup.getToken();
+  NotificattionSetup.handleTerminatedMessages();
+  NotificattionSetup.setupForegroundNotification();
 
   runApp(
     MultiBlocProvider(
@@ -31,11 +36,5 @@ void main() async {
         ),
       ),
     ),
-  );
-}
-
-initializeFirebase() async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
   );
 }

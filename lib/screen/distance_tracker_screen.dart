@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:gis_osm/services/cached_location.dart';
+import 'package:gis_osm/common/location_storage.dart';
 import 'package:latlong2/latlong.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
@@ -54,7 +54,6 @@ class _DistanceTrackerView extends StatefulWidget {
 
 class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   LatLng _initialLocation = const LatLng(0, 0);
-  final CachedLocation _cachedLocation = CachedLocation();
 
   @override
   void initState() {
@@ -63,8 +62,7 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   }
 
   Future<void> _setInitialLocation() async {
-    final cachedLocation =
-        await context.read<DistanceTrackerBloc>().getCachedLocation();
+    final cachedLocation = await CachedLocationStorage.getCachedLocation();
     setState(() {
       _initialLocation = cachedLocation;
     });
