@@ -10,17 +10,8 @@ import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:gis_osm/services/message_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/user.dart';
-import '../../notification/notification_page.dart';
-import '../../services/firebase_apis.dart';
 import '../../services/user_service.dart';
 import '../distance_tracker_screen.dart';
-
-// Background message handler
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (kDebugMode) {
-    print('Background message: ${message.notification?.body}');
-  }
-}
 
 class ChatScreen extends StatefulWidget {
   final int senderId;
@@ -56,7 +47,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _userFuture = _fetchUser(widget.receiverId);
-    _initializeNotifications();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -74,71 +64,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  // Initialize notifications for foreground and background
-  Future<void> _initializeNotifications() async {
-    // Request permission for notifications (iOS)
-    await FirebaseMessaging.instance.requestPermission();
-
-    // Configure local notifications
-    const local_notifications.AndroidInitializationSettings
-        initializationSettingsAndroid =
-        local_notifications.AndroidInitializationSettings(
-            '@mipmap/ic_launcher');
-    const local_notifications.InitializationSettings initializationSettings =
-        local_notifications.InitializationSettings(
-            android: initializationSettingsAndroid);
-    await _notificationsPlugin.initialize(initializationSettings);
-
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _showLocalNotification(message);
-    });
-
-    // Handle background messages
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // Handle when the app is opened from a notification
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      if (kDebugMode) {
-        print('Message opened app: ${message.notification?.body}');
-      }
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => NotificationPage()),
-      );
-    });
-
-    // Get initial message (if app was opened from a terminated state)
-    RemoteMessage? initialMessage =
-        await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => NotificationPage()),
-      );
-    }
-  }
-
-  // Show local notification for foreground messages
-  void _showLocalNotification(RemoteMessage message) {
-    const local_notifications.AndroidNotificationDetails androidDetails =
-        local_notifications.AndroidNotificationDetails(
-      'chat_channel_id',
-      'Chat Notifications',
-      importance: local_notifications.Importance.max,
-      priority: local_notifications.Priority.high,
-    );
-    const local_notifications.NotificationDetails notificationDetails =
-        local_notifications.NotificationDetails(android: androidDetails);
-
-    _notificationsPlugin.show(
-      0,
-      message.notification?.title ?? 'New Message',
-      message.notification?.body ?? 'You have a new message',
-      notificationDetails,
-    );
   }
 
   Future<void> _preloadAssets() async {

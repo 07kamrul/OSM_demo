@@ -14,11 +14,6 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/match_user_repository.dart';
 import '../data/repositories/user_location_repository.dart';
 import '../enum.dart';
-import '../notification/bloc/chat_bloc.dart';
-import '../notification/bloc/chat_event.dart';
-import '../notification/bloc/chat_state.dart';
-import '../notification/bloc/notification_bloc.dart';
-import '../notification/bloc/notification_state.dart';
 import '../screen/auth_screen.dart';
 import '../screen/profile_screen.dart';
 import '../screen/sidebar.dart';
@@ -101,18 +96,6 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
                   if (state.isLoading) const _LoadingOverlay(),
                   if (state.errorMessage != null)
                     _buildErrorMessage(constraints, state.errorMessage!),
-                  // Listen for Notifications
-                  BlocListener<NotificationBloc, NotificationState>(
-                    listener: (context, state) {
-                      if (state is NotificationReceived) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text("${state.title}: ${state.body}")),
-                        );
-                      }
-                    },
-                    child: SizedBox.shrink(),
-                  ),
                 ],
               );
             },

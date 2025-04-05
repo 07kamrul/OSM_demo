@@ -8,11 +8,19 @@ class CachedLocationStorage {
 
   static Future<LatLng> getCachedLocation() async {
     final prefs = await SharedPreferences.getInstance();
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    final latitude = prefs.getDouble(_lastLatitude) ?? position.latitude;
-    final longitude = prefs.getDouble(_lastLongitude) ?? position.longitude;
-    return LatLng(latitude, longitude);
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final latitude = prefs.getDouble(_lastLatitude) ?? position.latitude;
+      final longitude = prefs.getDouble(_lastLongitude) ?? position.longitude;
+      return LatLng(latitude, longitude);
+    } catch (e) {
+      print('Failed to get location: $e');
+      // Fallback to cached values or default location
+      final latitude = prefs.getDouble(_lastLatitude) ?? 0.0;
+      final longitude = prefs.getDouble(_lastLongitude) ?? 0.0;
+      return LatLng(latitude, longitude);
+    }
   }
 
   static Future<void> saveLocation(LatLng location) async {

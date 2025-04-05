@@ -26,8 +26,9 @@ class LocationService {
     return LatLng(position.latitude, position.longitude);
   }
 
-  static void listenToLocationChanges(Function(LatLng) onLocationUpdate) {
-    Geolocator.getPositionStream(
+  static Future<void> listenToLocationChanges(
+      Function(LatLng) onLocationUpdate) async {
+    await Geolocator.getPositionStream(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     ).listen((Position position) {
       onLocationUpdate(LatLng(position.latitude, position.longitude));

@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "82838015404",
+    "firebase_url": "https://gis-osm-default-rtdb.firebaseio.com",
     "project_id": "gis-osm",
     "storage_bucket": "gis-osm.firebasestorage.app"
   },
