@@ -80,6 +80,30 @@ class MessageService {
     }
   }
 
+  Future<void> updateMessages(List<Message> messages) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (var message in messages) {
+        final docRef = _firestore.collection('message').doc(message.id);
+        batch.update(docRef, {
+          'senderId': message.senderId,
+          'receiverId': message.receiverId,
+          'content': message.content,
+          'sentAt': message.sentAt,
+          'isRead': true,
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      print('Error updating messages: $e');
+      // Optional: Retry logic if needed
+      rethrow;
+    }
+  }
+
+  //----------------------------------------------
   static FirebaseMessaging fMessaging = FirebaseMessaging.instance;
 
   static Future<void> getFirebaseMessagingToken() async {

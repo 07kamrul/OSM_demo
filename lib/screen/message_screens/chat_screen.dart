@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,8 +8,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     as local_notifications; // Added 'as' prefix
 import 'package:gis_osm/data/models/message.dart';
 import 'package:gis_osm/data/repositories/message_repository.dart';
+import 'package:gis_osm/screen/message_screens/chat_box_screen.dart';
 import 'package:gis_osm/services/message_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:vibration/vibration.dart';
 import '../../data/models/user.dart';
 import '../../services/user_service.dart';
 import '../distance_tracker_screen.dart';
@@ -36,18 +39,23 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
   final local_notifications.FlutterLocalNotificationsPlugin
-      _notificationsPlugin = local_notifications
-          .FlutterLocalNotificationsPlugin(); // Updated with prefix
+      _notificationsPlugin =
+      local_notifications.FlutterLocalNotificationsPlugin();
 
   Future<User>? _userFuture;
   ImageProvider? _personMarkerImage;
   bool _hasPreloadedAssets = false;
+  AudioPlayer _audioPlayer = AudioPlayer();
+  String? _lastMessageId;
+
+  List<Message> _unreadMessages = [];
 
   @override
   void initState() {
     super.initState();
     _userFuture = _fetchUser(widget.receiverId);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    _audioPlayer = AudioPlayer();
   }
 
   @override
@@ -61,6 +69,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _audioPlayer.dispose();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -95,6 +104,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
       // Send notification to receiver
       await _sendNotificationToReceiver(text);
+    }
+  }
+
+  Future<void> _updateMessage() async {
+    if (_unreadMessages.isNotEmpty) {
+      await _messageService.updateMessages(_unreadMessages);
     }
   }
 
@@ -214,7 +229,7 @@ class _ChatScreenState extends State<ChatScreen> {
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
+          MaterialPageRoute(builder: (_) => ChatBoxScreen()),
         ),
       ),
       title: FutureBuilder<User>(
@@ -302,6 +317,30 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         final messages = snapshot.data!;
+
+        final receiverMessages = messages
+            .where((message) => message.receiverId == widget.receiverId)
+            .toList();
+
+        final notReadMessage =
+            receiverMessages.where((message) => !message.isRead).toList();
+
+        if (notReadMessage.isNotEmpty) {
+          _unreadMessages.addAll(notReadMessage);
+
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (await Vibration.hasVibrator() ?? false) {
+              Vibration.vibrate(duration: 500);
+            }
+
+            try {
+              await _audioPlayer.play(AssetSource('notification.wav'));
+            } catch (e) {
+              print('Error playing sound: $e');
+            }
+          });
+        }
+
         return ListView.builder(
           controller: _scrollController,
           reverse: true,
@@ -445,6 +484,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       borderSide: BorderSide.none,
                     ),
                   ),
+                  onChanged: (text) {
+                    if (text.trim().isNotEmpty) {
+                      _updateMessage(); // Call update when user types
+                    }
+                  },
                   onSubmitted: (_) => _sendMessage(),
                 ),
               ),
