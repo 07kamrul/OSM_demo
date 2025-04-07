@@ -25,6 +25,7 @@ class ChatBoxScreen extends StatefulWidget {
 class _ChatBoxScreenState extends State<ChatBoxScreen> {
   final MessageService _messageService = MessageService();
   final AuthRepository _authRepository = AuthRepository();
+  String _selectedFilter = 'All'; // Default filter is 'All'
 
   @override
   Widget build(BuildContext context) {
@@ -93,9 +94,9 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         child: Row(
           children: [
             const SizedBox(width: 16),
-            _buildFilterChip('All', isActive: true),
+            _buildFilterChip('All', isActive: _selectedFilter == 'All'),
             const SizedBox(width: 8),
-            _buildFilterChip('Unread'),
+            _buildFilterChip('Unread', isActive: _selectedFilter == 'Unread'),
             const SizedBox(width: 8),
             _buildFilterChip('Groups'),
             const SizedBox(width: 8),
@@ -116,7 +117,11 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       labelStyle: TextStyle(
         color: isActive ? Colors.white : Colors.black87,
       ),
-      onSelected: (_) {},
+      onSelected: (_) {
+        setState(() {
+          _selectedFilter = label; // Update the selected filter
+        });
+      },
     );
   }
 
@@ -145,11 +150,25 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
             }
 
             final groupedMessages = snapshot.data!;
+            // Filter messages based on _selectedFilter
+            final filteredGroupedMessages = _selectedFilter == 'Unread'
+                ? (Map<int, List<Message>>.from(groupedMessages)
+                  ..removeWhere((key, messages) =>
+                      messages.every((m) => m.isRead != false)))
+                : groupedMessages;
+
+            if (filteredGroupedMessages.isEmpty) {
+              return const Center(
+                  child: Text('No unread messages.',
+                      style: TextStyle(color: Colors.grey)));
+            }
+
             return ListView.builder(
-              itemCount: groupedMessages.length,
+              itemCount: filteredGroupedMessages.length,
               itemBuilder: (context, index) {
-                final receiverId = groupedMessages.keys.elementAt(index);
-                final messages = groupedMessages[receiverId]!;
+                final receiverId =
+                    filteredGroupedMessages.keys.elementAt(index);
+                final messages = filteredGroupedMessages[receiverId]!;
                 final latestMessage = messages.first;
 
                 return FutureBuilder<User>(
@@ -194,22 +213,30 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
 
   Widget _buildMessageTile(
       User user, Message latestMessage, int currentUserId) {
+    final isUnread = latestMessage.isRead == false; // Check if unread
+
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.lightBlueAccent,
         child: Text(user.fullname[0].toUpperCase()), // First letter as avatar
       ),
-      title: Text(user.fullname,
-          style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text(
+        user.fullname,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
       subtitle: Text(
         latestMessage.content,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: Colors.grey[700]),
+        style: TextStyle(
+          color: Colors.grey[700],
+          fontWeight:
+              isUnread ? FontWeight.bold : FontWeight.normal, // Bold if unread
+        ),
       ),
       trailing: Text(
         _formatTimestamp(latestMessage.sentAt),
-        style: TextStyle(fontSize: 12, color: Colors.grey),
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
       ),
       onTap: () => Navigator.push(
         context,
