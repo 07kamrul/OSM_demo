@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import '../data/models/message.dart';
 
 class MessageService {
@@ -23,23 +24,118 @@ class MessageService {
     }
   }
 
+  // Stream<List<Message>> getMessages(int senderId, int receiverId) {
+  //   try {
+  //     return _firestore
+  //         .collection('message')
+  //         .where('senderId', whereIn: [senderId, receiverId])
+  //         .where('receiverId', whereIn: [senderId, receiverId])
+  //         .orderBy('sentAt', descending: true)
+  //         .snapshots()
+  //         .map((snapshot) => snapshot.docs
+  //             .map((doc) => Message.fromMap(doc.data(), doc.id))
+  //             .toList());
+  //   } catch (e) {
+  //     print('Error fetching messages: $e');
+  //     // Retry after delay
+  //     Future.delayed(
+  //         Duration(seconds: 2), () => getMessages(senderId, receiverId));
+  //     rethrow; // Let StreamBuilder handle the error
+  //   }
+  // }
   Stream<List<Message>> getMessages(int senderId, int receiverId) {
     try {
       return _firestore
           .collection('message')
-          .where('senderId', whereIn: [senderId, receiverId])
-          .where('receiverId', whereIn: [senderId, receiverId])
+          .where(Filter.or(
+            Filter.and(
+              Filter('senderId', isEqualTo: senderId),
+              Filter('receiverId', isEqualTo: receiverId),
+            ),
+            Filter.and(
+              Filter('senderId', isEqualTo: receiverId),
+              Filter('receiverId', isEqualTo: senderId),
+            ),
+          ))
           .orderBy('sentAt', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => Message.fromMap(doc.data(), doc.id))
-              .toList());
+          .map((snapshot) {
+        try {
+          return snapshot.docs.map((doc) {
+            try {
+              return Message(
+                id: doc.id,
+                senderId: doc['senderId'] as int,
+                receiverId: doc['receiverId'] as int,
+                content: doc['content'] as String,
+                sentAt: (doc['sentAt'] as Timestamp).toDate(),
+                isRead: doc['isRead'] as bool,
+              );
+            } catch (e) {
+              if (kDebugMode) {
+                print('Error parsing message document ${doc.id}: $e');
+              }
+              // Return a fallback message or null, depending on your needs
+              return Message(
+                id: doc.id,
+                senderId: senderId,
+                receiverId: receiverId,
+                content: 'Error loading message',
+                sentAt: DateTime.now(),
+                isRead: false,
+              );
+            }
+          }).toList();
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error mapping snapshot to messages: $e');
+          }
+          rethrow; // Propagate to StreamBuilder
+        }
+      });
     } catch (e) {
-      print('Error fetching messages: $e');
-      // Retry after delay
-      Future.delayed(
-          Duration(seconds: 2), () => getMessages(senderId, receiverId));
-      rethrow; // Let StreamBuilder handle the error
+      if (kDebugMode) {
+        print('Error setting up message stream: $e');
+      }
+      // Return a stream with an error state
+      return Stream.error('Failed to load messages: $e');
+    }
+  }
+
+  Future<void> updateMessages(List<Message> messages) async {
+    try {
+      final batch = _firestore.batch();
+      for (var message in messages) {
+        try {
+          final docRef = _firestore.collection('message').doc(message.id);
+          batch.update(docRef, {
+            'isRead': message.isRead,
+          });
+        } catch (e) {
+          if (kDebugMode) {
+            print('Error preparing batch update for message ${message.id}: $e');
+          }
+          rethrow; // Fail fast if batch preparation fails
+        }
+      }
+      await batch.commit();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating messages: $e');
+      }
+      // Retry logic (optional)
+      await Future.delayed(const Duration(seconds: 2));
+      try {
+        await updateMessages(messages); // Retry once
+        if (kDebugMode) {
+          print('Retry successful');
+        }
+      } catch (retryError) {
+        if (kDebugMode) {
+          print('Retry failed: $retryError');
+        }
+        rethrow; // Propagate to caller
+      }
     }
   }
 
@@ -77,29 +173,6 @@ class MessageService {
       // Retry after delay
       Future.delayed(Duration(seconds: 2), () => getAllMessages(currentUserId));
       rethrow; // Let StreamBuilder handle the error
-    }
-  }
-
-  Future<void> updateMessages(List<Message> messages) async {
-    try {
-      final batch = _firestore.batch();
-
-      for (var message in messages) {
-        final docRef = _firestore.collection('message').doc(message.id);
-        batch.update(docRef, {
-          'senderId': message.senderId,
-          'receiverId': message.receiverId,
-          'content': message.content,
-          'sentAt': message.sentAt,
-          'isRead': true,
-        });
-      }
-
-      await batch.commit();
-    } catch (e) {
-      print('Error updating messages: $e');
-      // Optional: Retry logic if needed
-      rethrow;
     }
   }
 

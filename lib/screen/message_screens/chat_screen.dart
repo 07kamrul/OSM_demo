@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
-    as local_notifications; // Added 'as' prefix
+    as local_notifications;
 import 'package:gis_osm/data/models/message.dart';
 import 'package:gis_osm/data/repositories/message_repository.dart';
 import 'package:gis_osm/screen/message_screens/chat_box_screen.dart';
@@ -45,17 +45,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<User>? _userFuture;
   ImageProvider? _personMarkerImage;
   bool _hasPreloadedAssets = false;
-  AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _audioPlayer = AudioPlayer();
   String? _lastMessageId;
-
   List<Message> _unreadMessages = [];
 
   @override
   void initState() {
     super.initState();
     _userFuture = _fetchUser(widget.receiverId);
+    _initializeNotifications();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-    _audioPlayer = AudioPlayer();
   }
 
   @override
@@ -75,15 +74,24 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  Future<void> _initializeNotifications() async {
+    const local_notifications.AndroidInitializationSettings
+        initializationSettingsAndroid =
+        local_notifications.AndroidInitializationSettings(
+            '@mipmap/ic_launcher');
+    const local_notifications.InitializationSettings initializationSettings =
+        local_notifications.InitializationSettings(
+            android: initializationSettingsAndroid);
+    await _notificationsPlugin.initialize(initializationSettings);
+  }
+
   Future<void> _preloadAssets() async {
     _personMarkerImage = const AssetImage('assets/person_marker.png');
     await precacheImage(_personMarkerImage!, context);
   }
 
   Future<User> _fetchUser(int userId) async {
-    if (userId == 0) {
-      throw 'User ID not found';
-    }
+    if (userId == 0) throw 'User ID not found';
     try {
       return await _userService.fetchUserInfo(userId);
     } catch (e) {
@@ -94,55 +102,56 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isNotEmpty) {
-      await _messageService.sendMessage(
-        widget.receiverId,
-        text,
-        widget.senderId,
+      final message = Message(
+        id: DateTime.now().millisecondsSinceEpoch.toString(), // Temporary ID
+        senderId: widget.senderId,
+        receiverId: widget.receiverId,
+        content: text,
+        sentAt: DateTime.now(),
+        isRead: false,
       );
+      await _messageService.sendMessage(
+          widget.receiverId, text, widget.senderId);
       _messageController.clear();
       _scrollToBottom();
-
-      // Send notification to receiver
       await _sendNotificationToReceiver(text);
     }
   }
 
-  Future<void> _updateMessage() async {
-    if (_unreadMessages.isNotEmpty) {
-      await _messageService.updateMessages(_unreadMessages);
+  Future<void> _markMessagesAsRead(List<Message> messages) async {
+    final unread = messages
+        .where((m) => !(m.isRead ?? false) && m.receiverId == widget.senderId)
+        .toList();
+    if (unread.isNotEmpty) {
+      await _messageService.updateMessages(unread
+          .map((m) => m.copyWith(
+                isRead: true,
+              ))
+          .toList());
+      setState(() => _unreadMessages.removeWhere((m) => unread.contains(m)));
     }
   }
 
-  // Send notification to the receiver
   Future<void> _sendNotificationToReceiver(String messageContent) async {
     try {
       final receiverFcmToken = await _fetchReceiverFcmToken(widget.receiverId);
       if (receiverFcmToken != null) {
         await _firebaseAPIService.sendNotification(
-          receiverFcmToken,
-          'New Message',
-          messageContent,
-        );
+            receiverFcmToken, 'New Message', messageContent);
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Failed to send notification: $e');
-      }
+      if (kDebugMode) print('Failed to send notification: $e');
     }
   }
 
-  // Fetch receiver's FCM token (assumes it's stored in Firebase)
   Future<String?> _fetchReceiverFcmToken(int receiverId) async {
     return await _firebaseAPIService.getUserFcmToken(receiverId);
   }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
 
@@ -154,20 +163,14 @@ class _ChatScreenState extends State<ChatScreen> {
         final imageUrl = await _uploadImage(imageFile);
         if (imageUrl != null) {
           await _messageService.sendMessage(
-            widget.receiverId,
-            imageUrl,
-            widget.senderId,
-          );
+              widget.receiverId, imageUrl, widget.senderId);
           _scrollToBottom();
-
-          // Send notification for image message
           await _sendNotificationToReceiver('Image received');
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -181,8 +184,7 @@ class _ChatScreenState extends State<ChatScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
@@ -228,9 +230,7 @@ class _ChatScreenState extends State<ChatScreen> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => ChatBoxScreen()),
-        ),
+            context, MaterialPageRoute(builder: (_) => ChatBoxScreen())),
       ),
       title: FutureBuilder<User>(
         future: _userFuture,
@@ -240,9 +240,8 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 24,
               height: 24,
               child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
             );
           } else if (snapshot.hasError) {
             return const Text('Error', style: TextStyle(color: Colors.white));
@@ -253,32 +252,26 @@ class _ChatScreenState extends State<ChatScreen> {
           return Row(
             children: [
               CircleAvatar(
-                radius: 18,
-                backgroundImage: _personMarkerImage ??
-                    const AssetImage('assets/person_marker.png'),
-              ),
+                  radius: 18,
+                  backgroundImage: _personMarkerImage ??
+                      const AssetImage('assets/person_marker.png')),
               const SizedBox(width: 10),
               Flexible(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      user.fullname,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(user.fullname,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold)),
                     Text(
                       user.status.toLowerCase() == 'active'
                           ? 'Active now'
                           : 'Offline',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                      ),
+                          color: Colors.white.withOpacity(0.7), fontSize: 12),
                     ),
                   ],
                 ),
@@ -291,13 +284,11 @@ class _ChatScreenState extends State<ChatScreen> {
       elevation: 0,
       actions: [
         IconButton(
-          icon: const Icon(Icons.call, color: Colors.white),
-          onPressed: () {},
-        ),
+            icon: const Icon(Icons.call, color: Colors.white),
+            onPressed: () {}),
         IconButton(
-          icon: const Icon(Icons.videocam, color: Colors.white),
-          onPressed: () {},
-        ),
+            icon: const Icon(Icons.videocam, color: Colors.white),
+            onPressed: () {}),
       ],
     );
   }
@@ -317,29 +308,28 @@ class _ChatScreenState extends State<ChatScreen> {
         }
 
         final messages = snapshot.data!;
-
-        final receiverMessages = messages
-            .where((message) => message.receiverId == widget.receiverId)
+        final incomingMessages = messages
+            .where(
+                (m) => m.receiverId == widget.senderId && !(m.isRead ?? false))
             .toList();
 
-        final notReadMessage =
-            receiverMessages.where((message) => !message.isRead).toList();
-
-        if (notReadMessage.isNotEmpty) {
-          _unreadMessages.addAll(notReadMessage);
-
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            if (await Vibration.hasVibrator() ?? false) {
-              Vibration.vibrate(duration: 500);
+        // Mark incoming messages as read when viewed
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (incomingMessages.isNotEmpty) {
+            await _markMessagesAsRead(messages);
+            if (_lastMessageId != incomingMessages.first.id) {
+              _lastMessageId = incomingMessages.first.id;
+              if (await Vibration.hasVibrator() ?? false) {
+                Vibration.vibrate(duration: 500);
+              }
+              try {
+                await _audioPlayer.play(AssetSource('notification.wav'));
+              } catch (e) {
+                print('Error playing sound: $e');
+              }
             }
-
-            try {
-              await _audioPlayer.play(AssetSource('notification.wav'));
-            } catch (e) {
-              print('Error playing sound: $e');
-            }
-          });
-        }
+          }
+        });
 
         return ListView.builder(
           controller: _scrollController,
@@ -360,6 +350,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageBubble(Message message, bool isSender) {
     final time = message.sentAt;
     final isImage = message.content.startsWith('http');
+    final status = 'sent';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -372,16 +363,14 @@ class _ChatScreenState extends State<ChatScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: CircleAvatar(
-                radius: 16,
-                backgroundImage: _personMarkerImage ??
-                    const AssetImage('assets/person_marker.png'),
-              ),
+                  radius: 16,
+                  backgroundImage: _personMarkerImage ??
+                      const AssetImage('assets/person_marker.png')),
             ),
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
-              ),
+                  maxWidth: MediaQuery.of(context).size.width * 0.75),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color:
@@ -409,26 +398,43 @@ class _ChatScreenState extends State<ChatScreen> {
                       placeholder: (context, url) =>
                           const Center(child: CircularProgressIndicator()),
                       errorWidget: (context, url, error) => const Icon(
-                        Icons.broken_image,
-                        color: Colors.grey,
-                        size: 50,
-                      ),
+                          Icons.broken_image,
+                          color: Colors.grey,
+                          size: 50),
                     )
                   else
                     Text(
                       message.content,
                       style: TextStyle(
-                        color: isSender ? Colors.white : Colors.black87,
-                        fontSize: 16,
-                      ),
+                          color: isSender ? Colors.white : Colors.black87,
+                          fontSize: 16),
                     ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${time.hour}:${time.minute.toString().padLeft(2, '0')}',
-                    style: TextStyle(
-                      color: isSender ? Colors.white70 : Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${time.hour}:${time.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                            color: isSender
+                                ? Colors.white70
+                                : Colors.grey.shade600,
+                            fontSize: 12),
+                      ),
+                      if (isSender) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          status == 'read'
+                              ? Icons.done_all
+                              : status == 'delivered'
+                                  ? Icons.done
+                                  : Icons.schedule,
+                          size: 16,
+                          color:
+                              status == 'read' ? Colors.white : Colors.white70,
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -436,9 +442,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           if (isSender)
             const Padding(
-              padding: EdgeInsets.only(left: 8),
-              child: SizedBox(width: 16),
-            ),
+                padding: EdgeInsets.only(left: 8), child: SizedBox(width: 16)),
         ],
       ),
     );
@@ -451,10 +455,9 @@ class _ChatScreenState extends State<ChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade300,
-            offset: const Offset(0, -1),
-            blurRadius: 4,
-          ),
+              color: Colors.grey.shade300,
+              offset: const Offset(0, -1),
+              blurRadius: 4)
         ],
       ),
       child: Row(
@@ -480,15 +483,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 10),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none),
                   ),
-                  onChanged: (text) {
-                    if (text.trim().isNotEmpty) {
-                      _updateMessage(); // Call update when user types
-                    }
-                  },
                   onSubmitted: (_) => _sendMessage(),
                 ),
               ),
@@ -499,9 +496,8 @@ class _ChatScreenState extends State<ChatScreen> {
             radius: 20,
             backgroundColor: const Color(0xFF0088CC),
             child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 20),
-              onPressed: _sendMessage,
-            ),
+                icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                onPressed: _sendMessage),
           ),
         ],
       ),
@@ -512,9 +508,7 @@ class _ChatScreenState extends State<ChatScreen> {
 class FirebaseAPIService {
   Future<void> sendNotification(
       String fcmToken, String title, String body) async {
-    if (kDebugMode) {
-      print('Sending notification to $fcmToken: $title - $body');
-    }
+    if (kDebugMode) print('Sending notification to $fcmToken: $title - $body');
   }
 
   Future<String?> getUserFcmToken(int userId) async {

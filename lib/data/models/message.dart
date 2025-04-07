@@ -36,4 +36,23 @@ class Message {
       'isRead': isRead,
     };
   }
+
+  // Add copyWith method
+  Message copyWith({
+    String? id,
+    int? senderId,
+    int? receiverId,
+    String? content,
+    DateTime? sentAt,
+    bool? isRead,
+  }) {
+    return Message(
+      id: id ?? this.id,
+      senderId: senderId ?? this.senderId,
+      receiverId: receiverId ?? this.receiverId,
+      content: content ?? this.content,
+      sentAt: sentAt ?? this.sentAt,
+      isRead: isRead ?? this.isRead,
+    );
+  }
 }
