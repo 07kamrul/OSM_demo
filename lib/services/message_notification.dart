@@ -2,12 +2,12 @@ import 'package:googleapis_auth/auth_io.dart' as auth;
 
 class MessageNotification {
   static sendNotificationToSelectedDriver() async {
-    final String serverKey = await getAccessToken();
+    final String key = await getAccessToken();
     String url = 'https://fcm.googleapis.com/v1/projects/gis-osm/messages:send';
 
     var header = <String, String>{
       'Content-Type': 'application/json',
-      'Authrozation': 'Bearer $serverKey',
+      'Authrozation': 'Bearer $key',
     };
   }
 
