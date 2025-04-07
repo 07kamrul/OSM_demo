@@ -24,25 +24,6 @@ class MessageService {
     }
   }
 
-  // Stream<List<Message>> getMessages(int senderId, int receiverId) {
-  //   try {
-  //     return _firestore
-  //         .collection('message')
-  //         .where('senderId', whereIn: [senderId, receiverId])
-  //         .where('receiverId', whereIn: [senderId, receiverId])
-  //         .orderBy('sentAt', descending: true)
-  //         .snapshots()
-  //         .map((snapshot) => snapshot.docs
-  //             .map((doc) => Message.fromMap(doc.data(), doc.id))
-  //             .toList());
-  //   } catch (e) {
-  //     print('Error fetching messages: $e');
-  //     // Retry after delay
-  //     Future.delayed(
-  //         Duration(seconds: 2), () => getMessages(senderId, receiverId));
-  //     rethrow; // Let StreamBuilder handle the error
-  //   }
-  // }
   Stream<List<Message>> getMessages(int senderId, int receiverId) {
     try {
       return _firestore

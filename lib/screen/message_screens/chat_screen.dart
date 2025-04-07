@@ -1,22 +1,19 @@
-import 'dart:io';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     as local_notifications;
-import 'package:gis_osm/data/models/message.dart';
-import 'package:gis_osm/data/repositories/message_repository.dart';
-import 'package:gis_osm/screen/message_screens/chat_box_screen.dart';
-import 'package:gis_osm/services/message_service.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:vibration/vibration.dart';
-import '../../data/models/user.dart';
+import '../../bloc/chat_screen/chat_screen_bloc.dart';
+import '../../bloc/chat_screen/chat_screen_event.dart';
+import '../../bloc/chat_screen/chat_screen_state.dart';
+import '../../data/models/message.dart';
+import '../../data/repositories/message_repository.dart';
+import '../../services/message_service.dart';
 import '../../services/user_service.dart';
-import '../distance_tracker_screen.dart';
+import 'chat_box_screen.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends StatelessWidget {
   final int senderId;
   final int receiverId;
 
@@ -27,32 +24,37 @@ class ChatScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ChatScreenBloc(
+        MessageService(),
+        MessageRepository(),
+        UserService(),
+        senderId,
+        receiverId,
+      )..add(LoadChat(senderId, receiverId)),
+      child: _ChatScreenView(),
+    );
+  }
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final MessageService _messageService = MessageService();
-  final MessageRepository _messageRepository = MessageRepository();
-  final FirebaseAPIService _firebaseAPIService = FirebaseAPIService();
-  final UserService _userService = UserService();
+class _ChatScreenView extends StatefulWidget {
+  @override
+  State<_ChatScreenView> createState() => _ChatScreenViewState();
+}
+
+class _ChatScreenViewState extends State<_ChatScreenView> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final ImagePicker _picker = ImagePicker();
   final local_notifications.FlutterLocalNotificationsPlugin
       _notificationsPlugin =
       local_notifications.FlutterLocalNotificationsPlugin();
-
-  Future<User>? _userFuture;
   ImageProvider? _personMarkerImage;
   bool _hasPreloadedAssets = false;
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  String? _lastMessageId;
-  List<Message> _unreadMessages = [];
 
   @override
   void initState() {
     super.initState();
-    _userFuture = _fetchUser(widget.receiverId);
     _initializeNotifications();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
@@ -68,7 +70,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -90,94 +91,11 @@ class _ChatScreenState extends State<ChatScreen> {
     await precacheImage(_personMarkerImage!, context);
   }
 
-  Future<User> _fetchUser(int userId) async {
-    if (userId == 0) throw 'User ID not found';
-    try {
-      return await _userService.fetchUserInfo(userId);
-    } catch (e) {
-      throw 'Failed to load user: $e';
-    }
-  }
-
-  Future<void> _sendMessage() async {
-    final text = _messageController.text.trim();
-    if (text.isNotEmpty) {
-      final message = Message(
-        id: DateTime.now().millisecondsSinceEpoch.toString(), // Temporary ID
-        senderId: widget.senderId,
-        receiverId: widget.receiverId,
-        content: text,
-        sentAt: DateTime.now(),
-        isRead: false,
-      );
-      await _messageService.sendMessage(
-          widget.receiverId, text, widget.senderId);
-      _messageController.clear();
-      _scrollToBottom();
-      await _sendNotificationToReceiver(text);
-    }
-  }
-
-  Future<void> _markMessagesAsRead(List<Message> messages) async {
-    final unread = messages
-        .where((m) => !(m.isRead ?? false) && m.receiverId == widget.senderId)
-        .toList();
-    if (unread.isNotEmpty) {
-      await _messageService.updateMessages(unread
-          .map((m) => m.copyWith(
-                isRead: true,
-              ))
-          .toList());
-      setState(() => _unreadMessages.removeWhere((m) => unread.contains(m)));
-    }
-  }
-
-  Future<void> _sendNotificationToReceiver(String messageContent) async {
-    try {
-      final receiverFcmToken = await _fetchReceiverFcmToken(widget.receiverId);
-      if (receiverFcmToken != null) {
-        await _firebaseAPIService.sendNotification(
-            receiverFcmToken, 'New Message', messageContent);
-      }
-    } catch (e) {
-      if (kDebugMode) print('Failed to send notification: $e');
-    }
-  }
-
-  Future<String?> _fetchReceiverFcmToken(int receiverId) async {
-    return await _firebaseAPIService.getUserFcmToken(receiverId);
-  }
-
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(0,
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(source: source);
-      if (pickedFile != null) {
-        final File imageFile = File(pickedFile.path);
-        final imageUrl = await _uploadImage(imageFile);
-        if (imageUrl != null) {
-          await _messageService.sendMessage(
-              widget.receiverId, imageUrl, widget.senderId);
-          _scrollToBottom();
-          await _sendNotificationToReceiver('Image received');
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
-    }
-  }
-
-  Future<String?> _uploadImage(File imageFile) async {
-    debugPrint('Uploading image: ${imageFile.path}');
-    await Future.delayed(const Duration(seconds: 1));
-    return 'https://example.com/uploaded_image.jpg';
   }
 
   void _showAttachmentOptions(BuildContext context) {
@@ -193,7 +111,9 @@ class _ChatScreenState extends State<ChatScreen> {
               title: const Text('Photo from Gallery'),
               onTap: () {
                 Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
+                context
+                    .read<ChatScreenBloc>()
+                    .add(const PickImage(ImageSource.gallery));
               },
             ),
             ListTile(
@@ -201,7 +121,9 @@ class _ChatScreenState extends State<ChatScreen> {
               title: const Text('Take a Photo'),
               onTap: () {
                 Navigator.pop(context);
-                _pickImage(ImageSource.camera);
+                context
+                    .read<ChatScreenBloc>()
+                    .add(const PickImage(ImageSource.camera));
               },
             ),
           ],
@@ -217,7 +139,7 @@ class _ChatScreenState extends State<ChatScreen> {
         appBar: _buildAppBar(context),
         body: Column(
           children: [
-            Expanded(child: _buildMessageList()),
+            Expanded(child: _buildMessageList(context)),
             _buildMessageInput(context),
           ],
         ),
@@ -230,12 +152,11 @@ class _ChatScreenState extends State<ChatScreen> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => ChatBoxScreen())),
+            context, MaterialPageRoute(builder: (_) => const ChatBoxScreen())),
       ),
-      title: FutureBuilder<User>(
-        future: _userFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      title: BlocBuilder<ChatScreenBloc, ChatScreenState>(
+        builder: (context, state) {
+          if (state is ChatLoading) {
             return const SizedBox(
               width: 24,
               height: 24,
@@ -243,41 +164,41 @@ class _ChatScreenState extends State<ChatScreen> {
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
             );
-          } else if (snapshot.hasError) {
+          } else if (state is ChatError) {
             return const Text('Error', style: TextStyle(color: Colors.white));
-          } else if (!snapshot.hasData) {
-            return const Text('Unknown', style: TextStyle(color: Colors.white));
-          }
-          final user = snapshot.data!;
-          return Row(
-            children: [
-              CircleAvatar(
-                  radius: 18,
-                  backgroundImage: _personMarkerImage ??
-                      const AssetImage('assets/person_marker.png')),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user.fullname,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold)),
-                    Text(
-                      user.status.toLowerCase() == 'active'
-                          ? 'Active now'
-                          : 'Offline',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.7), fontSize: 12),
-                    ),
-                  ],
+          } else if (state is ChatLoaded) {
+            final user = state.receiver;
+            return Row(
+              children: [
+                CircleAvatar(
+                    radius: 18,
+                    backgroundImage: _personMarkerImage ??
+                        const AssetImage('assets/person_marker.png')),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(user.fullname,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
+                      Text(
+                        user.status.toLowerCase() == 'active'
+                            ? 'Active now'
+                            : 'Offline',
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.7), fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
+              ],
+            );
+          }
+          return const Text('Unknown', style: TextStyle(color: Colors.white));
         },
       ),
       backgroundColor: const Color(0xFF0088CC),
@@ -293,56 +214,35 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageList() {
-    return StreamBuilder<List<Message>>(
-      stream: _messageService.getMessages(widget.senderId, widget.receiverId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+  Widget _buildMessageList(BuildContext context) {
+    return BlocBuilder<ChatScreenBloc, ChatScreenState>(
+      builder: (context, state) {
+        if (state is ChatLoading) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+        if (state is ChatError) {
+          return Center(child: Text('Error: ${state.message}'));
         }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('Start a conversation!'));
-        }
-
-        final messages = snapshot.data!;
-        final incomingMessages = messages
-            .where(
-                (m) => m.receiverId == widget.senderId && !(m.isRead ?? false))
-            .toList();
-
-        // Mark incoming messages as read when viewed
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (incomingMessages.isNotEmpty) {
-            await _markMessagesAsRead(messages);
-            if (_lastMessageId != incomingMessages.first.id) {
-              _lastMessageId = incomingMessages.first.id;
-              if (await Vibration.hasVibrator() ?? false) {
-                Vibration.vibrate(duration: 500);
-              }
-              try {
-                await _audioPlayer.play(AssetSource('notification.wav'));
-              } catch (e) {
-                print('Error playing sound: $e');
-              }
-            }
+        if (state is ChatLoaded) {
+          final messages = state.messages;
+          if (messages.isEmpty) {
+            return const Center(child: Text('Start a conversation!'));
           }
-        });
-
-        return ListView.builder(
-          controller: _scrollController,
-          reverse: true,
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          itemCount: messages.length,
-          itemBuilder: (context, index) {
-            final message = messages[index];
-            final isSender = message.senderId == widget.senderId;
-            return _buildMessageBubble(message, isSender);
-          },
-        );
+          return ListView.builder(
+            controller: _scrollController,
+            reverse: true,
+            physics: const ClampingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              final message = messages[index];
+              final isSender =
+                  message.senderId == context.read<ChatScreenBloc>().senderId;
+              return _buildMessageBubble(message, isSender);
+            },
+          );
+        }
+        return const Center(child: Text('Start a conversation!'));
       },
     );
   }
@@ -350,7 +250,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageBubble(Message message, bool isSender) {
     final time = message.sentAt;
     final isImage = message.content.startsWith('http');
-    final status = 'sent';
+    final status = 'sent'; // Simplified for this example
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -486,7 +386,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         borderRadius: BorderRadius.circular(30),
                         borderSide: BorderSide.none),
                   ),
-                  onSubmitted: (_) => _sendMessage(),
+                  onSubmitted: (_) {
+                    context
+                        .read<ChatScreenBloc>()
+                        .add(SendMessage(_messageController.text));
+                    _messageController.clear();
+                    _scrollToBottom();
+                  },
                 ),
               ),
             ),
@@ -496,22 +402,18 @@ class _ChatScreenState extends State<ChatScreen> {
             radius: 20,
             backgroundColor: const Color(0xFF0088CC),
             child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                onPressed: _sendMessage),
+              icon: const Icon(Icons.send, color: Colors.white, size: 20),
+              onPressed: () {
+                context
+                    .read<ChatScreenBloc>()
+                    .add(SendMessage(_messageController.text));
+                _messageController.clear();
+                _scrollToBottom();
+              },
+            ),
           ),
         ],
       ),
     );
-  }
-}
-
-class FirebaseAPIService {
-  Future<void> sendNotification(
-      String fcmToken, String title, String body) async {
-    if (kDebugMode) print('Sending notification to $fcmToken: $title - $body');
-  }
-
-  Future<String?> getUserFcmToken(int userId) async {
-    return 'sample_fcm_token';
   }
 }
