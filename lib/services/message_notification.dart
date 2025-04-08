@@ -1,30 +1,154 @@
-import 'package:googleapis_auth/auth_io.dart' as auth;
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/material.dart';
+import 'package:gis_osm/common/user_storage.dart';
+import 'package:gis_osm/services/message_service.dart';
 
-class MessageNotification {
-  static sendNotificationToSelectedDriver() async {
-    final String key = await getAccessToken();
-    String url = 'https://fcm.googleapis.com/v1/projects/gis-osm/messages:send';
+class FirebaseNotificationService {
+  static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  static final MessageService _messageService = MessageService();
 
-    var header = <String, String>{
-      'Content-Type': 'application/json',
-      'Authrozation': 'Bearer $key',
-    };
+  static Future<void> initialize(BuildContext context) async {
+    try {
+      // Request permission
+      NotificationSettings settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      print('Permission: ${settings.authorizationStatus}');
+
+      // Local notification initialization
+      const AndroidInitializationSettings androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const InitializationSettings initSettings =
+          InitializationSettings(android: androidSettings);
+      await _localNotificationsPlugin.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: (response) {
+          print('Notification tapped: ${response.payload}');
+        },
+      );
+
+      // Get user ID and set up stream listener
+      final int? userId = await UserStorage.getUserId();
+      if (userId != null) {
+        _setupMessageStreamListener(userId);
+      } else {
+        print('User ID is null; cannot set up message listener');
+      }
+
+      // Handle foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print(
+            'Foreground Message Received: ${message.notification?.title} - ${message.notification?.body}');
+        _handleForegroundMessage(message);
+      });
+
+      // Handle background messages
+      FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler);
+
+      // Log FCM token
+      final token = await _messaging.getToken();
+      print('FCM Token: $token');
+    } catch (e) {
+      print('Error initializing Firebase notifications: $e');
+    }
   }
 
-  static Future<String> getAccessToken() async {
-    final scopes = [
-      'https://www.googleapis.com/auth/firebase.messaging',
-      'https://www.googleapis.com/auth/firebase.database',
-      'https://www.googleapis.com/auth/userinfo.email',
-    ];
+  static void _setupMessageStreamListener(int userId) {
+    final currentUserMessagesStream = _messageService.getAllMessages(userId);
+    currentUserMessagesStream.listen((allMessagesMap) {
+      final allMessages = allMessagesMap.values.expand((list) => list).toList();
+      for (var message in allMessages) {
+        if (message.receiverId == userId && message.isRead == false) {
+          print('New unread message detected: ${message.content}');
+          _showLocalNotification(
+            title: 'New Message',
+            body: message.content,
+          );
+        }
+      }
+    }, onError: (error) {
+      print('Error in message stream: $error');
+    });
+  }
 
-    final client = await auth.clientViaServiceAccount(
-        auth.ServiceAccountCredentials.fromJson(
-          {},
-        ),
-        scopes);
+  static void _handleForegroundMessage(RemoteMessage message) {
+    if (message.notification != null) {
+      _showLocalNotification(
+        title: message.notification!.title ?? 'New Message',
+        body: message.notification!.body ?? 'You have a new message',
+      );
+    } else if (message.data.isNotEmpty) {
+      _showLocalNotification(
+        title: message.data['title'] ?? 'New Message',
+        body: message.data['body'] ??
+            message.data['content'] ??
+            'You have a new message',
+      );
+    }
+  }
 
-    final accessServerKey = client.credentials.accessToken.data;
-    return accessServerKey;
+  static Future<void> _showLocalNotification({
+    required String title,
+    required String body,
+  }) async {
+    try {
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        'message_channel',
+        'Messages',
+        channelDescription: 'This channel is for message notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound(
+            'notification'), // Ensure this matches your file
+      );
+
+      const NotificationDetails platformDetails =
+          NotificationDetails(android: androidDetails);
+
+      final int notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      await _localNotificationsPlugin.show(
+        notificationId,
+        title,
+        body,
+        platformDetails,
+      );
+      print('Local notification shown: $title - $body (ID: $notificationId)');
+    } catch (e) {
+      print('Error showing local notification: $e');
+      // Fallback without custom sound
+      const AndroidNotificationDetails fallbackDetails =
+          AndroidNotificationDetails(
+        'message_channel',
+        'Messages',
+        channelDescription: 'This channel is for message notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+      );
+      const NotificationDetails fallbackPlatformDetails =
+          NotificationDetails(android: fallbackDetails);
+
+      await _localNotificationsPlugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title,
+        body,
+        fallbackPlatformDetails,
+      );
+      print('Fallback notification shown: $title - $body');
+    }
+  }
+
+  static Future<void> _firebaseMessagingBackgroundHandler(
+      RemoteMessage message) async {
+    print('Background Message Received: ${message.notification?.title}');
   }
 }

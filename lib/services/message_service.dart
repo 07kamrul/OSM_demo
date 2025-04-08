@@ -156,16 +156,4 @@ class MessageService {
       rethrow; // Let StreamBuilder handle the error
     }
   }
-
-  //----------------------------------------------
-  static FirebaseMessaging fMessaging = FirebaseMessaging.instance;
-
-  static Future<void> getFirebaseMessagingToken() async {
-    await fMessaging.requestPermission();
-    await fMessaging.getToken().then((token) {
-      print('Firebase Messaging Token: $token');
-    }).catchError((error) {
-      print('Error getting Firebase Messaging token: $error');
-    });
-  }
 }

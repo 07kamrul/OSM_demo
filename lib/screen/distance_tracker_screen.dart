@@ -1,5 +1,7 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gis_osm/common/location_storage.dart';
@@ -14,10 +16,12 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/match_user_repository.dart';
 import '../data/repositories/user_location_repository.dart';
 import '../enum.dart';
+import '../main.dart';
 import '../screen/auth_screen.dart';
 import '../screen/profile_screen.dart';
 import '../screen/sidebar.dart';
 import '../screen/user_list_screen.dart';
+import '../services/message_notification.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
 import 'message_screens/chat_box_screen.dart';
@@ -59,7 +63,12 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   @override
   void initState() {
     super.initState();
+
     _setInitialLocation();
+
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   FirebaseNotificationService.initialize(context);
+    // });
   }
 
   Future<void> _setInitialLocation() async {
