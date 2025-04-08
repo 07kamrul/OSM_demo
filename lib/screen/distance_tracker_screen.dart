@@ -65,10 +65,6 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
     super.initState();
 
     _setInitialLocation();
-
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   FirebaseNotificationService.initialize(context);
-    // });
   }
 
   Future<void> _setInitialLocation() async {

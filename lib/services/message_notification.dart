@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:gis_osm/common/user_storage.dart';
+import 'package:gis_osm/data/repositories/auth_repository.dart';
 import 'package:gis_osm/services/message_service.dart';
 
 class FirebaseNotificationService {
@@ -9,6 +10,7 @@ class FirebaseNotificationService {
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
   static final MessageService _messageService = MessageService();
+  static final AuthRepository _authRepository = AuthRepository();
 
   static Future<void> initialize(BuildContext context) async {
     try {
@@ -61,13 +63,15 @@ class FirebaseNotificationService {
 
   static void _setupMessageStreamListener(int userId) {
     final currentUserMessagesStream = _messageService.getAllMessages(userId);
-    currentUserMessagesStream.listen((allMessagesMap) {
+    currentUserMessagesStream.listen((allMessagesMap) async {
       final allMessages = allMessagesMap.values.expand((list) => list).toList();
       for (var message in allMessages) {
         if (message.receiverId == userId && message.isRead == false) {
           print('New unread message detected: ${message.content}');
+          final receiverInfo =
+              await _authRepository.getUser(message.receiverId);
           _showLocalNotification(
-            title: 'New Message',
+            title: '${receiverInfo.fullname} Sent a Message',
             body: message.content,
           );
         }
@@ -106,8 +110,7 @@ class FirebaseNotificationService {
         importance: Importance.max,
         priority: Priority.high,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound(
-            'notification'), // Ensure this matches your file
+        sound: RawResourceAndroidNotificationSound('notification'),
       );
 
       const NotificationDetails platformDetails =
