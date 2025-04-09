@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:gis_osm/common/user_storage.dart';
 import 'package:gis_osm/data/repositories/auth_repository.dart';
 import 'package:gis_osm/services/message_service.dart';
+
+import '../screen/message_screens/chat_screen.dart';
 
 class FirebaseNotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -31,6 +35,21 @@ class FirebaseNotificationService {
         initSettings,
         onDidReceiveNotificationResponse: (response) {
           print('Notification tapped: ${response.payload}');
+          if (response.payload != null) {
+            final Map<String, dynamic> data = jsonDecode(response.payload!);
+            final int senderId = int.parse(data['senderId']);
+            final int receiverId = int.parse(data['receiverId']);
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChatScreen(
+                  senderId: senderId,
+                  receiverId: receiverId,
+                ),
+              ),
+            );
+          }
         },
       );
 
@@ -73,6 +92,10 @@ class FirebaseNotificationService {
           _showLocalNotification(
             title: '${receiverInfo.fullname} Sent a Message',
             body: message.content,
+            payload: jsonEncode({
+              'senderId': message.senderId.toString(),
+              'receiverId': message.receiverId.toString(),
+            }),
           );
         }
       }
@@ -100,6 +123,7 @@ class FirebaseNotificationService {
   static Future<void> _showLocalNotification({
     required String title,
     required String body,
+    String? payload, // <-- add this
   }) async {
     try {
       const AndroidNotificationDetails androidDetails =
@@ -123,11 +147,12 @@ class FirebaseNotificationService {
         title,
         body,
         platformDetails,
+        payload: payload, // <-- attach the payload here
       );
       print('Local notification shown: $title - $body (ID: $notificationId)');
     } catch (e) {
       print('Error showing local notification: $e');
-      // Fallback without custom sound
+      // Fallback
       const AndroidNotificationDetails fallbackDetails =
           AndroidNotificationDetails(
         'message_channel',
@@ -145,6 +170,7 @@ class FirebaseNotificationService {
         title,
         body,
         fallbackPlatformDetails,
+        payload: payload, // <-- even in fallback
       );
       print('Fallback notification shown: $title - $body');
     }
