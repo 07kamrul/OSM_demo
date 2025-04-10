@@ -21,7 +21,7 @@ import '../screen/auth_screen.dart';
 import '../screen/profile_screen.dart';
 import '../screen/sidebar.dart';
 import '../screen/user_list_screen.dart';
-import '../services/message_notification.dart';
+import '../services/foreground_notification.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
 import 'message_screens/chat_box_screen.dart';
@@ -303,6 +303,7 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
                     builder: (_) => ChatScreen(
                       senderId: state.user?.id ?? 0,
                       receiverId: state.selectedUserId ?? 0,
+                      route: 2,
                     ),
                   ),
                 ),

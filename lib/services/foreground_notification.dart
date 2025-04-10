@@ -9,7 +9,7 @@ import 'package:gis_osm/services/message_service.dart';
 
 import '../screen/message_screens/chat_screen.dart';
 
-class FirebaseNotificationService {
+class ForegroundMessageNotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -46,6 +46,7 @@ class FirebaseNotificationService {
                 builder: (_) => ChatScreen(
                   senderId: senderId,
                   receiverId: receiverId,
+                  route: 1,
                 ),
               ),
             );
@@ -68,10 +69,6 @@ class FirebaseNotificationService {
         _handleForegroundMessage(message);
       });
 
-      // Handle background messages
-      FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler);
-
       // Log FCM token
       final token = await _messaging.getToken();
       print('FCM Token: $token');
@@ -84,11 +81,17 @@ class FirebaseNotificationService {
     final currentUserMessagesStream = _messageService.getAllMessages(userId);
     currentUserMessagesStream.listen((allMessagesMap) async {
       final allMessages = allMessagesMap.values.expand((list) => list).toList();
-      for (var message in allMessages) {
-        if (message.receiverId == userId && message.isRead == false) {
+      final receivedMessages = allMessages
+          .where((message) =>
+              message.receiverId == userId &&
+              userId != message.senderId &&
+              !message.isRead)
+          .toList();
+
+      if (receivedMessages.isNotEmpty) {
+        for (var message in receivedMessages) {
           print('New unread message detected: ${message.content}');
-          final receiverInfo =
-              await _authRepository.getUser(message.receiverId);
+          final receiverInfo = await _authRepository.getUser(message.senderId);
           _showLocalNotification(
             title: '${receiverInfo.fullname} Sent a Message',
             body: message.content,
@@ -174,10 +177,5 @@ class FirebaseNotificationService {
       );
       print('Fallback notification shown: $title - $body');
     }
-  }
-
-  static Future<void> _firebaseMessagingBackgroundHandler(
-      RemoteMessage message) async {
-    print('Background Message Received: ${message.notification?.title}');
   }
 }

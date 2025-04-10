@@ -244,6 +244,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
           builder: (_) => ChatScreen(
             senderId: currentUserId,
             receiverId: user.id ?? 0,
+            route: 1,
           ),
         ),
       ),

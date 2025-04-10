@@ -1,8 +1,16 @@
+import 'dart:isolate';
+import 'dart:ui';
+
+import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:gis_osm/services/message_notification.dart';
+import 'package:gis_osm/services/background_notification.dart';
+import 'package:gis_osm/services/foreground_notification.dart';
 import 'package:gis_osm/services/message_service.dart';
 import 'package:gis_osm/services/user_service.dart';
 import 'bloc/auth/auth_bloc.dart';
@@ -12,18 +20,28 @@ import 'data/repositories/user_location_repository.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screen/auth_screen.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  DartPluginRegistrant.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+  //await initializeService();
+
   try {
     await Firebase.initializeApp();
     print('Firebase initialized successfully');
   } catch (e) {
-    print('Firebase initialization failed: $e');
+    print('Error initializing Firebase: $e');
   }
+
+  // Request notification permission
+  await FirebaseMessaging.instance.requestPermission();
+
+  // Get FCM token (for testing)
+  String? token = await FirebaseMessaging.instance.getToken();
+  print('FCM Token: $token');
 
   runApp(
     MultiBlocProvider(
@@ -42,8 +60,12 @@ void main() async {
           child: Builder(
             builder: (context) {
               // Initialize notifications here
-              FirebaseNotificationService.initialize(context);
+              initializeService(context);
+              ForegroundMessageNotificationService.initialize(context);
+              WidgetsBinding.instance.addPostFrameCallback((_) async {});
               return MaterialApp(
+                debugShowCheckedModeBanner: false,
+
                 locale: Locale('en', 'US'), // Optional: Set default locale
                 supportedLocales: [
                   Locale('en', 'US'), // Add other locales as needed
@@ -54,7 +76,6 @@ void main() async {
                   GlobalCupertinoLocalizations.delegate,
                 ],
                 title: 'Flutter Auth with BLoC',
-                debugShowCheckedModeBanner: false,
                 theme: ThemeData(primarySwatch: Colors.blue),
                 home: AuthScreen(),
               );

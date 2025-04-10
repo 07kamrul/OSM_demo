@@ -34,4 +34,7 @@ class AppConstants {
   static const avatarRadius = 60.0;
   static const cardPadding = 16.0;
   static const iconSize = 30.0;
+
+  // Route constants
+
 }

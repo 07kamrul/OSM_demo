@@ -11,16 +11,19 @@ import '../../data/models/message.dart';
 import '../../data/repositories/message_repository.dart';
 import '../../services/message_service.dart';
 import '../../services/user_service.dart';
+import '../distance_tracker_screen.dart';
 import 'chat_box_screen.dart';
 
 class ChatScreen extends StatelessWidget {
   final int senderId;
   final int receiverId;
+  final int route;
 
   const ChatScreen({
     Key? key,
     required this.senderId,
     required this.receiverId,
+    required this.route,
   }) : super(key: key);
 
   @override
@@ -33,12 +36,18 @@ class ChatScreen extends StatelessWidget {
         senderId,
         receiverId,
       )..add(LoadChat(senderId, receiverId)),
-      child: _ChatScreenView(),
+      child: _ChatScreenView(
+        route: route,
+      ),
     );
   }
 }
 
 class _ChatScreenView extends StatefulWidget {
+  final int route;
+
+  const _ChatScreenView({Key? key, required this.route}) : super(key: key);
+
   @override
   State<_ChatScreenView> createState() => _ChatScreenViewState();
 }
@@ -151,8 +160,20 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
     return AppBar(
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const ChatBoxScreen())),
+        onPressed: () {
+          // 1 for ChatBoxScreen, 2 for DistanceTrackerScreen
+          if (widget.route == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => ChatBoxScreen()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
+            );
+          }
+        },
       ),
       title: BlocBuilder<ChatScreenBloc, ChatScreenState>(
         builder: (context, state) {
