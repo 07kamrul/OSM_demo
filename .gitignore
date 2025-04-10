@@ -1,3 +1,34 @@
+# Flutter-specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.flutter*
+
+# Build outputs
+/build/
+**/build/
+android/app/.cxx/
+
+# Android Studio & Gradle
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Symbolication and obfuscation
+app.*.symbols
+app.*.map.json
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+
+# VS Code
+# Uncomment if you want to exclude VS Code settings too
+#.vscode/
+
 # Miscellaneous
 *.class
 *.log
@@ -12,35 +43,5 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-android/app/.cxx/
+# Ignore this actual .gitignore file from itself (optional and usually unnecessary)
+# .gitignore
