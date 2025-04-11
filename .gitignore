@@ -45,3 +45,9 @@ migrate_working_dir/
 
 # Ignore this actual .gitignore file from itself (optional and usually unnecessary)
 # .gitignore
+
+
+ /android/app/.cxx/Debug/401p6k1u/arm64-v8a/configure_fingerprint.bin
+ /android/app/.cxx/Debug/401p6k1u/armeabi-v7a/configure_fingerprint.bin
+ /android/app/.cxx/Debug/401p6k1u/x86/configure_fingerprint.bin
+ /android/app/.cxx/Debug/401p6k1u/x86_64/configure_fingerprint.bin

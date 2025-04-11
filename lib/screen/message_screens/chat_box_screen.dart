@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:gis_osm/common/user_storage.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/auth/auth_event.dart';
+import '../../bloc/chat_box_screen/chat_box_bloc.dart';
 import '../../data/models/message.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -9,24 +11,24 @@ import '../../services/message_service.dart';
 import '../distance_tracker_screen.dart';
 import '../user_list_screen.dart';
 import '../auth_screen.dart';
-import '../../bloc/auth/auth_bloc.dart';
-import '../../bloc/auth/auth_event.dart';
 import '../../widgets/app_bar_action_name.dart';
 import '../sidebar.dart';
 import 'chat_screen.dart';
 
-class ChatBoxScreen extends StatefulWidget {
+class ChatBoxScreen extends StatelessWidget {
   const ChatBoxScreen({super.key});
 
   @override
-  State<ChatBoxScreen> createState() => _ChatBoxScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) =>
+          ChatBoxBloc(MessageService(), AuthRepository())..add(LoadChatBox()),
+      child: _ChatBoxView(),
+    );
+  }
 }
 
-class _ChatBoxScreenState extends State<ChatBoxScreen> {
-  final MessageService _messageService = MessageService();
-  final AuthRepository _authRepository = AuthRepository();
-  String _selectedFilter = 'All'; // Default filter is 'All'
-
+class _ChatBoxView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -37,8 +39,8 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
       drawer: _buildSidebar(context),
       body: Column(
         children: [
-          _buildTabSection(size, isSmallScreen),
-          Expanded(child: _buildMessageList(size, isSmallScreen)),
+          _buildTabSection(context, size, isSmallScreen),
+          Expanded(child: _buildMessageList(context, size, isSmallScreen)),
         ],
       ),
     );
@@ -76,7 +78,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  Widget _buildTabSection(Size size, bool isSmallScreen) {
+  Widget _buildTabSection(BuildContext context, Size size, bool isSmallScreen) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -94,13 +96,13 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         child: Row(
           children: [
             const SizedBox(width: 16),
-            _buildFilterChip('All', isActive: _selectedFilter == 'All'),
+            _buildFilterChip(context, 'All'),
             const SizedBox(width: 8),
-            _buildFilterChip('Unread', isActive: _selectedFilter == 'Unread'),
+            _buildFilterChip(context, 'Unread'),
             const SizedBox(width: 8),
-            _buildFilterChip('Groups'),
+            _buildFilterChip(context, 'Groups'),
             const SizedBox(width: 8),
-            _buildFilterChip('Favorites'),
+            _buildFilterChip(context, 'Favorites'),
             const SizedBox(width: 16),
           ],
         ),
@@ -108,117 +110,69 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, {bool isActive = false}) {
-    return FilterChip(
-      label: Text(label),
-      selected: isActive,
-      backgroundColor: Colors.grey[200],
-      selectedColor: Colors.lightBlueAccent,
-      labelStyle: TextStyle(
-        color: isActive ? Colors.white : Colors.black87,
-      ),
-      onSelected: (_) {
-        setState(() {
-          _selectedFilter = label; // Update the selected filter
-        });
-      },
-    );
-  }
-
-  Widget _buildMessageList(Size size, bool isSmallScreen) {
-    return FutureBuilder<int?>(
-      future: UserStorage.getUserId(),
-      builder: (context, userSnapshot) {
-        if (userSnapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (userSnapshot.hasError || userSnapshot.data == null) {
-          return Center(child: Text('Error fetching user ID'));
-        }
-
-        final int currentUserId = userSnapshot.data!;
-        return StreamBuilder<Map<int, List<Message>>>(
-          stream: _messageService.getAllMessages(currentUserId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError ||
-                !snapshot.hasData ||
-                snapshot.data!.isEmpty) {
-              return const Center(child: Text('No messages yet.'));
-            }
-
-            final groupedMessages = snapshot.data!;
-            // Filter messages based on _selectedFilter
-            final filteredGroupedMessages = _selectedFilter == 'Unread'
-                ? (Map<int, List<Message>>.from(groupedMessages)
-                  ..removeWhere((key, messages) =>
-                      messages.every((m) => m.isRead != false)))
-                : groupedMessages;
-
-            if (filteredGroupedMessages.isEmpty) {
-              return const Center(
-                  child: Text('No unread messages.',
-                      style: TextStyle(color: Colors.grey)));
-            }
-
-            return ListView.builder(
-              itemCount: filteredGroupedMessages.length,
-              itemBuilder: (context, index) {
-                final receiverId =
-                    filteredGroupedMessages.keys.elementAt(index);
-                final messages = filteredGroupedMessages[receiverId]!;
-                final latestMessage = messages.first;
-
-                return FutureBuilder<User>(
-                  future: _authRepository.getUser(receiverId),
-                  builder: (context, userSnapshot) {
-                    if (userSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return _buildLoadingTile();
-                    }
-                    if (userSnapshot.hasError || !userSnapshot.hasData) {
-                      return _buildErrorTile();
-                    }
-
-                    final user = userSnapshot.data!;
-                    return _buildMessageTile(
-                        user, latestMessage, currentUserId);
-                  },
-                );
-              },
-            );
+  Widget _buildFilterChip(BuildContext context, String label) {
+    return BlocBuilder<ChatBoxBloc, ChatBoxState>(
+      builder: (context, state) {
+        final isActive = state is ChatBoxLoaded && state.filter == label;
+        return FilterChip(
+          label: Text(label),
+          selected: isActive,
+          backgroundColor: Colors.grey[200],
+          selectedColor: Colors.lightBlueAccent,
+          labelStyle: TextStyle(
+            color: isActive ? Colors.white : Colors.black87,
+          ),
+          onSelected: (_) {
+            context.read<ChatBoxBloc>().add(ChangeFilter(label));
           },
         );
       },
     );
   }
 
-  Widget _buildLoadingTile() {
-    return const ListTile(
-      leading: CircleAvatar(child: Icon(Icons.person)),
-      title: Text('Loading...'),
-      subtitle: Text('Fetching user info'),
+  Widget _buildMessageList(
+      BuildContext context, Size size, bool isSmallScreen) {
+    return BlocBuilder<ChatBoxBloc, ChatBoxState>(
+      builder: (context, state) {
+        if (state is ChatBoxLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state is ChatBoxError) {
+          return Center(child: Text(state.message));
+        }
+        if (state is ChatBoxLoaded) {
+          final filteredGroupedMessages = state.filteredGroupedMessages;
+          if (filteredGroupedMessages.isEmpty) {
+            return const Center(
+                child: Text('No messages yet.',
+                    style: TextStyle(color: Colors.grey)));
+          }
+
+          return ListView.builder(
+            itemCount: filteredGroupedMessages.length,
+            itemBuilder: (context, index) {
+              final receiverId = filteredGroupedMessages.keys.elementAt(index);
+              final userMessages = filteredGroupedMessages[receiverId]!;
+              final latestMessage = userMessages.messages.first;
+
+              return _buildMessageTile(context, userMessages.user,
+                  latestMessage, state.currentUserId);
+            },
+          );
+        }
+        return const Center(child: Text('Start a conversation!'));
+      },
     );
   }
 
-  Widget _buildErrorTile() {
-    return const ListTile(
-      leading: CircleAvatar(child: Icon(Icons.error)),
-      title: Text('Unknown User'),
-      subtitle: Text('Failed to load user'),
-    );
-  }
-
-  Widget _buildMessageTile(
-      User user, Message latestMessage, int currentUserId) {
-    final isUnread = latestMessage.isRead == false; // Check if unread
+  Widget _buildMessageTile(BuildContext context, User user,
+      Message latestMessage, int currentUserId) {
+    final isUnread = !latestMessage.isRead;
 
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.lightBlueAccent,
-        child: Text(user.fullname[0].toUpperCase()), // First letter as avatar
+        child: Text(user.fullname[0].toUpperCase()),
       ),
       title: Text(
         user.fullname,
@@ -230,8 +184,7 @@ class _ChatBoxScreenState extends State<ChatBoxScreen> {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: Colors.grey[700],
-          fontWeight:
-              isUnread ? FontWeight.bold : FontWeight.normal, // Bold if unread
+          fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       trailing: Text(

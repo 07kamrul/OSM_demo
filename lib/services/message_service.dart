@@ -108,4 +108,32 @@ class MessageService {
       return Stream.value({});
     }
   }
+
+  Future<Map<int, List<Message>>> getInitialAllMessages(
+      int currentUserId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('message')
+          .where(Filter.or(Filter('senderId', isEqualTo: currentUserId),
+              Filter('receiverId', isEqualTo: currentUserId)))
+          .orderBy('sentAt', descending: true)
+          .limit(50)
+          .get();
+
+      final messages = snapshot.docs
+          .map((doc) => Message.fromJson(doc.data()..['id'] = doc.id))
+          .toList();
+      Map<int, List<Message>> groupedMessages = {};
+      for (var message in messages) {
+        int otherUserId = message.senderId == currentUserId
+            ? message.receiverId
+            : message.senderId;
+        groupedMessages.putIfAbsent(otherUserId, () => []).add(message);
+      }
+      return groupedMessages;
+    } catch (e) {
+      if (kDebugMode) print('Error fetching initial all messages: $e');
+      return {};
+    }
+  }
 }
