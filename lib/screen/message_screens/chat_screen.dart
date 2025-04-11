@@ -20,11 +20,11 @@ class ChatScreen extends StatelessWidget {
   final int route;
 
   const ChatScreen({
-    Key? key,
+    super.key,
     required this.senderId,
     required this.receiverId,
     required this.route,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +36,7 @@ class ChatScreen extends StatelessWidget {
         senderId,
         receiverId,
       )..add(LoadChat(senderId, receiverId)),
-      child: _ChatScreenView(
-        route: route,
-      ),
+      child: _ChatScreenView(route: route),
     );
   }
 }
@@ -46,7 +44,7 @@ class ChatScreen extends StatelessWidget {
 class _ChatScreenView extends StatefulWidget {
   final int route;
 
-  const _ChatScreenView({Key? key, required this.route}) : super(key: key);
+  const _ChatScreenView({required this.route});
 
   @override
   State<_ChatScreenView> createState() => _ChatScreenViewState();
@@ -58,33 +56,15 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
   final local_notifications.FlutterLocalNotificationsPlugin
       _notificationsPlugin =
       local_notifications.FlutterLocalNotificationsPlugin();
-  ImageProvider? _personMarkerImage;
-  bool _hasPreloadedAssets = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeNotifications();
+    _initializeNotificationsAsync(); // Non-blocking
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_hasPreloadedAssets) {
-      _preloadAssets();
-      _hasPreloadedAssets = true;
-    }
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _initializeNotifications() async {
+  Future<void> _initializeNotificationsAsync() async {
     const local_notifications.AndroidInitializationSettings
         initializationSettingsAndroid =
         local_notifications.AndroidInitializationSettings(
@@ -93,11 +73,6 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
         local_notifications.InitializationSettings(
             android: initializationSettingsAndroid);
     await _notificationsPlugin.initialize(initializationSettings);
-  }
-
-  Future<void> _preloadAssets() async {
-    _personMarkerImage = const AssetImage('assets/person_marker.png');
-    await precacheImage(_personMarkerImage!, context);
   }
 
   void _scrollToBottom() {
@@ -142,6 +117,13 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
   }
 
   @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
@@ -161,21 +143,20 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () {
-          // 1 for ChatBoxScreen, 2 for DistanceTrackerScreen
           if (widget.route == 1) {
             Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => ChatBoxScreen()),
-            );
+                context, MaterialPageRoute(builder: (_) => ChatBoxScreen()));
           } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
-            );
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => DistanceTrackerScreen()));
           }
         },
       ),
       title: BlocBuilder<ChatScreenBloc, ChatScreenState>(
+        buildWhen: (previous, current) =>
+            previous is! ChatLoaded ||
+            current is! ChatLoaded ||
+            previous != current,
         builder: (context, state) {
           if (state is ChatLoading) {
             return const SizedBox(
@@ -191,21 +172,22 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
             final user = state.receiver;
             return Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                     radius: 18,
-                    backgroundImage: _personMarkerImage ??
-                        const AssetImage('assets/person_marker.png')),
+                    backgroundImage: AssetImage('assets/person_marker.png')),
                 const SizedBox(width: 10),
                 Flexible(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user.fullname,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold)),
+                      Text(
+                        user.fullname,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
                       Text(
                         user.status.toLowerCase() == 'active'
                             ? 'Active now'
@@ -219,24 +201,26 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
               ],
             );
           }
-          return const Text('Unknown', style: TextStyle(color: Colors.white));
+          return const Text('Chat', style: TextStyle(color: Colors.white));
         },
       ),
       backgroundColor: const Color(0xFF0088CC),
       elevation: 0,
-      actions: [
+      actions: const [
         IconButton(
-            icon: const Icon(Icons.call, color: Colors.white),
-            onPressed: () {}),
+            icon: Icon(Icons.call, color: Colors.white), onPressed: null),
         IconButton(
-            icon: const Icon(Icons.videocam, color: Colors.white),
-            onPressed: () {}),
+            icon: Icon(Icons.videocam, color: Colors.white), onPressed: null),
       ],
     );
   }
 
   Widget _buildMessageList(BuildContext context) {
     return BlocBuilder<ChatScreenBloc, ChatScreenState>(
+      buildWhen: (previous, current) =>
+          previous is! ChatLoaded ||
+          current is! ChatLoaded ||
+          previous.messages != current.messages,
       builder: (context, state) {
         if (state is ChatLoading) {
           return const Center(child: CircularProgressIndicator());
@@ -255,12 +239,11 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
             physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             itemCount: messages.length,
-            itemBuilder: (context, index) {
-              final message = messages[index];
-              final isSender =
-                  message.senderId == context.read<ChatScreenBloc>().senderId;
-              return _buildMessageBubble(message, isSender);
-            },
+            itemBuilder: (context, index) => _MessageBubble(
+              message: messages[index],
+              isSender: messages[index].senderId ==
+                  context.read<ChatScreenBloc>().senderId,
+            ),
           );
         }
         return const Center(child: Text('Start a conversation!'));
@@ -268,10 +251,81 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
     );
   }
 
-  Widget _buildMessageBubble(Message message, bool isSender) {
+  Widget _buildMessageInput(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.shade300,
+              offset: const Offset(0, -1),
+              blurRadius: 4)
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          IconButton(
+            icon:
+                const Icon(Icons.add_circle_outline, color: Color(0xFF0088CC)),
+            onPressed: () => _showAttachmentOptions(context),
+          ),
+          Expanded(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 120),
+              child: TextField(
+                controller: _messageController,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                decoration: InputDecoration(
+                  hintText: 'Message...',
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none),
+                ),
+                onSubmitted: (_) => _sendMessage(context),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: const Color(0xFF0088CC),
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white, size: 20),
+              onPressed: () => _sendMessage(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _sendMessage(BuildContext context) {
+    if (_messageController.text.isNotEmpty) {
+      context.read<ChatScreenBloc>().add(SendMessage(_messageController.text));
+      _messageController.clear();
+      _scrollToBottom();
+    }
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  final Message message;
+  final bool isSender;
+
+  const _MessageBubble({required this.message, required this.isSender});
+
+  @override
+  Widget build(BuildContext context) {
     final time = message.sentAt;
     final isImage = message.content.startsWith('http');
-    final status = 'sent'; // Simplified for this example
+    const status = 'sent'; // Simplified for this example
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -281,12 +335,11 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isSender)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
               child: CircleAvatar(
                   radius: 16,
-                  backgroundImage: _personMarkerImage ??
-                      const AssetImage('assets/person_marker.png')),
+                  backgroundImage: AssetImage('assets/person_marker.png')),
             ),
           Flexible(
             child: Container(
@@ -364,75 +417,6 @@ class _ChatScreenViewState extends State<_ChatScreenView> {
           if (isSender)
             const Padding(
                 padding: EdgeInsets.only(left: 8), child: SizedBox(width: 16)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageInput(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.grey.shade300,
-              offset: const Offset(0, -1),
-              blurRadius: 4)
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          IconButton(
-            icon:
-                const Icon(Icons.add_circle_outline, color: Color(0xFF0088CC)),
-            onPressed: () => _showAttachmentOptions(context),
-          ),
-          Expanded(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 120),
-              child: Scrollbar(
-                child: TextField(
-                  controller: _messageController,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  decoration: InputDecoration(
-                    hintText: 'Message...',
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none),
-                  ),
-                  onSubmitted: (_) {
-                    context
-                        .read<ChatScreenBloc>()
-                        .add(SendMessage(_messageController.text));
-                    _messageController.clear();
-                    _scrollToBottom();
-                  },
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(0xFF0088CC),
-            child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 20),
-              onPressed: () {
-                context
-                    .read<ChatScreenBloc>()
-                    .add(SendMessage(_messageController.text));
-                _messageController.clear();
-                _scrollToBottom();
-              },
-            ),
-          ),
         ],
       ),
     );

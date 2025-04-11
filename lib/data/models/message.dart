@@ -1,6 +1,7 @@
+import 'package:equatable/equatable.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Message {
+class Message extends Equatable {
   final String id;
   final int senderId;
   final int receiverId;
@@ -8,7 +9,7 @@ class Message {
   final DateTime sentAt;
   final bool isRead;
 
-  Message({
+  const Message({
     required this.id,
     required this.senderId,
     required this.receiverId,
@@ -17,27 +18,6 @@ class Message {
     required this.isRead,
   });
 
-  factory Message.fromMap(Map<String, dynamic> map, String id) {
-    return Message(
-      id: id,
-      senderId: (map['senderId'] ?? 0) as int,
-      receiverId: (map['receiverId'] ?? 0) as int,
-      content: (map['content'] ?? '') as String,
-      sentAt: (map['sentAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      isRead: (map['isRead'] ?? false) as bool,
-    );
-  }
-  Map<String, dynamic> toJson() {
-    return {
-      'senderId': senderId,
-      'receiverId': receiverId,
-      'content': content,
-      'sentAt': Timestamp.fromDate(sentAt),
-      'isRead': isRead,
-    };
-  }
-
-  // Add copyWith method
   Message copyWith({
     String? id,
     int? senderId,
@@ -55,4 +35,26 @@ class Message {
       isRead: isRead ?? this.isRead,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'content': content,
+        'sentAt': Timestamp.fromDate(sentAt),
+        'isRead': isRead,
+      };
+
+  static Message fromJson(Map<String, dynamic> json) => Message(
+        id: json['id'] as String,
+        senderId: json['senderId'] as int,
+        receiverId: json['receiverId'] as int,
+        content: json['content'] as String,
+        sentAt: (json['sentAt'] as Timestamp).toDate(),
+        isRead: json['isRead'] as bool? ?? false, // Default to false if null
+      );
+
+  @override
+  List<Object?> get props =>
+      [id, senderId, receiverId, content, sentAt, isRead];
 }

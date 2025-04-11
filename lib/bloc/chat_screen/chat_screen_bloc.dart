@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc/bloc.dart';
@@ -5,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:vibration/vibration.dart';
 import '../../data/models/message.dart';
-import '../../data/models/user.dart';
 import '../../data/repositories/message_repository.dart';
 import '../../services/message_service.dart';
 import '../../services/user_service.dart';
@@ -19,47 +19,69 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
   final int senderId;
   final int receiverId;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  StreamSubscription<List<Message>>? _messageSubscription;
 
-  ChatScreenBloc(this._messageService, this._messageRepository,
-      this._userService, this.senderId, this.receiverId)
-      : super(ChatInitial()) {
+  ChatScreenBloc(
+    this._messageService,
+    this._messageRepository,
+    this._userService,
+    this.senderId,
+    this.receiverId,
+  ) : super(ChatInitial()) {
     on<LoadChat>(_onLoadChat);
     on<SendMessage>(_onSendMessage);
     on<MarkMessagesAsRead>(_onMarkMessagesAsRead);
     on<PickImage>(_onPickImage);
+    on<UpdateMessages>(_onUpdateMessages); // New event for stream updates
   }
 
   Future<void> _onLoadChat(
       LoadChat event, Emitter<ChatScreenState> emit) async {
     emit(ChatLoading());
     try {
+      // Fetch initial data synchronously for speed
       final user = await _userService.fetchUserInfo(event.receiverId);
-      final messagesStream =
-          _messageService.getMessages(event.senderId, event.receiverId);
-      await for (var messages in messagesStream) {
-        final incomingMessages = messages
-            .where((m) => m.receiverId == senderId && !(m.isRead ?? false))
-            .toList();
-        String? lastMessageId =
-            state is ChatLoaded ? (state as ChatLoaded).lastMessageId : null;
+      final initialMessages = await _messageService.getInitialMessages(
+          event.senderId, event.receiverId);
 
-        if (incomingMessages.isNotEmpty &&
-            lastMessageId != incomingMessages.first.id) {
-          lastMessageId = incomingMessages.first.id;
-          if (await Vibration.hasVibrator() ?? false) {
-            Vibration.vibrate(duration: 500);
-          }
-          try {
-            await _audioPlayer.play(AssetSource('notification.wav'));
-          } catch (e) {
-            if (kDebugMode) print('Error playing sound: $e');
-          }
-          add(MarkMessagesAsRead());
-        }
-        emit(ChatLoaded(messages, user, lastMessageId));
-      }
+      // Emit initial state
+      emit(ChatLoaded(initialMessages, user, null));
+
+      // Set up stream for real-time updates
+      _messageSubscription?.cancel();
+      _messageSubscription = _messageService
+          .getMessages(event.senderId, event.receiverId)
+          .listen((messages) {
+        add(UpdateMessages(
+            messages)); // Trigger event instead of emitting directly
+      });
     } catch (e) {
       emit(ChatError('Failed to load chat: $e'));
+    }
+  }
+
+  Future<void> _onUpdateMessages(
+      UpdateMessages event, Emitter<ChatScreenState> emit) async {
+    if (state is ChatLoaded) {
+      final currentState = state as ChatLoaded;
+      final incomingMessages = event.messages
+          .where((m) => m.receiverId == senderId && !m.isRead)
+          .toList();
+      String? lastMessageId = currentState.lastMessageId;
+
+      if (incomingMessages.isNotEmpty &&
+          lastMessageId != incomingMessages.first.id) {
+        lastMessageId = incomingMessages.first.id;
+        if (await Vibration.hasVibrator() ?? false)
+          Vibration.vibrate(duration: 500);
+        try {
+          await _audioPlayer.play(AssetSource('notification.wav'));
+        } catch (e) {
+          if (kDebugMode) print('Error playing sound: $e');
+        }
+        add(MarkMessagesAsRead());
+      }
+      emit(ChatLoaded(event.messages, currentState.receiver, lastMessageId));
     }
   }
 
@@ -68,7 +90,6 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     if (event.content.isNotEmpty) {
       try {
         await _messageService.sendMessage(receiverId, event.content, senderId);
-        // No need to manually update state; stream will handle it
       } catch (e) {
         emit(ChatError('Failed to send message: $e'));
       }
@@ -80,13 +101,12 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
       final unread = currentState.messages
-          .where((m) => !(m.isRead ?? false) && m.receiverId == senderId)
+          .where((m) => !m.isRead && m.receiverId == senderId)
           .toList();
       if (unread.isNotEmpty) {
         try {
           await _messageService.updateMessages(
               unread.map((m) => m.copyWith(isRead: true)).toList());
-          // Stream will update the UI
         } catch (e) {
           emit(ChatError('Failed to mark messages as read: $e'));
         }
@@ -104,7 +124,6 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
         final imageUrl = await _uploadImage(imageFile);
         if (imageUrl != null) {
           await _messageService.sendMessage(receiverId, imageUrl, senderId);
-          // Stream will update the UI
         }
       }
     } catch (e) {
@@ -114,12 +133,13 @@ class ChatScreenBloc extends Bloc<ChatScreenEvent, ChatScreenState> {
 
   Future<String?> _uploadImage(File imageFile) async {
     if (kDebugMode) print('Uploading image: ${imageFile.path}');
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1)); // Simulate upload
     return 'https://example.com/uploaded_image.jpg';
   }
 
   @override
   Future<void> close() {
+    _messageSubscription?.cancel();
     _audioPlayer.dispose();
     return super.close();
   }
