@@ -1,7 +1,5 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gis_osm/common/location_storage.dart';
@@ -16,12 +14,10 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/match_user_repository.dart';
 import '../data/repositories/user_location_repository.dart';
 import '../enum.dart';
-import '../main.dart';
 import '../screen/auth_screen.dart';
 import '../screen/profile_screen.dart';
 import '../screen/sidebar.dart';
 import '../screen/user_list_screen.dart';
-import '../services/foreground_notification.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
 import 'message_screens/chat_box_screen.dart';
@@ -58,23 +54,21 @@ class _DistanceTrackerView extends StatefulWidget {
 
 class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   LatLng _initialLocation = const LatLng(0, 0);
-  final TextEditingController _messageController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-
-    _setInitialLocation();
+    _loadInitialLocation();
   }
 
-  Future<void> _setInitialLocation() async {
+  Future<void> _loadInitialLocation() async {
     final cachedLocation = await CachedLocationStorage.getCachedLocation();
     setState(() {
       _initialLocation = cachedLocation;
     });
+    // Trigger data loading after map is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DistanceTrackerBloc>().add(UpdateLocation());
-      context.read<DistanceTrackerBloc>().add(FetchMatchUsers());
+      context.read<DistanceTrackerBloc>().add(LoadInitialData());
     });
   }
 
@@ -162,33 +156,38 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
 
   List<Marker> _buildMarkers(BuildContext context, DistanceTrackerState state) {
     final markerSize = MediaQuery.sizeOf(context).width * 0.08;
-
     return [
+      if (state.currentUserLocation != const LatLng(0, 0))
+        Marker(
+          point: state.currentUserLocation,
+          width: markerSize * 2,
+          height: markerSize * 2.5,
+          child: const _MarkerContent(label: "Me"),
+        ),
       ...state.userLocations.map((loc) {
         final user = state.users.firstWhere(
           (u) => u.id == loc.userid,
           orElse: () => User(
-            id: 0,
-            firstname: "Unknown",
-            email: "",
-            password: "",
-            fullname: '',
-            lastname: '',
-            profile_pic: '',
-            gender: '',
-            dob: '',
-            status: '',
-            koumoku1: '',
-            koumoku2: '',
-            koumoku3: '',
-            koumoku4: '',
-            koumoku5: '',
-            koumoku6: '',
-            koumoku7: '',
-            koumoku8: '',
-            koumoku9: '',
-            koumoku10: '',
-          ),
+              id: 0,
+              firstname: "Unknown",
+              email: "",
+              password: "",
+              fullname: '',
+              lastname: '',
+              profile_pic: '',
+              gender: '',
+              dob: '',
+              status: '',
+              koumoku1: '',
+              koumoku2: '',
+              koumoku3: '',
+              koumoku4: '',
+              koumoku5: '',
+              koumoku6: '',
+              koumoku7: '',
+              koumoku8: '',
+              koumoku9: '',
+              koumoku10: ''),
         );
         return Marker(
           point: LatLng(loc.endlatitude, loc.endlongitude),
@@ -206,14 +205,6 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
           ),
         );
       }),
-      Marker(
-        point: state.currentUserLocation != const LatLng(0, 0)
-            ? state.currentUserLocation
-            : _initialLocation,
-        width: markerSize * 2,
-        height: markerSize * 2.5,
-        child: const _MarkerContent(label: "Me"),
-      ),
     ];
   }
 
@@ -451,7 +442,7 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   }
 }
 
-// Reusable Widgets
+// Reusable Widgets (unchanged for brevity, but optimized with const where possible)
 class _MarkerContent extends StatelessWidget {
   final String label;
   final double? markerSize;
@@ -469,9 +460,7 @@ class _MarkerContent extends StatelessWidget {
       children: [
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: fontSize * 0.5,
-            vertical: fontSize * 0.25,
-          ),
+              horizontal: fontSize * 0.5, vertical: fontSize * 0.25),
           decoration: BoxDecoration(
             color: Colors.black54,
             borderRadius: BorderRadius.circular(fontSize * 0.5),

@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:latlong2/latlong.dart';
-
 import '../../data/models/match_users.dart';
 import '../../data/models/user.dart';
 import '../../data/models/user_location.dart';
