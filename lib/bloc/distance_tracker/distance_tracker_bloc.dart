@@ -81,7 +81,9 @@ class DistanceTrackerBloc
 
       // Load additional data and emit updated state
       final users = await _userService.fetchUsers();
-      final matchUsers = await _matchUsersRepository.getMatchUsers(userId);
+      final fetchMatchUsers = await _matchUsersRepository.getMatchUsers(userId);
+      final matchUsers =
+          fetchMatchUsers.where((u) => u.distance * 1000 <= 200).toList();
       emit(state.copyWith(
         userLocations: matchUsers.map((m) => m.location).toList(),
         users: users,
