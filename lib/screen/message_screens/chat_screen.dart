@@ -398,14 +398,9 @@ class _MessageBubble extends StatelessWidget {
                       if (isSender) ...[
                         const SizedBox(width: 4),
                         Icon(
-                          status == 'read'
-                              ? Icons.done_all
-                              : status == 'delivered'
-                                  ? Icons.done
-                                  : Icons.schedule,
+                          message.isRead ? Icons.done_all : Icons.check,
                           size: 16,
-                          color:
-                              status == 'read' ? Colors.white : Colors.white70,
+                          color: message.isRead ? Colors.green : Colors.white70,
                         ),
                       ],
                     ],
