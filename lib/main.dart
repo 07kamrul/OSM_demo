@@ -27,7 +27,7 @@ void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
-  //await initializeService();
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   try {
     await Firebase.initializeApp();

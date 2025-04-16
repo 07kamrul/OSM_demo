@@ -54,6 +54,7 @@ class _DistanceTrackerView extends StatefulWidget {
 
 class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   LatLng _initialLocation = const LatLng(0, 0);
+  bool isMapInitialized = false; // Track map readiness
 
   @override
   void initState() {
@@ -130,9 +131,15 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
         initialCenter: state.currentUserLocation != const LatLng(0, 0)
             ? state.currentUserLocation
             : _initialLocation,
+        initialZoom: state.currentZoom ?? AppConstants.defaultZoom,
         minZoom: AppConstants.minZoom,
         initialRotation: state.rotation,
         onTap: (_, __) => context.read<DistanceTrackerBloc>().add(ClearRoute()),
+        onMapReady: () {
+          setState(() {
+            isMapInitialized = true; // Mark map as ready
+          });
+        },
       ),
       children: [
         TileLayer(

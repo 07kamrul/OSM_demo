@@ -25,6 +25,7 @@ class DistanceTrackerBloc
   Timer? _locationUpdateTimer;
   LatLng? _previousLocation;
   bool _isClosed = false;
+  bool isMapInitialized = false; // Track map readiness
 
   DistanceTrackerBloc({
     required UserLocationRepository userLocationRepository,
@@ -49,7 +50,8 @@ class DistanceTrackerBloc
 
   Future<void> _onInitializeMap(
       InitializeMap event, Emitter<DistanceTrackerState> emit) async {
-    emit(state.copyWith(isLoading: false)); // Map loads immediately
+    isMapInitialized = true; // Map is ready
+    emit(state.copyWith(isLoading: false));
   }
 
   Future<void> _onLoadInitialData(
@@ -60,7 +62,9 @@ class DistanceTrackerBloc
       if (userId == null) throw 'User ID not found';
 
       final location = await LocationService.getCurrentLocation();
-      CachedLocationStorage.saveLocation(location); // Cache location early
+      if (location != null) {
+        await CachedLocationStorage.saveLocation(location);
+      }
 
       // Load critical data first
       final user = await _userService.fetchUser();
@@ -69,15 +73,17 @@ class DistanceTrackerBloc
 
       // Emit initial state with critical data
       emit(state.copyWith(
-        currentUserLocation: location,
+        currentUserLocation: location ?? state.currentUserLocation,
         user: user,
         userLocation: userLocation,
         isShareLocation: userLocation.issharinglocation,
         isLoading: false,
       ));
 
-      // Move map to current location
-      mapController.move(location, AppConstants.defaultZoom);
+      // Move map to current location if initialized
+      if (isMapInitialized && location != null) {
+        mapController.move(location, AppConstants.defaultZoom);
+      }
 
       // Load additional data and emit updated state
       final users = await _userService.fetchUsers();
@@ -102,18 +108,27 @@ class DistanceTrackerBloc
       UpdateLocation event, Emitter<DistanceTrackerState> emit) async {
     try {
       final location = await LocationService.getCurrentLocation();
-      if (_previousLocation == null || _previousLocation != location) {
+
+      if (location != null) {
         emit(state.copyWith(currentUserLocation: location));
-        if (state.routePoints.isEmpty) {
-          mapController.move(
-              location, state.currentZoom ?? AppConstants.defaultZoom);
-          emit(state.copyWith(currentZoom: mapController.camera.zoom));
+
+        final isInitialMove = state.routePoints.isEmpty;
+
+        if (isInitialMove && isMapInitialized) {
+          final zoom = state.currentZoom ?? AppConstants.defaultZoom;
+          mapController.move(location, zoom);
+          emit(state.copyWith(currentZoom: zoom));
         }
+
         _previousLocation = location;
-        CachedLocationStorage.saveLocation(location);
+        await CachedLocationStorage.saveLocation(location);
+        await _updateUserLocationSharing(emit);
+      } else {
+        emit(state.copyWith(errorMessage: 'Location is null'));
       }
-    } catch (e) {
-      emit(state.copyWith(errorMessage: 'Error updating location: $e'));
+    } catch (e, stackTrace) {
+      print('Exception during location update: $e\n$stackTrace');
+      emit(state.copyWith(errorMessage: 'Error updating location'));
     }
   }
 
@@ -156,7 +171,9 @@ class DistanceTrackerBloc
   Future<void> _onClearRoute(
       ClearRoute event, Emitter<DistanceTrackerState> emit) async {
     emit(state.copyWith(routePoints: [], distance: 0.0, selectedUserId: null));
-    mapController.move(state.currentUserLocation, AppConstants.defaultZoom);
+    if (isMapInitialized) {
+      mapController.move(state.currentUserLocation, AppConstants.defaultZoom);
+    }
   }
 
   Future<void> _onFetchMatchUsers(
