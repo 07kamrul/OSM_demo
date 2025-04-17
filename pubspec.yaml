@@ -28,7 +28,6 @@ dependencies:
   font_awesome_flutter:
   cloud_firestore:
   firebase_core:
-  web_socket_channel:
   firebase_auth:
   shared_preferences_android:
   firebase_storage:
@@ -43,16 +42,8 @@ dependencies:
   flutter_local_notifications:
   vibration:
   audioplayers:
-  google_api_availability:
-  connectivity_plus:
-  googleapis:
-  googleapis_auth:
   flutter_background_service:
   flutter_background_service_ios:
-  fluttertoast:
-  android_alarm_manager_plus:
-  flutter_native_splash:
-  get:
 
 dev_dependencies:
   flutter_test:
