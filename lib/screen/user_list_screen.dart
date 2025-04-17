@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gis_osm/screen/profile_update_screen.dart';
 import 'package:gis_osm/widgets/app_bar_action_name.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
@@ -9,6 +10,7 @@ import '../enum.dart';
 import '../services/user_service.dart';
 import '../widgets/user_card.dart';
 import 'auth_screen.dart';
+import 'change_password_screen.dart';
 import 'distance_tracker_screen.dart';
 import 'message_screens/chat_box_screen.dart';
 import 'sidebar.dart';
@@ -140,6 +142,10 @@ class _UserListScreenState extends State<UserListScreen> {
       onUsersTap: () => _navigateTo(context, const UserListScreen()),
       onTrackLocationTap: () => _navigateTo(context, DistanceTrackerScreen()),
       onChatBoxTap: () => _navigateTo(context, ChatBoxScreen()),
+      onChangePasswordTap: () =>
+          _navigateTo(context, const ChangePasswordScreen()),
+      onProfileUpdateTap: () =>
+          _navigateTo(context, const ProfileUpdateScreen()),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());

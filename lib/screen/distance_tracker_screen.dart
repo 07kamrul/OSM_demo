@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gis_osm/common/location_storage.dart';
+import 'package:gis_osm/screen/profile_update_screen.dart';
 import 'package:latlong2/latlong.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
@@ -20,6 +21,7 @@ import '../screen/sidebar.dart';
 import '../screen/user_list_screen.dart';
 import '../services/user_service.dart';
 import '../widgets/app_bar_action_name.dart';
+import 'change_password_screen.dart';
 import 'message_screens/chat_box_screen.dart';
 import 'message_screens/chat_screen.dart';
 
@@ -436,11 +438,14 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
       onUsersTap: () => _navigate(context, const UserListScreen()),
       onTrackLocationTap: () => _navigate(context, DistanceTrackerScreen()),
       onChatBoxTap: () => _navigate(context, const ChatBoxScreen()),
-      onSettingsTap: () => debugPrint("Settings tapped"),
+      onChangePasswordTap: () =>
+          _navigate(context, const ChangePasswordScreen()),
+      onProfileUpdateTap: () => _navigate(context, const ProfileUpdateScreen()),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());
         _navigate(context, AuthScreen());
       },
+      onSettingsTap: () {},
     );
   }
 

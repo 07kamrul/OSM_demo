@@ -8,7 +8,9 @@ import '../../data/models/message.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../services/message_service.dart';
+import '../change_password_screen.dart';
 import '../distance_tracker_screen.dart';
+import '../profile_update_screen.dart';
 import '../user_list_screen.dart';
 import '../auth_screen.dart';
 import '../../widgets/app_bar_action_name.dart';
@@ -70,6 +72,9 @@ class _ChatBoxView extends StatelessWidget {
       onUsersTap: () => _navigate(context, const UserListScreen()),
       onTrackLocationTap: () => _navigate(context, DistanceTrackerScreen()),
       onChatBoxTap: () => _navigate(context, const ChatBoxScreen()),
+      onChangePasswordTap: () =>
+          _navigate(context, const ChangePasswordScreen()),
+      onProfileUpdateTap: () => _navigate(context, const ProfileUpdateScreen()),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());

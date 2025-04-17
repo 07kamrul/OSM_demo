@@ -8,7 +8,8 @@ class Sidebar extends StatelessWidget {
   final VoidCallback onUsersTap;
   final VoidCallback onTrackLocationTap;
   final VoidCallback onChatBoxTap;
-  final VoidCallback onSettingsTap;
+  final VoidCallback onChangePasswordTap; // New callback for change password
+  final VoidCallback onProfileUpdateTap; // New callback for profile update
   final VoidCallback onLogoutTap;
 
   const Sidebar({
@@ -17,8 +18,10 @@ class Sidebar extends StatelessWidget {
     required this.onUsersTap,
     required this.onTrackLocationTap,
     required this.onChatBoxTap,
-    required this.onSettingsTap,
+    required this.onChangePasswordTap,
+    required this.onProfileUpdateTap,
     required this.onLogoutTap,
+    required void Function() onSettingsTap,
   });
 
   @override
@@ -39,7 +42,8 @@ class Sidebar extends StatelessWidget {
             onUsersTap: onUsersTap,
             onTrackLocationTap: onTrackLocationTap,
             onChatBoxTap: onChatBoxTap,
-            onSettingsTap: onSettingsTap,
+            onChangePasswordTap: onChangePasswordTap,
+            onProfileUpdateTap: onProfileUpdateTap,
             onLogoutTap: onLogoutTap,
           );
         },
@@ -56,7 +60,8 @@ class _SidebarContent extends StatelessWidget {
   final VoidCallback onUsersTap;
   final VoidCallback onTrackLocationTap;
   final VoidCallback onChatBoxTap;
-  final VoidCallback onSettingsTap;
+  final VoidCallback onChangePasswordTap;
+  final VoidCallback onProfileUpdateTap;
   final VoidCallback onLogoutTap;
 
   const _SidebarContent({
@@ -67,7 +72,8 @@ class _SidebarContent extends StatelessWidget {
     required this.onUsersTap,
     required this.onTrackLocationTap,
     required this.onChatBoxTap,
-    required this.onSettingsTap,
+    required this.onChangePasswordTap,
+    required this.onProfileUpdateTap,
     required this.onLogoutTap,
   });
 
@@ -124,11 +130,8 @@ class _SidebarContent extends StatelessWidget {
           iconSize: iconSize,
           fontSize: listItemFontSize,
         ),
-        _buildMenuItem(
+        _buildSettingsMenu(
           context,
-          icon: Icons.settings,
-          title: 'Settings',
-          onTap: onSettingsTap,
           iconSize: iconSize,
           fontSize: listItemFontSize,
         ),
@@ -208,6 +211,67 @@ class _SidebarContent extends StatelessWidget {
             (isSmallScreen ? 0.8 : 1.0),
         vertical: isSmallScreen ? 4 : 8,
       ),
+    );
+  }
+
+  Widget _buildSettingsMenu(
+    BuildContext context, {
+    required double iconSize,
+    required double fontSize,
+  }) {
+    return ExpansionTile(
+      leading: Icon(Icons.settings, size: iconSize),
+      title: Text(
+        'Settings',
+        style: TextStyle(fontSize: fontSize),
+      ),
+      tilePadding: EdgeInsets.symmetric(
+        horizontal: size.width *
+            AppConstants.paddingScale *
+            (isSmallScreen ? 0.8 : 1.0),
+        vertical: isSmallScreen ? 4 : 8,
+      ),
+      childrenPadding: EdgeInsets.only(
+        left: size.width *
+            AppConstants.paddingScale *
+            (isSmallScreen ? 1.6 : 2.0),
+      ),
+      children: [
+        ListTile(
+          title: Text(
+            'Change Password',
+            style: TextStyle(fontSize: fontSize * 0.9),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            onChangePasswordTap();
+          },
+          dense: isSmallScreen,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: size.width *
+                AppConstants.paddingScale *
+                (isSmallScreen ? 0.8 : 1.0),
+            vertical: isSmallScreen ? 2 : 4,
+          ),
+        ),
+        ListTile(
+          title: Text(
+            'Profile Update',
+            style: TextStyle(fontSize: fontSize * 0.9),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            onProfileUpdateTap();
+          },
+          dense: isSmallScreen,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: size.width *
+                AppConstants.paddingScale *
+                (isSmallScreen ? 0.8 : 1.0),
+            vertical: isSmallScreen ? 2 : 4,
+          ),
+        ),
+      ],
     );
   }
 }
