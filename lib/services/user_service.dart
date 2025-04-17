@@ -20,7 +20,6 @@ class UserService {
     }
   }
 
-
   Future<User> fetchUserInfo(int userId) async {
     try {
       if (userId != 0) {
@@ -47,4 +46,12 @@ class UserService {
     }
   }
 
+  Future<User> updateUser(User user) async {
+    try {
+      final updatedUser = await _userRepository.updateUser(user);
+      return updatedUser;
+    } catch (e) {
+      throw Exception('Failed to update user: $e');
+    }
+  }
 }

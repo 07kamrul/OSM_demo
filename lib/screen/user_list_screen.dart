@@ -144,8 +144,7 @@ class _UserListScreenState extends State<UserListScreen> {
       onChatBoxTap: () => _navigateTo(context, ChatBoxScreen()),
       onChangePasswordTap: () =>
           _navigateTo(context, const ChangePasswordScreen()),
-      onProfileUpdateTap: () =>
-          _navigateTo(context, const ProfileUpdateScreen()),
+      onProfileUpdateTap: () => _navigateTo(context, ProfileUpdateScreen()),
       onSettingsTap: () => debugPrint("Settings tapped"),
       onLogoutTap: () {
         context.read<AuthBloc>().add(LogoutEvent());

@@ -101,4 +101,32 @@ class AuthRepository {
       throw Exception('Error fetching user: $e');
     }
   }
+
+  Future<User> updateUser(User user) async {
+    try {
+      final url = Uri.parse('$baseUrl/UpdateUser/${user.id}');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(user.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+
+        if (responseBody.containsKey('user') && responseBody['user'] is Map) {
+          final userData = responseBody['user'] as Map<String, dynamic>;
+          return User.fromJson(userData);
+        } else {
+          throw Exception(
+              'Invalid API response format: Expected "user" key with a map value');
+        }
+      } else {
+        throw Exception('Failed to update user: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error updating user: $e');
+    }
+  }
 }

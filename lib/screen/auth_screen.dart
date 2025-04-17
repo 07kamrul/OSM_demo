@@ -5,9 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
-import '../data/repositories/auth_repository.dart'; // Add this import
+import '../data/repositories/auth_repository.dart';
 import '../enum.dart';
-import '../services/foreground_notification.dart';
 import 'distance_tracker_screen.dart';
 
 class AppRoot extends StatelessWidget {
