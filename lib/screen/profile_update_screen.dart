@@ -32,12 +32,8 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
   late TextEditingController _fullnameController;
   late TextEditingController _firstnameController;
   late TextEditingController _lastnameController;
-  late TextEditingController _emailController;
-  late TextEditingController _passwordController;
-  late TextEditingController _profilePicController;
   late TextEditingController _genderController;
   late TextEditingController _dobController;
-  late TextEditingController _statusController;
 
   // Controllers for Additional Information
   late TextEditingController _koumoku1Controller;
@@ -93,12 +89,8 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
     _fullnameController = TextEditingController(text: user.fullname);
     _firstnameController = TextEditingController(text: user.firstname);
     _lastnameController = TextEditingController(text: user.lastname);
-    _emailController = TextEditingController(text: user.email);
-    _passwordController = TextEditingController(text: user.password);
-    _profilePicController = TextEditingController(text: user.profile_pic);
     _genderController = TextEditingController(text: user.gender);
     _dobController = TextEditingController(text: user.dob);
-    _statusController = TextEditingController(text: user.status);
     _koumoku1Controller = TextEditingController(text: user.koumoku1);
     _koumoku2Controller = TextEditingController(text: user.koumoku2);
     _koumoku3Controller = TextEditingController(text: user.koumoku3);
@@ -117,12 +109,8 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
     _fullnameController.dispose();
     _firstnameController.dispose();
     _lastnameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _profilePicController.dispose();
     _genderController.dispose();
     _dobController.dispose();
-    _statusController.dispose();
     _koumoku1Controller.dispose();
     _koumoku2Controller.dispose();
     _koumoku3Controller.dispose();
@@ -263,36 +251,6 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
             ),
             SizedBox(height: padding),
             _buildTextField(
-              controller: _emailController,
-              label: 'Email',
-              fontSize: fontSize,
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value!.isEmpty) return 'Email is required';
-                if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                  return 'Enter a valid email';
-                }
-                return null;
-              },
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _passwordController,
-              label: 'Password',
-              fontSize: fontSize,
-              obscureText: true,
-              validator: (value) =>
-                  value!.isEmpty ? 'Password is required' : null,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _profilePicController,
-              label: 'Profile Picture URL',
-              fontSize: fontSize,
-              keyboardType: TextInputType.url,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
               controller: _genderController,
               label: 'Gender',
               fontSize: fontSize,
@@ -303,12 +261,6 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
               label: 'Date of Birth (YYYY-MM-DD)',
               fontSize: fontSize,
               keyboardType: TextInputType.datetime,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _statusController,
-              label: 'Status',
-              fontSize: fontSize,
             ),
             SizedBox(height: padding * 2),
             Center(
@@ -465,12 +417,8 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
         fullname: _fullnameController.text,
         firstname: _firstnameController.text,
         lastname: _lastnameController.text,
-        email: _emailController.text,
-        password: _passwordController.text,
-        profile_pic: _profilePicController.text,
         gender: _genderController.text,
         dob: _dobController.text,
-        status: _statusController.text,
         koumoku1: _koumoku1Controller.text,
         koumoku2: _koumoku2Controller.text,
         koumoku3: _koumoku3Controller.text,
@@ -481,6 +429,10 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
         koumoku8: _koumoku8Controller.text,
         koumoku9: _koumoku9Controller.text,
         koumoku10: _koumoku10Controller.text,
+        password: _user!.password,
+        status: _user!.status,
+        profile_pic: _user!.profile_pic,
+        email: _user!.email,
       );
 
       try {

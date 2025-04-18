@@ -54,4 +54,17 @@ class UserService {
       throw Exception('Failed to update user: $e');
     }
   }
+
+  Future<void> changePassword({
+    required int userId,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _userRepository.changePassword(
+          userId, currentPassword, newPassword);
+    } catch (e) {
+      throw Exception('Failed to change user password: $e');
+    }
+  }
 }

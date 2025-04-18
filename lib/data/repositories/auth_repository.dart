@@ -129,4 +129,30 @@ class AuthRepository {
       throw Exception('Error updating user: $e');
     }
   }
+
+  Future<void> changePassword(
+      int userId, String currentPassword, String newPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/changePassword'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to change password: ${response.statusCode}');
+      }
+
+      final responseBody = jsonDecode(response.body);
+      if (responseBody['success'] != true) {
+        throw Exception(responseBody['message'] ?? 'Password change failed');
+      }
+    } catch (e) {
+      throw Exception('Error changing password: $e');
+    }
+  }
 }
