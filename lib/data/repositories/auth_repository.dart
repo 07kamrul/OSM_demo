@@ -115,12 +115,13 @@ class AuthRepository {
       if (response.statusCode == 200) {
         final responseBody = jsonDecode(response.body);
 
-        if (responseBody.containsKey('user') && responseBody['user'] is Map) {
-          final userData = responseBody['user'] as Map<String, dynamic>;
-          return User.fromJson(userData);
+        if (responseBody.containsKey('data') &&
+            responseBody['data'] is Map<String, dynamic>) {
+          final abc = User.fromJson(responseBody['data']);
+          return abc;
         } else {
           throw Exception(
-              'Invalid API response format: Expected "user" key with a map value');
+              'Invalid API response: Missing or invalid "data" field');
         }
       } else {
         throw Exception('Failed to update user: ${response.statusCode}');

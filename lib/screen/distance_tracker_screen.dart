@@ -56,7 +56,7 @@ class _DistanceTrackerView extends StatefulWidget {
 
 class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   LatLng _initialLocation = const LatLng(0, 0);
-  bool isMapInitialized = false; // Track map readiness
+  bool isMapInitialized = false;
 
   @override
   void initState() {
@@ -69,7 +69,6 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
     setState(() {
       _initialLocation = cachedLocation;
     });
-    // Trigger data loading after map is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DistanceTrackerBloc>().add(LoadInitialData());
     });
@@ -139,8 +138,13 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
         onTap: (_, __) => context.read<DistanceTrackerBloc>().add(ClearRoute()),
         onMapReady: () {
           setState(() {
-            isMapInitialized = true; // Mark map as ready
+            isMapInitialized = true;
           });
+        },
+        onPositionChanged: (position, hasGesture) {
+          if (hasGesture && position.zoom != null) {
+            context.read<DistanceTrackerBloc>().add(UpdateZoom(position.zoom!));
+          }
         },
       ),
       children: [
@@ -454,7 +458,7 @@ class _DistanceTrackerViewState extends State<_DistanceTrackerView> {
   }
 }
 
-// Reusable Widgets (unchanged for brevity, but optimized with const where possible)
+// Reusable Widgets (unchanged)
 class _MarkerContent extends StatelessWidget {
   final String label;
   final double? markerSize;
@@ -544,7 +548,7 @@ class _UserInfo extends StatelessWidget {
           ],
         ),
         Text(
-          'Last active 25m ago', // Replace with dynamic data
+          'Last active 25m ago',
           style: TextStyle(
             fontSize: isSmallScreen ? 12 : 14,
             color: Colors.grey,

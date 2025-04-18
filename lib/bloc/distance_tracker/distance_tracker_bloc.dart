@@ -25,7 +25,7 @@ class DistanceTrackerBloc
   Timer? _locationUpdateTimer;
   LatLng? _previousLocation;
   bool _isClosed = false;
-  bool isMapInitialized = false; // Track map readiness
+  bool isMapInitialized = false;
 
   DistanceTrackerBloc({
     required UserLocationRepository userLocationRepository,
@@ -46,12 +46,14 @@ class DistanceTrackerBloc
     on<ResetRotation>(_onResetRotation);
     on<ClearRoute>(_onClearRoute);
     on<FetchMatchUsers>(_onFetchMatchUsers);
+    on<UpdateZoom>(_onUpdateZoom); // New event handler
   }
 
   Future<void> _onInitializeMap(
       InitializeMap event, Emitter<DistanceTrackerState> emit) async {
-    isMapInitialized = true; // Map is ready
-    emit(state.copyWith(isLoading: false));
+    isMapInitialized = true;
+    emit(state.copyWith(
+        isLoading: false, currentZoom: AppConstants.defaultZoom));
   }
 
   Future<void> _onLoadInitialData(
@@ -66,26 +68,24 @@ class DistanceTrackerBloc
         await CachedLocationStorage.saveLocation(location);
       }
 
-      // Load critical data first
       final user = await _userService.fetchUser();
       final userLocation =
           await _userLocationRepository.getUserLocationByUserId(userId);
 
-      // Emit initial state with critical data
       emit(state.copyWith(
         currentUserLocation: location ?? state.currentUserLocation,
         user: user,
         userLocation: userLocation,
         isShareLocation: userLocation.issharinglocation,
         isLoading: false,
+        currentZoom: state.currentZoom ?? AppConstants.defaultZoom,
       ));
 
-      // Move map to current location if initialized
       if (isMapInitialized && location != null) {
-        mapController.move(location, AppConstants.defaultZoom);
+        mapController.move(
+            location, state.currentZoom ?? AppConstants.defaultZoom);
       }
 
-      // Load additional data and emit updated state
       final users = await _userService.fetchUsers();
       final fetchMatchUsers = await _matchUsersRepository.getMatchUsers(userId);
       final matchUsers =
@@ -115,9 +115,8 @@ class DistanceTrackerBloc
         final isInitialMove = state.routePoints.isEmpty;
 
         if (isInitialMove && isMapInitialized) {
-          final zoom = state.currentZoom ?? AppConstants.defaultZoom;
-          mapController.move(location, zoom);
-          emit(state.copyWith(currentZoom: zoom));
+          mapController.move(
+              location, state.currentZoom ?? AppConstants.defaultZoom);
         }
 
         _previousLocation = location;
@@ -144,7 +143,6 @@ class DistanceTrackerBloc
           selectedUserId: event.userId,
         ));
         _fitMapToRoute();
-        emit(state.copyWith(currentZoom: mapController.camera.zoom));
       }
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Error calculating distance: $e'));
@@ -172,7 +170,8 @@ class DistanceTrackerBloc
       ClearRoute event, Emitter<DistanceTrackerState> emit) async {
     emit(state.copyWith(routePoints: [], distance: 0.0, selectedUserId: null));
     if (isMapInitialized) {
-      mapController.move(state.currentUserLocation, AppConstants.defaultZoom);
+      mapController.move(state.currentUserLocation,
+          state.currentZoom ?? AppConstants.defaultZoom);
     }
   }
 
@@ -190,6 +189,11 @@ class DistanceTrackerBloc
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to load match users: $e'));
     }
+  }
+
+  Future<void> _onUpdateZoom(
+      UpdateZoom event, Emitter<DistanceTrackerState> emit) async {
+    emit(state.copyWith(currentZoom: event.zoom));
   }
 
   Future<void> _updateUserLocationSharing(
@@ -228,8 +232,15 @@ class DistanceTrackerBloc
   void _fitMapToRoute() {
     if (state.routePoints.isEmpty) return;
     final bounds = LatLngBounds.fromPoints(state.routePoints);
+    // Respect current zoom if within reasonable bounds
+    final currentZoom = state.currentZoom ?? AppConstants.defaultZoom;
     mapController.fitCamera(
-        CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(50),
+        maxZoom: currentZoom.clamp(AppConstants.minZoom, AppConstants.maxZoom),
+      ),
+    );
   }
 
   @override

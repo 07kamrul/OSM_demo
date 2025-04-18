@@ -9,8 +9,7 @@ abstract class DistanceTrackerEvent extends Equatable {
 
 class InitializeMap extends DistanceTrackerEvent {}
 
-class LoadInitialData
-    extends DistanceTrackerEvent {} // New event for deferred data
+class LoadInitialData extends DistanceTrackerEvent {}
 
 class UpdateLocation extends DistanceTrackerEvent {}
 
@@ -34,3 +33,10 @@ class ResetRotation extends DistanceTrackerEvent {}
 class ClearRoute extends DistanceTrackerEvent {}
 
 class FetchMatchUsers extends DistanceTrackerEvent {}
+
+class UpdateZoom extends DistanceTrackerEvent {
+  final double zoom;
+  const UpdateZoom(this.zoom);
+  @override
+  List<Object?> get props => [zoom];
+}

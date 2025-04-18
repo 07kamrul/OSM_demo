@@ -3,6 +3,7 @@ class AppConstants {
   static const double appBarFontScale = 0.05;
   static const double minZoom = 10.0;
   static const double defaultZoom = 15.0;
+  static const double maxZoom = 18.0;
   static const double logoScale = 0.3;
   static const double inputHeightScale = 0.07;
   static const double fontScale = 0.04;
@@ -36,5 +37,4 @@ class AppConstants {
   static const iconSize = 30.0;
 
   // Route constants
-
 }
