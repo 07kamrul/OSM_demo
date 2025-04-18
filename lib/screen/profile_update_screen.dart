@@ -439,12 +439,27 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
         final userService = UserService();
         final savedUser = await userService.updateUser(updatedUser);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated: ${savedUser.fullname}')),
+          SnackBar(
+            backgroundColor: Colors.green,
+            content: Text(
+              'Profile updated: ${savedUser.fullname}',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         );
-        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
+        );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: $e')),
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text(
+              'Failed to update profile: $e',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         );
       }
     }
