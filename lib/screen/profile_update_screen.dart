@@ -113,108 +113,175 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
     return Scaffold(
       appBar: _buildAppBar(context),
       drawer: _buildDrawer(context),
-      body: BlocConsumer<ProfileUpdateBloc, ProfileUpdateState>(
-        listener: (context, state) {
-          if (state.user != null) {
-            _updateControllers(state.user!);
-          }
-          if (state.updateSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.green,
-                content: Text(
-                  'Profile updated: ${state.user?.fullname ?? ''}',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            );
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
-            );
-          } else if (state.errorMessage != null && !state.isLoading) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.red,
-                content: Text(
-                  state.errorMessage!,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final size = MediaQuery.of(context).size;
-              final isSmallScreen =
-                  size.width < AppConstants.smallScreenBreakpoint;
-              final padding = size.width * AppConstants.paddingScale;
-              final fontSize = size.width *
-                  AppConstants.listItemFontScale *
-                  (isSmallScreen ? 0.9 : 1.0);
-
-              if (state.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (state.errorMessage != null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(state.errorMessage!,
-                          style:
-                              TextStyle(fontSize: fontSize, color: Colors.red)),
-                      SizedBox(height: padding),
-                      ElevatedButton(
-                        onPressed: () =>
-                            context.read<ProfileUpdateBloc>().add(FetchUser()),
-                        child:
-                            Text('Retry', style: TextStyle(fontSize: fontSize)),
-                      ),
-                    ],
+      body: SafeArea(
+        child: BlocConsumer<ProfileUpdateBloc, ProfileUpdateState>(
+          listener: (context, state) {
+            if (state.user != null) {
+              _updateControllers(state.user!);
+            }
+            if (state.updateSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: Colors.green,
+                  content: Text(
+                    'Profile updated: ${state.user?.fullname ?? ''}',
+                    style: const TextStyle(color: Colors.white),
                   ),
-                );
-              }
-
-              return TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildPersonalInfoTab(
-                      context, padding, fontSize, isSmallScreen),
-                  _buildAdditionalInfoTab(
-                      context, padding, fontSize, isSmallScreen),
-                ],
+                ),
               );
-            },
-          );
-        },
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
+              );
+            } else if (state.errorMessage != null && !state.isLoading) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: Colors.red,
+                  content: Text(
+                    state.errorMessage!,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            return OrientationBuilder(
+              builder: (context, orientation) {
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = MediaQuery.of(context).size;
+                    final isSmallScreen =
+                        size.width < AppConstants.smallScreenBreakpoint;
+                    final isLargeScreen =
+                        size.width >= AppConstants.largeScreenBreakpoint;
+                    final isLandscape = orientation == Orientation.landscape;
+
+                    // Responsive font size (clamped between 12 and 24)
+                    final fontSize = (size.width * AppConstants.fontScale)
+                            .clamp(12.0, 24.0) *
+                        (isSmallScreen ? 0.9 : 1.0);
+
+                    // Responsive padding (clamped between 8 and 32)
+                    final padding = (size.width * 0.04).clamp(8.0, 32.0);
+
+                    // Responsive button size
+                    final buttonWidth =
+                        isSmallScreen ? size.width * 0.4 : size.width * 0.3;
+                    final buttonHeight = fontSize * 2.5;
+
+                    if (state.isLoading) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.lightBlueAccent),
+                        ),
+                      );
+                    }
+                    if (state.errorMessage != null) {
+                      return Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: size.width * 0.8,
+                            maxHeight: size.height * 0.4,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                state.errorMessage!,
+                                textAlign: TextAlign.center, // ✅ Move here
+                                style: TextStyle(
+                                  fontSize: fontSize,
+                                  color: Colors.red,
+                                ),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: padding),
+                              ElevatedButton(
+                                onPressed: () => context
+                                    .read<ProfileUpdateBloc>()
+                                    .add(FetchUser()),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: Size(buttonWidth, buttonHeight),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: padding,
+                                    vertical: padding * 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Retry',
+                                  style: TextStyle(fontSize: fontSize * 0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    return TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildPersonalInfoTab(
+                          context,
+                          padding,
+                          fontSize,
+                          isSmallScreen,
+                          isLargeScreen,
+                          isLandscape,
+                        ),
+                        _buildAdditionalInfoTab(
+                          context,
+                          padding,
+                          fontSize,
+                          isSmallScreen,
+                          isLargeScreen,
+                          isLandscape,
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final fontSize = size.width * 0.04;
+    final fontSize = (size.width * 0.04).clamp(14.0, 20.0);
 
     return AppBar(
       title: Text(
         'Profile Details',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: fontSize,
+        ),
       ),
-      actions: [AppBarActionName(fontSize: fontSize * 0.8)],
+      actions: [
+        AppBarActionName(fontSize: fontSize * 0.8),
+      ],
       centerTitle: true,
       backgroundColor: Colors.lightBlueAccent,
-      bottom: TabBar(
-        controller: _tabController,
-        indicatorColor: Colors.white,
-        labelColor: Colors.black,
-        unselectedLabelColor: Colors.white70,
-        tabs: const [
-          Tab(text: 'Personal Information'),
-          Tab(text: 'Additional Information'),
-        ],
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(fontSize * 3),
+        child: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.black,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: TextStyle(fontSize: fontSize * 0.8),
+          tabs: const [
+            Tab(text: 'Personal Information'),
+            Tab(text: 'Additional Information'),
+          ],
+        ),
       ),
     );
   }
@@ -240,8 +307,14 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
   }
 
-  Widget _buildPersonalInfoTab(BuildContext context, double padding,
-      double fontSize, bool isSmallScreen) {
+  Widget _buildPersonalInfoTab(
+    BuildContext context,
+    double padding,
+    double fontSize,
+    bool isSmallScreen,
+    bool isLargeScreen,
+    bool isLandscape,
+  ) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(padding),
       child: Form(
@@ -291,14 +364,24 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
                 onPressed: () => _saveProfile(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.lightBlueAccent,
+                  minimumSize: Size(
+                    isSmallScreen ? 150 : 200,
+                    fontSize * 2.5,
+                  ),
                   padding: EdgeInsets.symmetric(
                     horizontal: padding * 2,
                     vertical: padding,
                   ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: Text(
                   'Save',
-                  style: TextStyle(fontSize: fontSize, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: fontSize * 0.9,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -308,8 +391,67 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
     );
   }
 
-  Widget _buildAdditionalInfoTab(BuildContext context, double padding,
-      double fontSize, bool isSmallScreen) {
+  Widget _buildAdditionalInfoTab(
+    BuildContext context,
+    double padding,
+    double fontSize,
+    bool isSmallScreen,
+    bool isLargeScreen,
+    bool isLandscape,
+  ) {
+    final textFields = [
+      _buildTextField(
+        controller: _koumoku1Controller,
+        label: 'Koumoku 1',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku2Controller,
+        label: 'Koumoku 2',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku3Controller,
+        label: 'Koumoku 3',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku4Controller,
+        label: 'Koumoku 4',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku5Controller,
+        label: 'Koumoku 5',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku6Controller,
+        label: 'Koumoku 6',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku7Controller,
+        label: 'Koumoku 7',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku8Controller,
+        label: 'Koumoku 8',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku9Controller,
+        label: 'Koumoku 9',
+        fontSize: fontSize,
+      ),
+      _buildTextField(
+        controller: _koumoku10Controller,
+        label: 'Koumoku 10',
+        fontSize: fontSize,
+      ),
+    ];
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(padding),
       child: Form(
@@ -317,79 +459,54 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTextField(
-              controller: _koumoku1Controller,
-              label: 'Koumoku 1',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku2Controller,
-              label: 'Koumoku 2',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku3Controller,
-              label: 'Koumoku 3',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku4Controller,
-              label: 'Koumoku 4',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku5Controller,
-              label: 'Koumoku 5',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku6Controller,
-              label: 'Koumoku 6',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku7Controller,
-              label: 'Koumoku 7',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku8Controller,
-              label: 'Koumoku 8',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku9Controller,
-              label: 'Koumoku 9',
-              fontSize: fontSize,
-            ),
-            SizedBox(height: padding),
-            _buildTextField(
-              controller: _koumoku10Controller,
-              label: 'Koumoku 10',
-              fontSize: fontSize,
-            ),
+            if (isLargeScreen || isLandscape)
+              GridView.count(
+                crossAxisCount: isLargeScreen ? 3 : 2,
+                crossAxisSpacing: padding,
+                mainAxisSpacing: padding,
+                childAspectRatio: isLargeScreen ? 4 : 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: textFields,
+              )
+            else
+              Column(
+                children: textFields
+                    .asMap()
+                    .entries
+                    .map((entry) => Padding(
+                          padding: EdgeInsets.only(
+                              bottom: entry.key < textFields.length - 1
+                                  ? padding
+                                  : 0),
+                          child: entry.value,
+                        ))
+                    .toList(),
+              ),
             SizedBox(height: padding * 2),
             Center(
               child: ElevatedButton(
                 onPressed: () => _saveProfile(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.lightBlueAccent,
+                  minimumSize: Size(
+                    isSmallScreen ? 150 : 200,
+                    fontSize * 2.5,
+                  ),
                   padding: EdgeInsets.symmetric(
                     horizontal: padding * 2,
                     vertical: padding,
                   ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: Text(
                   'Save',
-                  style: TextStyle(fontSize: fontSize, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: fontSize * 0.9,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -415,15 +532,25 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: fontSize * 0.8,
-          vertical: fontSize * 0.6,
+          vertical: fontSize * 0.8,
         ),
       ),
       style: TextStyle(fontSize: fontSize * 0.9),
       obscureText: obscureText,
       keyboardType: keyboardType,
       validator: validator,
+      minLines: 1,
+      maxLines: 1,
     );
   }
 
@@ -435,21 +562,28 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
   }) {
     return TextFormField(
       controller: controller,
-      readOnly: true, // prevent manual input
-      decoration: InputDecoration(labelText: label),
-      style: TextStyle(fontSize: fontSize),
+      readOnly: true,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(fontSize: fontSize * 0.9),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: fontSize * 0.8,
+          vertical: fontSize * 0.8,
+        ),
+      ),
+      style: TextStyle(fontSize: fontSize * 0.9),
       onTap: () async {
-        DateTime? pickedDate = await showDatePicker(
+        final pickedDate = await showDatePicker(
           context: context,
           initialDate: DateTime.now(),
           firstDate: DateTime(1900),
           lastDate: DateTime.now(),
         );
-
         if (pickedDate != null) {
-          String formattedDate =
-              "${pickedDate.toIso8601String().split('T').first}";
-          controller.text = formattedDate;
+          controller.text = "${pickedDate.toIso8601String().split('T').first}";
         }
       },
     );
@@ -477,8 +611,8 @@ class _ProfileUpdateViewState extends State<_ProfileUpdateView>
     final state = context.read<ProfileUpdateBloc>().state;
     if (state.user == null) return;
 
-    bool isPersonalValid = _formKeyPersonal.currentState?.validate() ?? false;
-    bool isAdditionalValid =
+    final isPersonalValid = _formKeyPersonal.currentState?.validate() ?? false;
+    final isAdditionalValid =
         _formKeyAdditional.currentState?.validate() ?? false;
 
     if (isPersonalValid || isAdditionalValid) {
