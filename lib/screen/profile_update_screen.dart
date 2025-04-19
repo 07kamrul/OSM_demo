@@ -1,28 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:gis_osm/common/user_storage.dart';
+import 'package:gis_osm/bloc/auth/auth_bloc.dart';
+import 'package:gis_osm/bloc/auth/auth_event.dart';
+import 'package:gis_osm/bloc/profile_update/profile_update_bloc.dart';
+import 'package:gis_osm/bloc/profile_update/profile_update_event.dart';
+import 'package:gis_osm/bloc/profile_update/profile_update_state.dart';
 import 'package:gis_osm/data/models/user.dart';
 import 'package:gis_osm/enum.dart';
+import 'package:gis_osm/screen/auth_screen.dart';
+import 'package:gis_osm/screen/change_password_screen.dart';
+import 'package:gis_osm/screen/distance_tracker_screen.dart';
+import 'package:gis_osm/screen/message_screens/chat_box_screen.dart';
 import 'package:gis_osm/screen/sidebar.dart';
 import 'package:gis_osm/screen/user_list_screen.dart';
 import 'package:gis_osm/services/user_service.dart';
+import 'package:gis_osm/widgets/app_bar_action_name.dart';
 
-import '../bloc/auth/auth_bloc.dart';
-import '../bloc/auth/auth_event.dart';
-import '../widgets/app_bar_action_name.dart';
-import 'auth_screen.dart';
-import 'change_password_screen.dart';
-import 'distance_tracker_screen.dart';
-import 'message_screens/chat_box_screen.dart';
-
-class ProfileUpdateScreen extends StatefulWidget {
+class ProfileUpdateScreen extends StatelessWidget {
   const ProfileUpdateScreen({super.key});
 
   @override
-  State<ProfileUpdateScreen> createState() => _ProfileUpdateScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ProfileUpdateBloc(
+        userService: UserService(),
+      )..add(FetchUser()),
+      child: const _ProfileUpdateView(),
+    );
+  }
 }
 
-class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
+class _ProfileUpdateView extends StatefulWidget {
+  const _ProfileUpdateView();
+
+  @override
+  State<_ProfileUpdateView> createState() => _ProfileUpdateViewState();
+}
+
+class _ProfileUpdateViewState extends State<_ProfileUpdateView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKeyPersonal = GlobalKey<FormState>();
@@ -47,60 +62,29 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
   late TextEditingController _koumoku9Controller;
   late TextEditingController _koumoku10Controller;
 
-  User? _user;
-  bool _isLoading = true;
-  String? _errorMessage;
-  int? _userId;
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchUserData();
+    _initializeControllers();
   }
 
-  Future<void> _fetchUserData() async {
-    try {
-      final userId = await UserStorage.getUserId();
-      if (userId == null) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'User ID not found in cache';
-        });
-        return;
-      }
-      final userService = UserService();
-      final user = await userService.fetchUser();
-      setState(() {
-        _user = user;
-        _userId = userId;
-        _isLoading = false;
-        _initializeControllers(user);
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to fetch user: $e';
-      });
-    }
-  }
-
-  void _initializeControllers(User user) {
-    _fullnameController = TextEditingController(text: user.fullname);
-    _firstnameController = TextEditingController(text: user.firstname);
-    _lastnameController = TextEditingController(text: user.lastname);
-    _genderController = TextEditingController(text: user.gender);
-    _dobController = TextEditingController(text: user.dob);
-    _koumoku1Controller = TextEditingController(text: user.koumoku1);
-    _koumoku2Controller = TextEditingController(text: user.koumoku2);
-    _koumoku3Controller = TextEditingController(text: user.koumoku3);
-    _koumoku4Controller = TextEditingController(text: user.koumoku4);
-    _koumoku5Controller = TextEditingController(text: user.koumoku5);
-    _koumoku6Controller = TextEditingController(text: user.koumoku6);
-    _koumoku7Controller = TextEditingController(text: user.koumoku7);
-    _koumoku8Controller = TextEditingController(text: user.koumoku8);
-    _koumoku9Controller = TextEditingController(text: user.koumoku9);
-    _koumoku10Controller = TextEditingController(text: user.koumoku10);
+  void _initializeControllers() {
+    _fullnameController = TextEditingController();
+    _firstnameController = TextEditingController();
+    _lastnameController = TextEditingController();
+    _genderController = TextEditingController();
+    _dobController = TextEditingController();
+    _koumoku1Controller = TextEditingController();
+    _koumoku2Controller = TextEditingController();
+    _koumoku3Controller = TextEditingController();
+    _koumoku4Controller = TextEditingController();
+    _koumoku5Controller = TextEditingController();
+    _koumoku6Controller = TextEditingController();
+    _koumoku7Controller = TextEditingController();
+    _koumoku8Controller = TextEditingController();
+    _koumoku9Controller = TextEditingController();
+    _koumoku10Controller = TextEditingController();
   }
 
   @override
@@ -129,42 +113,81 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
     return Scaffold(
       appBar: _buildAppBar(context),
       drawer: _buildDrawer(context),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final size = MediaQuery.of(context).size;
-          final isSmallScreen = size.width < AppConstants.smallScreenBreakpoint;
-          final padding = size.width * AppConstants.paddingScale;
-          final fontSize = size.width *
-              AppConstants.listItemFontScale *
-              (isSmallScreen ? 0.9 : 1.0);
-
-          if (_isLoading) {
-            return const Center(child: CircularProgressIndicator());
+      body: BlocConsumer<ProfileUpdateBloc, ProfileUpdateState>(
+        listener: (context, state) {
+          if (state.user != null) {
+            _updateControllers(state.user!);
           }
-          if (_errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(_errorMessage!,
-                      style: TextStyle(fontSize: fontSize, color: Colors.red)),
-                  SizedBox(height: padding),
-                  ElevatedButton(
-                    onPressed: _fetchUserData,
-                    child: Text('Retry', style: TextStyle(fontSize: fontSize)),
-                  ),
-                ],
+          if (state.updateSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: Colors.green,
+                content: Text(
+                  'Profile updated: ${state.user?.fullname ?? ''}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            );
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
+            );
+          } else if (state.errorMessage != null && !state.isLoading) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: Colors.red,
+                content: Text(
+                  state.errorMessage!,
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             );
           }
+        },
+        builder: (context, state) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final size = MediaQuery.of(context).size;
+              final isSmallScreen =
+                  size.width < AppConstants.smallScreenBreakpoint;
+              final padding = size.width * AppConstants.paddingScale;
+              final fontSize = size.width *
+                  AppConstants.listItemFontScale *
+                  (isSmallScreen ? 0.9 : 1.0);
 
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _buildPersonalInfoTab(context, padding, fontSize, isSmallScreen),
-              _buildAdditionalInfoTab(
-                  context, padding, fontSize, isSmallScreen),
-            ],
+              if (state.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state.errorMessage != null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(state.errorMessage!,
+                          style:
+                              TextStyle(fontSize: fontSize, color: Colors.red)),
+                      SizedBox(height: padding),
+                      ElevatedButton(
+                        onPressed: () =>
+                            context.read<ProfileUpdateBloc>().add(FetchUser()),
+                        child:
+                            Text('Retry', style: TextStyle(fontSize: fontSize)),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildPersonalInfoTab(
+                      context, padding, fontSize, isSmallScreen),
+                  _buildAdditionalInfoTab(
+                      context, padding, fontSize, isSmallScreen),
+                ],
+              );
+            },
           );
         },
       ),
@@ -256,11 +279,11 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
               fontSize: fontSize,
             ),
             SizedBox(height: padding),
-            _buildTextField(
+            _buildDatePickerField(
+              context: context,
               controller: _dobController,
               label: 'Date of Birth (YYYY-MM-DD)',
               fontSize: fontSize,
-              keyboardType: TextInputType.datetime,
             ),
             SizedBox(height: padding * 2),
             Center(
@@ -404,8 +427,55 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
     );
   }
 
-  void _saveProfile(BuildContext context) async {
-    if (_user == null) return;
+  Widget _buildDatePickerField({
+    required BuildContext context,
+    required TextEditingController controller,
+    required String label,
+    required double fontSize,
+  }) {
+    return TextFormField(
+      controller: controller,
+      readOnly: true, // prevent manual input
+      decoration: InputDecoration(labelText: label),
+      style: TextStyle(fontSize: fontSize),
+      onTap: () async {
+        DateTime? pickedDate = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(1900),
+          lastDate: DateTime.now(),
+        );
+
+        if (pickedDate != null) {
+          String formattedDate =
+              "${pickedDate.toIso8601String().split('T').first}";
+          controller.text = formattedDate;
+        }
+      },
+    );
+  }
+
+  void _updateControllers(User user) {
+    _fullnameController.text = user.fullname;
+    _firstnameController.text = user.firstname;
+    _lastnameController.text = user.lastname;
+    _genderController.text = user.gender;
+    _dobController.text = user.dob;
+    _koumoku1Controller.text = user.koumoku1;
+    _koumoku2Controller.text = user.koumoku2;
+    _koumoku3Controller.text = user.koumoku3;
+    _koumoku4Controller.text = user.koumoku4;
+    _koumoku5Controller.text = user.koumoku5;
+    _koumoku6Controller.text = user.koumoku6;
+    _koumoku7Controller.text = user.koumoku7;
+    _koumoku8Controller.text = user.koumoku8;
+    _koumoku9Controller.text = user.koumoku9;
+    _koumoku10Controller.text = user.koumoku10;
+  }
+
+  void _saveProfile(BuildContext context) {
+    final state = context.read<ProfileUpdateBloc>().state;
+    if (state.user == null) return;
 
     bool isPersonalValid = _formKeyPersonal.currentState?.validate() ?? false;
     bool isAdditionalValid =
@@ -413,7 +483,7 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
 
     if (isPersonalValid || isAdditionalValid) {
       final updatedUser = User(
-        id: _user!.id,
+        id: state.user!.id,
         fullname: _fullnameController.text,
         firstname: _firstnameController.text,
         lastname: _lastnameController.text,
@@ -429,39 +499,13 @@ class _ProfileUpdateScreenState extends State<ProfileUpdateScreen>
         koumoku8: _koumoku8Controller.text,
         koumoku9: _koumoku9Controller.text,
         koumoku10: _koumoku10Controller.text,
-        password: _user!.password,
-        status: _user!.status,
-        profile_pic: _user!.profile_pic,
-        email: _user!.email,
+        password: state.user!.password,
+        status: state.user!.status,
+        profile_pic: state.user!.profile_pic,
+        email: state.user!.email,
       );
 
-      try {
-        final userService = UserService();
-        final savedUser = await userService.updateUser(updatedUser);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.green,
-            content: Text(
-              'Profile updated: ${savedUser.fullname}',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => DistanceTrackerScreen()),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              'Failed to update profile: $e',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      }
+      context.read<ProfileUpdateBloc>().add(UpdateUser(updatedUser));
     }
   }
 }
